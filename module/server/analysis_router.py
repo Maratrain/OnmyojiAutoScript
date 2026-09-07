@@ -194,6 +194,8 @@ TASK_NAME_CN = {
     "BudokaiTournament": "武道大会",
     "MartialTournament": "武林大会",
     "Slightly": "小事件",
+    "Chess": "百鬼棋局",
+    "NewbieStory": "新手剧情",
 }
 
 _I18N_LOCK = threading.Lock()

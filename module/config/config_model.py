@@ -82,6 +82,8 @@ from tasks.Secret.config import Secret
 from tasks.WeeklyTrifles.config import WeeklyTrifles
 from tasks.MysteryShop.config import MysteryShop
 from tasks.Duel.config import Duel
+from tasks.Chess.config import Chess
+from tasks.NewbieStory.config import NewbieStory
 # ----------------------------------------------------------------------------------------------------------------------
 
 class ConfigModel(ConfigBase):
@@ -139,6 +141,7 @@ class ConfigModel(ConfigBase):
     hero_test: HeroTest = Field(default_factory=HeroTest)
     find_jade: FindJade = Field(default_factory=FindJade)
     memory_scrolls: MemoryScrolls = Field(default_factory=MemoryScrolls)
+    newbie_story: NewbieStory = Field(default_factory=NewbieStory)
 
     # 这些是每周任务
     true_orochi: TrueOrochi = Field(default_factory=TrueOrochi)
@@ -147,6 +150,7 @@ class ConfigModel(ConfigBase):
     weekly_trifles: WeeklyTrifles = Field(default_factory=WeeklyTrifles)
     mystery_shop: MysteryShop = Field(default_factory=MysteryShop)
     duel: Duel = Field(default_factory=Duel)
+    chess: Chess = Field(default_factory=Chess)
 
     # 阴阳寮
     collective_missions: CollectiveMissions = Field(default_factory=CollectiveMissions)

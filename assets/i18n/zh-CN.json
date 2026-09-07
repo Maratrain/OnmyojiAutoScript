@@ -252,5 +252,9 @@
   "min_run_interval": "最小再运行间隔",
   "min_run_interval_help": "防风控：两次蹭卡运行之间的最小间隔，避免蹭卡过于频繁被服务端标记。设为 0（默认）保持原逻辑（按结界卡剩余时间安排下次）。格式：天 时:分:秒。",
   "costume_main_17": "狐栖归处",
-  "costume_shikigami_12": "拾光之窗"
+  "costume_shikigami_12": "拾光之窗",
+  "Chess": "百鬼棋局",
+  "chess_config": "百鬼棋局配置",
+  "NewbieStory": "新手剧情",
+  "newbie_story_config": "新手剧情配置"
 }

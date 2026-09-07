@@ -1,0 +1,209 @@
+[
+  {
+    "itemName": "select_grigri",
+    "imageName": "c_select_grigri.png",
+    "roiFront": "533,74,218,43",
+    "roiBack": "533,74,218,43",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "选符咒环节"
+  },
+  {
+    "itemName": "chess_start",
+    "imageName": "c_chess_start.png",
+    "roiFront": "1159,595,65,66",
+    "roiBack": "1159,595,65,66",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "use_soul",
+    "imageName": "c_use_soul.png",
+    "roiFront": "1005,144,172,47",
+    "roiBack": "1005,144,172,47",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "select_soul_1",
+    "imageName": "c_select_soul_1.png",
+    "roiFront": "390,326,70,35",
+    "roiBack": "390,326,70,35",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "select_soul_2",
+    "imageName": "c_select_soul_2.png",
+    "roiFront": "605,326,70,35",
+    "roiBack": "605,326,70,35",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "select_soul_3",
+    "imageName": "c_select_soul_3.png",
+    "roiFront": "821,327,70,35",
+    "roiBack": "821,327,70,35",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "entertainment_goto_chess",
+    "imageName": "c_entertainment_goto_chess.png",
+    "roiFront": "304,175,41,127",
+    "roiBack": "304,175,41,127",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "鼬乐园前往百鬼棋局"
+  },
+  {
+    "itemName": "check_chess",
+    "imageName": "c_check_chess.png",
+    "roiFront": "1159,592,66,70",
+    "roiBack": "1159,592,66,70",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "百鬼棋局标志"
+  },
+  {
+    "itemName": "market",
+    "imageName": "c_market.png",
+    "roiFront": "1159,614,89,26",
+    "roiBack": "1159,614,89,26",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "商店"
+  },
+  {
+    "itemName": "experience",
+    "imageName": "c_experience.png",
+    "roiFront": "37,641,102,26",
+    "roiBack": "37,641,102,26",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "购买经验"
+  },
+  {
+    "itemName": "open_lineup",
+    "imageName": "c_open_lineup.png",
+    "roiFront": "264,12,47,44",
+    "roiBack": "264,12,47,44",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "打开阵容预设"
+  },
+  {
+    "itemName": "refresh",
+    "imageName": "c_refresh.png",
+    "roiFront": "1169,419,65,64",
+    "roiBack": "1169,419,65,64",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "商店刷新"
+  },
+  {
+    "itemName": "refresh_not_gold",
+    "imageName": "c_refresh_not_gold.png",
+    "roiFront": "1169,419,65,64",
+    "roiBack": "1169,419,65,64",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "skip",
+    "imageName": "c_skip.png",
+    "roiFront": "1148,39,77,22",
+    "roiBack": "1148,39,77,22",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "shikigami_specifics",
+    "imageName": "c_shikigami_specifics.png",
+    "roiFront": "939,223,310,32",
+    "roiBack": "939,223,310,32",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "check_market",
+    "imageName": "c_check_market.png",
+    "roiFront": "1206,319,35,31",
+    "roiBack": "1206,319,35,31",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "cancel_waiting",
+    "imageName": "c_cancel_waiting.png",
+    "roiFront": "584,597,111,45",
+    "roiBack": "584,597,111,45",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "game_over_1",
+    "imageName": "c_game_over_1.png",
+    "roiFront": "549,401,198,31",
+    "roiBack": "549,401,198,31",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "game_over_2",
+    "imageName": "c_game_over_2.png",
+    "roiFront": "549,401,198,31",
+    "roiBack": "549,401,198,31",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "grigri_gold",
+    "imageName": "c_grigri_gold.png",
+    "roiFront": "584,142,122,40",
+    "roiBack": "584,142,122,40",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "grigri_silver",
+    "imageName": "c_grigri_silver.png",
+    "roiFront": "584,142,122,40",
+    "roiBack": "584,142,122,40",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "grigri_copper",
+    "imageName": "c_grigri_copper.png",
+    "roiFront": "584,142,122,40",
+    "roiBack": "584,142,122,40",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  },
+  {
+    "itemName": "check_goldfish",
+    "imageName": "c_check_goldfish.png",
+    "roiFront": "924,291,192,49",
+    "roiBack": "924,291,192,49",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": ""
+  }
+]
