@@ -54,10 +54,10 @@ class MuMu12Handler(EmulatorHandler):
         exe = getattr(getattr(instance, 'emulator', None), 'path', '')
         console = self.single_to_console(exe) if isinstance(exe, str) else None
         if not console:
-            logger.warning(f'Cannot resolve MuMu control executable from path {exe}')
+            logger.warning(f'[设备-平台] 无法从路径解析 MuMu 控制程序: {exe}')
             return None
         if not os.path.isfile(console):
-            logger.warning(f'MuMu control executable does not exist: {console}')
+            logger.warning(f'[设备-平台] MuMu 控制程序不存在: {console}')
             return None
         return console
 
@@ -102,7 +102,7 @@ class MuMu12Handler(EmulatorHandler):
     def build_start_command(self, instance) -> t.Optional[str]:
         mumu_id = self.get_instance_id(instance)
         if mumu_id is None:
-            logger.warning(f'Cannot get MuMu instance index from name {instance.name}')
+            logger.warning(f'[设备-平台] 无法从名称获取 MuMu 实例序号: {instance.name}')
             return None
         console = self._resolve_console(instance)
         if console is None:
@@ -113,7 +113,7 @@ class MuMu12Handler(EmulatorHandler):
     def build_stop_command(self, instance) -> t.Optional[str]:
         mumu_id = self.get_instance_id(instance)
         if mumu_id is None:
-            logger.warning(f'Cannot get MuMu instance index from name {instance.name}')
+            logger.warning(f'[设备-平台] 无法从名称获取 MuMu 实例序号: {instance.name}')
             return None
         console = self._resolve_console(instance)
         if console is None:

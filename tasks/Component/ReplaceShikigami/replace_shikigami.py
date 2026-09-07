@@ -57,7 +57,7 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                 continue
             if self.appear_then_click(self.I_RS_ALL_SELECTED, interval=5):
                 continue
-        logger.info('Select shikigami class: %s' % shikigami_class)
+        logger.info('[更换式神] 选择式神类别: %s' % shikigami_class)
 
     def unset_shikigami_max_lv(self):
         """
@@ -71,7 +71,7 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                 break
             else:
                 self.appear_then_click(self.I_RS_LEVEL_MAX, interval=0.5)
-        logger.info('Unset all shikigami max lv')
+        logger.info('[更换式神] 已撤下所有满级式神')
 
     def set_shikigami(self, shikigami_order: int = 7, stop_image: RuleImage = None):
         """
@@ -120,7 +120,7 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
             if self.appear_then_click(self.I_U_CIRCLE_ALTERNATE, interval=2.5):
                 self.appear_then_click(self.I_U_CONFIRM_ALTERNATE, interval=1.5)
                 continue
-        logger.info('Set shikigami: %d' % shikigami_order)
+        logger.info('[更换式神] 选择式神: %d' % shikigami_order)
 
     def detect_no_shikigami(self) -> bool:
         self.screenshot()

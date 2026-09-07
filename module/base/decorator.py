@@ -76,7 +76,7 @@ class Config:
 
                     return record['func'](self, *args, **kwargs)
 
-                logger.warning(f'No option fits for {name}, using the last define func.')
+                logger.warning(f'没有适配 {name} 的选项，使用最后定义的函数')
                 return func(self, *args, **kwargs)
 
             return wrapper
@@ -163,7 +163,7 @@ def function_drop(rate=0.5, default=None):
                         arguments.pop(0)
                 arguments += [f'{k}={v}' for k, v in kwargs.items()]
                 arguments = ', '.join(arguments)
-                logger.info(f'Dropped: {cls}{func.__name__}({arguments})')
+                logger.info(f'已丢弃: {cls}{func.__name__}({arguments})')
                 return default
 
         return wrapper

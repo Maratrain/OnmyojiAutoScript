@@ -34,32 +34,32 @@ class ScriptTask(BaseTask):
         raise TaskEnd
 
     def app_stop(self):
-        logger.hr('App stop')
+        logger.hr('停止应用')
         self.device.app_stop()
 
     def app_start(self):
-        logger.hr('App start')
+        logger.hr('启动应用')
         self.device.app_start()
         self.device.wait_app_start_ready()
         LoginService(config=self.config, device=self.device).app_handle_login()
 
     def app_restart(self):
-        logger.hr('App restart')
+        logger.hr('重启应用')
         self.device.app_stop()
         self.app_start()
 
     def recover_app(self):
         if not self.device.app_is_alive():
-            logger.info('Recovery branch: game process not alive and not in foreground -> full restart')
+            logger.info('[重启] 恢复分支: 游戏进程未运行且不在前台 -> 完整重启')
             self.app_restart()
             return
 
         if self.device.app_is_running():
-            logger.info('Recovery branch: game process alive and in foreground -> full restart')
+            logger.info('[重启] 恢复分支: 游戏进程运行中且在前台 -> 完整重启')
             self.app_restart()
             return
 
-        logger.info('Recovery branch: game process alive but in background -> bring to foreground')
+        logger.info('[重启] 恢复分支: 游戏进程运行中但在后台 -> 切换到前台')
         self.app_start()
 
     def finish_recovery(self):

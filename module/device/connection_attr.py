@@ -28,7 +28,7 @@ class ConnectionAttr:
         Args:
             config (AzurLaneConfig, str): Name of the user config under ./config
         """
-        logger.hr('Device', level=1)
+        logger.hr('设备', level=1)
         if isinstance(config, str):
             self.config = Config(config, task=None)
         else:
@@ -76,15 +76,15 @@ class ConnectionAttr:
         # Chinese colon
         if '：' in self.serial:
             self.serial = self.serial.replace('：', ':')
-            logger.warning(f'Serial {self.config.Emulator_Serial} is revised to {self.serial}')
+            logger.warning(f'[设备-连接] 序列号 {self.config.Emulator_Serial} 已修正为 {self.serial}')
             self.config.Emulator_Serial = self.serial
         if self.is_bluestacks4_hyperv:
             self.serial = self.find_bluestacks4_hyperv(self.serial)
         if self.is_bluestacks5_hyperv:
             self.serial = self.find_bluestacks5_hyperv(self.serial)
         if "127.0.0.1:58526" in self.serial:
-            logger.warning('Serial 127.0.0.1:58526 seems to be WSA, '
-                           'please use "wsa-0" or others instead')
+            logger.warning('[设备-连接] 序列号 127.0.0.1:58526 疑似 WSA，'
+                           '请改用 "wsa-0" 等')
             raise RequestHumanTakeover
         if self.is_wsa:
             self.serial = '127.0.0.1:58526'
@@ -97,9 +97,9 @@ class ConnectionAttr:
             if self.config.script.device.screenshot_method not in ["ADB", "uiautomator2", "aScreenCap"] \
                     or self.config.script.device.control_method not in ["ADB", "uiautomator2", "minitouch"]:
                 logger.warning(
-                    f'When connecting to a device over http: {self.serial} '
-                    f'ScreenshotMethod can only use ["ADB", "uiautomator2", "aScreenCap"], '
-                    f'ControlMethod can only use ["ADB", "uiautomator2", "minitouch"]'
+                    f'[设备-连接] 通过 http 连接设备: {self.serial} 时，'
+                    f'截图方式只能使用 ["ADB", "uiautomator2", "aScreenCap"]，'
+                    f'控制方式只能使用 ["ADB", "uiautomator2", "minitouch"]'
                 )
                 raise RequestHumanTakeover
 
@@ -154,8 +154,8 @@ class ConnectionAttr:
         """
         from winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx
 
-        logger.info("Use BlueStacks4 Hyper-V Beta")
-        logger.info("Reading Realtime adb port")
+        logger.info("[设备-连接] 使用 BlueStacks4 Hyper-V Beta")
+        logger.info("[设备-连接] 正在读取实时 ADB 端口")
 
         if serial == "bluestacks4-hyperv":
             folder_name = "Android"
@@ -167,12 +167,12 @@ class ConnectionAttr:
                          rf"SOFTWARE\BlueStacks_bgp64_hyperv\Guests\{folder_name}\Config") as key:
                 port = QueryValueEx(key, "BstAdbPort")[0]
         except FileNotFoundError:
-            logger.error(rf'Unable to find registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests\{folder_name}\Config')
-            logger.error('Please confirm that your are using BlueStack 4 hyper-v and not regular BlueStacks 4')
-            logger.error(r'Please check if there is any other emulator instances under '
-                         r'registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests')
+            logger.error(rf'[设备-连接] 未找到注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests\{folder_name}\Config')
+            logger.error('[设备-连接] 请确认使用的是 BlueStacks 4 hyper-v 而非普通 BlueStacks 4')
+            logger.error(r'[设备-连接] 请检查注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests 下'
+                         r'是否存在其他模拟器实例')
             raise RequestHumanTakeover
-        logger.info(f"New adb port: {port}")
+        logger.info(f"[设备-连接] 新 ADB 端口: {port}")
         return f"127.0.0.1:{port}"
 
     @staticmethod
@@ -188,8 +188,8 @@ class ConnectionAttr:
         """
         from winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx
 
-        logger.info("Use BlueStacks5 Hyper-V")
-        logger.info("Reading Realtime adb port")
+        logger.info("[设备-连接] 使用 BlueStacks5 Hyper-V")
+        logger.info("[设备-连接] 正在读取实时 ADB 端口")
 
         if serial == "bluestacks5-hyperv":
             parameter_name = r"bst\.instance\.(Nougat64|Pie64)\.status\.adb_port"
@@ -204,20 +204,20 @@ class ConnectionAttr:
                 with OpenKey(HKEY_LOCAL_MACHINE, r"SOFTWARE\BlueStacks_nxt_cn") as key:
                     directory = QueryValueEx(key, 'UserDefinedDir')[0]
             except FileNotFoundError:
-                logger.error('Unable to find registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt '
-                             'or HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt_cn')
-                logger.error('Please confirm that you are using BlueStacks 5 hyper-v and not regular BlueStacks 5')
+                logger.error('[设备-连接] 未找到注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt '
+                             '或 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt_cn')
+                logger.error('[设备-连接] 请确认使用的是 BlueStacks 5 hyper-v 而非普通 BlueStacks 5')
                 raise RequestHumanTakeover
-        logger.info(f"Configuration file directory: {directory}")
+        logger.info(f"[设备-连接] 配置文件目录: {directory}")
 
         with open(os.path.join(directory, 'bluestacks.conf'), encoding='utf-8') as f:
             content = f.read()
         port = re.search(rf'{parameter_name}="(\d+)"', content)
         if port is None:
-            logger.warning(f"Did not match the result: {serial}.")
+            logger.warning(f"[设备-连接] 未匹配到结果: {serial}")
             raise RequestHumanTakeover
         port = port.group(2)
-        logger.info(f"Match to dynamic port: {port}")
+        logger.info(f"[设备-连接] 匹配到动态端口: {port}")
         return f"127.0.0.1:{port}"
 
     @cached_property
@@ -256,7 +256,7 @@ class ConnectionAttr:
             try:
                 port = int(env)
             except ValueError:
-                logger.warning(f'Invalid environ variable ANDROID_ADB_SERVER_PORT={port}, using default port')
+                logger.warning(f'[设备-连接] 环境变量 ANDROID_ADB_SERVER_PORT={port} 无效，使用默认端口')
 
         logger.attr('AdbClient', f'AdbClient({host}, {port})')
         return AdbClient(host, port)

@@ -369,7 +369,7 @@ class AnnotatorSession:
             if image.path.exists():
                 image.path.unlink()
         except Exception:
-            logger.warning(f"[annotator] remove image file failed: {image.path}")
+            logger.warning(f"[标注工具] 删除图片文件失败：{image.path}")
         return True
 
     def remove_images(self, image_ids: list[str]) -> int:
@@ -418,7 +418,7 @@ class AnnotatorManager:
             try:
                 self._cleanup_expired_sessions(force=True)
             except Exception:
-                logger.exception("[annotator] cleanup loop failed")
+                logger.exception("[标注工具] 会话清理循环异常")
 
     def _cleanup_expired_sessions(self, force: bool = False) -> None:
         now = time.time()
@@ -460,12 +460,12 @@ class AnnotatorManager:
 
         if not target.is_dir():
             logger.warning(
-                f"[annotator] skip non-dir session cleanup, session={session_id}, reason={reason}, target={target}"
+                f"[标注工具] 跳过非目录会话清理，session={session_id}, reason={reason}, target={target}"
             )
             return False
 
         shutil.rmtree(target)
-        logger.info(f"[annotator] session dir removed, session={session_id}, reason={reason}, dir={target}")
+        logger.info(f"[标注工具] 会话目录已删除，session={session_id}, reason={reason}, dir={target}")
         return True
 
     def _cleanup_session_dir(self, session: AnnotatorSession, reason: str) -> bool:
@@ -484,7 +484,7 @@ class AnnotatorManager:
                     removed += 1
             except Exception:
                 logger.exception(
-                    f"[annotator] foreign session dir cleanup failed, session={target.name}, reason={reason}"
+                    f"[标注工具] 清理外部会话目录失败，session={target.name}, reason={reason}"
                 )
         return removed
 
@@ -502,13 +502,13 @@ class AnnotatorManager:
                 existing.shutdown()
             except Exception:
                 logger.exception(
-                    f"[annotator] old session shutdown failed, session={session_id}, reason={reason}"
+                    f"[标注工具] 旧会话关闭失败，session={session_id}, reason={reason}"
                 )
             try:
                 self._cleanup_session_dir(existing, reason)
             except Exception:
                 logger.exception(
-                    f"[annotator] old session dir cleanup failed, session={session_id}, reason={reason}"
+                    f"[标注工具] 旧会话目录清理失败，session={session_id}, reason={reason}"
                 )
         return len(replaced_sessions)
 
@@ -532,10 +532,10 @@ class AnnotatorManager:
         try:
             dir_removed = self._cleanup_session_dir(session, reason)
         except Exception:
-            logger.exception(f"[annotator] session dir cleanup failed, session={session_id}, reason={reason}")
+            logger.exception(f"[标注工具] 会话目录清理失败，session={session_id}, reason={reason}")
 
         logger.info(
-            f"[annotator] session closed, session={session_id}, reason={reason}, dir_removed={dir_removed}"
+            f"[标注工具] 会话已关闭，session={session_id}, reason={reason}, dir_removed={dir_removed}"
         )
         return {
             "session_id": session_id,
@@ -556,7 +556,7 @@ class AnnotatorManager:
                 reason=f"create_session:{session_id}",
             )
         logger.info(
-            f"[annotator] session created, session={session_id}, "
+            f"[标注工具] 会话已创建，session={session_id}, "
             f"replaced_sessions={replaced_count}, removed_other_dirs={orphan_removed}"
         )
         return session.snapshot()
@@ -607,7 +607,7 @@ class AnnotatorManager:
             results.append(image.to_dict(session_id))
         if not results:
             raise AnnotatorError("empty_upload", "未上传有效图片", 400)
-        logger.info(f"[annotator] upload images, session={session_id}, count={len(results)}")
+        logger.info(f"[标注工具] 已上传图片，session={session_id}, count={len(results)}")
         return results
 
     def list_images(self, session_id: str) -> list[dict[str, Any]]:
@@ -626,7 +626,7 @@ class AnnotatorManager:
         removed = session.remove_image(image_id)
         if not removed:
             raise AnnotatorError("image_not_found", f"图片不存在: {image_id}", 404)
-        logger.info(f"[annotator] image removed, session={session_id}, image={image_id}")
+        logger.info(f"[标注工具] 图片已删除，session={session_id}, image={image_id}")
         return session.snapshot()
 
     def delete_images(self, session_id: str, image_ids: list[str]) -> dict[str, Any]:
@@ -634,13 +634,13 @@ class AnnotatorManager:
             raise AnnotatorError("empty_image_ids", "image_ids 不能为空", 400)
         session = self._get_session(session_id)
         removed = session.remove_images(image_ids)
-        logger.info(f"[annotator] images removed, session={session_id}, removed={removed}")
+        logger.info(f"[标注工具] 已批量删除图片，session={session_id}, removed={removed}")
         return {"removed_count": removed, "session": session.snapshot()}
 
     def clear_images(self, session_id: str) -> dict[str, Any]:
         session = self._get_session(session_id)
         removed = session.clear_images()
-        logger.info(f"[annotator] images cleared, session={session_id}, removed={removed}")
+        logger.info(f"[标注工具] 已清空图片，session={session_id}, removed={removed}")
         return {"removed_count": removed, "session": session.snapshot()}
 
     @staticmethod
@@ -667,14 +667,14 @@ class AnnotatorManager:
             raise AnnotatorError("invalid_config", f"配置不存在: {config_name}", 400)
         applied_rate = session.capture_session.start(config_name, frame_rate)
         logger.info(
-            f"[annotator] emulator start, session={session_id}, config={config_name}, frame_rate={applied_rate}"
+            f"[标注工具] 模拟器采集已启动，session={session_id}, config={config_name}, frame_rate={applied_rate}"
         )
         return session.capture_session.status()
 
     def stop_emulator(self, session_id: str) -> dict[str, Any]:
         session = self._get_session(session_id)
         session.capture_session.stop(clear_error=True)
-        logger.info(f"[annotator] emulator stop, session={session_id}")
+        logger.info(f"[标注工具] 模拟器采集已停止，session={session_id}")
         return session.capture_session.status()
 
     def emulator_status(self, session_id: str) -> dict[str, Any]:
@@ -690,7 +690,7 @@ class AnnotatorManager:
         target = session.capture_dir / f"capture_{int(time.time() * 1000)}.png"
         session.capture_session.capture_latest_frame(target)
         image = session.add_image(target, "capture", target.name)
-        logger.info(f"[annotator] capture frame, session={session_id}, target={target}")
+        logger.info(f"[标注工具] 已保存模拟器截图，session={session_id}, target={target}")
         return image.to_dict(session_id)
 
     @staticmethod
@@ -1168,7 +1168,7 @@ class AnnotatorManager:
             removed = True
 
         logger.info(
-            f"[annotator] delete rule image, task={task_name}, target={target}, removed={removed}"
+            f"[标注工具] 已删除规则图片，task={task_name}, target={target}, removed={removed}"
         )
 
         return {
@@ -1400,12 +1400,12 @@ class AnnotatorManager:
             generate_status = "failed"
             generate_error = str(e)
             logger.exception(
-                f"[annotator] assets generate failed, session={session_id}, task={task_name}, "
+                f"[标注工具] assets 生成失败，session={session_id}, task={task_name}, "
                 f"target={target_json}, extract_root={extract_root}"
             )
 
         logger.info(
-            f"[annotator] save rules, session={session_id}, task={task_name}, target={target_json}, "
+            f"[标注工具] 已保存规则，session={session_id}, task={task_name}, target={target_json}, "
             f"rule_type={rule_type}, save_status={save_status}, generate_status={generate_status}, "
             f"assets_file={assets_file or 'n/a'}"
         )
@@ -1472,7 +1472,7 @@ class AnnotatorManager:
             raise AnnotatorError("save_image_failed", "保存裁剪图片失败", 500)
 
         logger.info(
-            f"[annotator] save crop image, session={session_id}, image={image_id}, target={target_image}, roi={roi_text}"
+            f"[标注工具] 已保存裁剪图片，session={session_id}, image={image_id}, target={target_image}, roi={roi_text}"
         )
 
         return {

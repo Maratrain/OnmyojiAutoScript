@@ -82,7 +82,7 @@ def possible_reasons(*args):
     """
     for index, reason in enumerate(args):
         index += 1
-        logger.critical(f'Possible reason #{index}: {reason}')
+        logger.critical(f'可能的原因 #{index}: {reason}')
 
 
 class PackageNotInstalled(Exception):
@@ -158,9 +158,9 @@ def handle_adb_error(e):
         # AdbError()
         logger.exception(e)
         possible_reasons(
-            'If you are using BlueStacks or LD player or WSA, please enable ADB in the settings of your emulator',
-            'Emulator died, please restart emulator',
-            'Serial incorrect, no such device exists or emulator is not running'
+            '如果你正在使用 BlueStacks、雷电模拟器或 WSA，请在模拟器设置中开启 ADB',
+            '模拟器已崩溃，请重启模拟器',
+            '序列号不正确，设备不存在或模拟器未运行'
         )
         return False
 

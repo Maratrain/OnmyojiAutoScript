@@ -31,7 +31,7 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         page_result = self.navigator.resolve_page(page_battle_result)
         if page_result is None:
             return
-        logger.info('Update page_battle_result')
+        logger.info('更新战斗结算页面')
         page_result.recognizer = any_of(self.I_BCMJ_SKILL_ADD_CONFIRM, page_result.recognizer)
 
     def _handle_result(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
@@ -76,10 +76,10 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         self.check_and_lock_team()
         while True:
             if self.limit_time is not None and self.limit_time + self.start_time < datetime.now():
-                logger.info("Time out")
+                logger.info("已超过限定时间")
                 break
             if self.current_count >= self.limit_count:
-                logger.info("Count out")
+                logger.info("已达到次数上限")
                 break
             self.goto_page(self.page_hero_mode)
             if not self.can_run(self.conf.herotest.layer):
@@ -87,7 +87,7 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             if not self.enter_battle():
                 break
             if self.run_general_battle(config=self.conf.general_battle):
-                logger.info("General battle success")
+                logger.info("战斗成功")
         self.close_exp_buff()
         self.set_next_run(task="HeroTest", success=self.success)
         raise TaskEnd
@@ -96,7 +96,7 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         """进入战斗
         :return: True:进入成功 False:进入失败
         """
-        logger.info("Click battle")
+        logger.info("点击挑战")
         click_cnt, max_click = 0, random.randint(3, 4)
         while True:
             self.screenshot()
@@ -109,13 +109,13 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             if self.appear_then_click(self.I_BCMJ_RESET_CONFIRM, interval=1):  # 兵藏秘境确认重置
                 continue
             if self.appear(self.I_REAL_MONEY, interval=1):  # 这里因为门票不够而不是其他异常所以success默认还是true
-                logger.warning('Ticket is not enough')
+                logger.warning('门票不足')
                 return False
             if self.appear_then_click(self.O_FIRE, interval=1.2):  # 挑战按钮
                 self.device.stuck_record_clear()
                 click_cnt += 1
                 continue
-        logger.error('Battle cannot enter, maybe recognize failed')
+        logger.error('无法进入战斗，可能识别失败')
         self.success = False  # 进入失败且不知道发生了什么情况
         return False
 
@@ -194,21 +194,21 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         self.screenshot()
         cu = self.O_ART_WAR_CARD.ocr(image=self.device.image)
         if cu[0] >= 1:
-            logger.info("Art war card is enough")
+            logger.info("门票充足")
             return True
         cu = self.O_ART_WAR_CARD_PLUS.ocr(image=self.device.image)
         cu = 0 if cu == '' else int(cu)
         if cu >= 1:
-            logger.info("Art war card is not enough, but plus card is enough")
+            logger.info("门票不足，但备用门票充足")
             return True
-        logger.warning("Art war card is not enough")
+        logger.warning("门票不足")
         return False
 
     def check_level_max(self):
         """检查御灵等级是否已经满级"""
         self.screenshot()
         if self.appear(self.I_HERO_EXP_MAX):
-            logger.info('Experience is already maxed out, exit battle')
+            logger.info('经验已满，退出战斗')
             return False
         return True
 
@@ -256,10 +256,10 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             case _:
                 raise ValueError(f'Unknown layer on lock: {self.conf.herotest.layer}')
         if self.conf.general_battle.lock_team_enable:
-            logger.info("Lock team")
+            logger.info("锁定队伍")
             self.ui_click(unlock_img, lock_img, interval=0.8)
         else:
-            logger.info("Unlock team")
+            logger.info("解锁队伍")
             self.ui_click(lock_img, unlock_img, interval=0.8)
 
     def init_pages(self):

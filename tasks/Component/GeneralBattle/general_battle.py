@@ -513,7 +513,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             self._reset_prepare_click_timer(context)
             return True
         if not context.prepare_click_timer.started():
-            logger.info(f"Lock team enabled, click prepare later")
+            logger.info(f"[通用战斗] 已启用锁队，稍后点击准备")
             context.prepare_click_timer.start()
             return False
         return context.prepare_click_timer.reached()
@@ -528,7 +528,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if not self.appear(hand_marker):
             return
 
-        logger.info("Timed inspection hit: recover battle auto mode")
+        logger.info("[通用战斗] 定时巡检触发：恢复战斗自动模式")
         self.ui_click(hand_marker, auto_marker, interval=0.8)
 
     def _tick_long_battle(self, context: BattleContext) -> None:
@@ -541,7 +541,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             None: 需要刷新时原地重置底层长等待状态。
         """
         if context.long_refresh_timer.reached():
-            logger.info("Refresh long battle stuck timer")
+            logger.info("[通用战斗] 刷新长战斗卡死保护计时")
             self.device.stuck_record_clear()
             self.device.stuck_record_add("BATTLE_STATUS_S")
             context.long_refresh_timer.reset()
@@ -560,7 +560,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if page not in {page_battle_prepare, page_battle}:
             return
         if context.last_page not in {page_battle_prepare, page_battle}:
-            logger.info("Arm battle stuck guard")
+            logger.info("[通用战斗] 挂载战斗卡死保护")
             if "BATTLE_STATUS_S" not in self.device.detect_record:
                 self.device.stuck_record_add("BATTLE_STATUS_S")
             context.battle_timer.reset()
@@ -586,7 +586,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if context.last_page not in {page_battle_prepare, page_battle}:
             return
         if context.battle_timer.reached():
-            logger.warning(f"Battle timeout reached: {context.battle_timer.limit}s")
+            logger.warning(f"[通用战斗] 战斗超时: {context.battle_timer.limit}秒")
             context.quick_exit = True
 
     def _in_settlement_stage(self, context: BattleContext, page: Page | None) -> bool:
@@ -709,7 +709,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         # 非连战且设置了退出检测器, 则根据退出检测器检测是否已经退出
         if not config.continuous_battle and exit_matcher is not None and self._evaluate_exit_matcher(exit_matcher):
-            logger.info("Exit matcher hit")
+            logger.info("[通用战斗] 命中退出识别条件")
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE
         # 上个页面还是战斗中的页面但此时是未知界面, 且奖励计时也未开启, 则认为当前是页面抖动继续战斗(式神助战...)
         if context.last_page is None or (context.last_page in {page_battle_prepare, page_battle} and
@@ -736,11 +736,11 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         if 0 < config.max_continuous <= context.continuous_count:
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE
-        logger.hr("General battle start", 2)
+        logger.hr("通用战斗开始", 2)
         next_count = context.continuous_count + 1
         self.current_count += 1
-        logger.info(f"Current count: {self.current_count}")
-        logger.info(f"Continue battle round: {next_count}")
+        logger.info(f"[通用战斗] 当前次数: {self.current_count}")
+        logger.info(f"[通用战斗] 连战轮次: {next_count}")
         self.device.click_record_clear()
         self._reset_round_context(context, config, continuous_count=next_count)
         return BattleAction.CONTINUE
@@ -756,10 +756,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             bool | None: `True/False` 表示战斗结束结果，`None` 表示继续主循环。
         """
         if action == BattleAction.EXIT_WIN:
-            logger.info("Battle result: Win")
+            logger.info("[通用战斗] 战斗结果: 胜利")
             return True
         if action == BattleAction.EXIT_LOSE:
-            logger.info("Battle result: Lose")
+            logger.info("[通用战斗] 战斗结果: 失败")
             return False
         if action == BattleAction.QUICK_EXIT:
             self.device.screenshot_interval_set()
@@ -809,14 +809,14 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         Returns:
             bool: `True` 表示本轮战斗获胜，`False` 表示失败或主动退出。
         """
-        logger.hr("General battle start", 2)
+        logger.hr("通用战斗开始", 2)
         if config is None:
             config = GeneralBattleConfig()
         if not self._custom_pages_registered:
             self._register_custom_pages()
             self._custom_pages_registered = True
         self.current_count += 1
-        logger.info(f"Current count: {self.current_count}")
+        logger.info(f"[通用战斗] 当前次数: {self.current_count}")
         self.device.stuck_record_add("BATTLE_STATUS_S")
         self.device.click_record_clear()
         context = self._build_context(config, buff, battle_key)
@@ -872,7 +872,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             if self.appear_then_click(self.I_EXIT, interval=6):
                 continue
         self.ui_click_until_disappear(self.I_EXIT_ENSURE, interval=0.8)
-        logger.info('Exit battle success')
+        logger.info('[通用战斗] 退出战斗成功')
         return True
 
     def green_mark(self, enable: bool = False, mark_mode: GreenMarkType = GreenMarkType.GREEN_MAIN,
@@ -893,7 +893,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         if not enable:
             return
-        logger.info("Green is enable")
+        logger.info("[通用战斗] 绿标已启用")
         self.device.screenshot_interval_set()
         match green_mark_type:
             case GreenMarkEnum.CHOOSE:
@@ -907,22 +907,22 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         match mark_mode:
             case GreenMarkType.GREEN_LEFT1:
                 x, y = self.C_GREEN_LEFT_1.coord()
-                logger.info("Green left 1")
+                logger.info("[通用战斗] 绿标左1")
             case GreenMarkType.GREEN_LEFT2:
                 x, y = self.C_GREEN_LEFT_2.coord()
-                logger.info("Green left 2")
+                logger.info("[通用战斗] 绿标左2")
             case GreenMarkType.GREEN_LEFT3:
                 x, y = self.C_GREEN_LEFT_3.coord()
-                logger.info("Green left 3")
+                logger.info("[通用战斗] 绿标左3")
             case GreenMarkType.GREEN_LEFT4:
                 x, y = self.C_GREEN_LEFT_4.coord()
-                logger.info("Green left 4")
+                logger.info("[通用战斗] 绿标左4")
             case GreenMarkType.GREEN_LEFT5:
                 x, y = self.C_GREEN_LEFT_5.coord()
-                logger.info("Green left 5")
+                logger.info("[通用战斗] 绿标左5")
             case GreenMarkType.GREEN_MAIN:
                 x, y = self.C_GREEN_MAIN.coord()
-                logger.info("Green main")
+                logger.info("[通用战斗] 绿标阴阳师")
         while True:
             self.screenshot()
             if not self.appear(self.I_PREPARE_HIGHLIGHT):
@@ -933,7 +933,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
 
     def green_mark_name(self, name: str = ''):
         if name == '':
-            logger.warning("Green mark name is empty")
+            logger.warning("[通用战斗] 绿标式神名为空")
             return
         timeout_timer = Timer(6).start()
         best = {'name': '', 'x': -1, 'y': -1, 'similarity': 0.0}
@@ -949,10 +949,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                     y = 720 if y > 720 else y
                     best = {'name': ret.ocr_text, 'x': x, 'y': y, 'similarity': similarity}
             if best['similarity'] > 0.5:
-                logger.info(f'Green name success, text: {best["name"]}[{best["similarity"]:.2f}]')
+                logger.info(f'[通用战斗] 绿标式神名匹配成功, 文本: {best["name"]}[{best["similarity"]:.2f}]')
                 self.device.click(best['x'], best['y'], control_name=best['name'])
                 return
-        logger.warning(f'Green name failed, best text: {best["name"]}[{best["similarity"]:.2f}]')
+        logger.warning(f'[通用战斗] 绿标式神名匹配失败, 最佳文本: {best["name"]}[{best["similarity"]:.2f}]')
 
     def switch_preset_team(self, enable: bool = False, preset_group: int = 1, preset_team: int = 1):
         """
@@ -967,11 +967,11 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             None: 成功时切换到目标预设，失败时保留当前阵容。
         """
         if not enable:
-            logger.info("Preset is disable")
+            logger.info("[通用战斗] 预设未启用")
             return
 
-        logger.info("Preset is enable")
-        timeout_warning = "Switch preset timeout, use current team"
+        logger.info("[通用战斗] 预设已启用")
+        timeout_warning = "[通用战斗] 切换预设超时，使用当前队伍"
 
         wait_preset_timer = Timer(4).start()
         while 1:
@@ -992,14 +992,14 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                 continue
             if self.appear_then_click(self.O_PRESET_FULL, interval=1):
                 continue
-        logger.info("Click preset button")
+        logger.info("[通用战斗] 点击预设按钮")
 
         tmp = self.__getattribute__("C_PRESET_GROUP_" + str(preset_group))
         if tmp is None:
             tmp = self.C_PRESET_GROUP_1
         color_size = [self.C_PRESET_GROUP_1.roi_back[2], self.C_PRESET_GROUP_1.roi_back[3]]
         unselected_color = (224.9, 208.3, 187.4)
-        logger.info("Select preset group")
+        logger.info("[通用战斗] 选择预设分组")
         choose_group_timer = Timer(4).start()
         while True:
             if choose_group_timer.reached():
@@ -1021,7 +1021,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             tmp = self.C_PRESET_TEAM_1
         color_size = [5, 5]
         unselected_color = (216.8, 185.0, 146.8)
-        logger.info("Select preset team")
+        logger.info("[通用战斗] 选择预设队伍")
         choose_team_timer = Timer(4).start()
         while True:
             if choose_team_timer.reached():
@@ -1037,7 +1037,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                 continue
             break
         self.click(tmp)
-        logger.info("Click preset ensure")
+        logger.info("[通用战斗] 点击预设确认")
         wait_ensure_timer = Timer(4).start()
         while 1:
             if wait_ensure_timer.reached():
@@ -1098,7 +1098,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             None: 直接执行锁定状态切换。
         """
         if enable:
-            logger.info("Lock team")
+            logger.info("[通用战斗] 锁定队伍")
             while 1:
                 self.screenshot()
                 if self.appear(lock_image):
@@ -1106,7 +1106,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                 if self.appear_then_click(unlock_image, interval=1):
                     continue
         else:
-            logger.info("Unlock team")
+            logger.info("[通用战斗] 解锁队伍")
             while 1:
                 self.screenshot()
                 if self.appear(unlock_image):
@@ -1126,9 +1126,9 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         if not buff:
             return
-        logger.info(f"Open buff {buff}")
+        logger.info(f"[通用战斗] 打开加成 {buff}")
         if not self.ui_click_until_appear_or_timeout(self.I_BUFF, self.I_CLOUD, interval=2, timeout=5):
-            logger.warning('Cannot open buff, exit')
+            logger.warning('[通用战斗] 无法打开加成界面，退出')
             return
         if isinstance(buff, BuffClass):
             buff = [buff]
@@ -1150,7 +1150,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             func, is_open = match_method[buff_item]
             func(is_open)
             time.sleep(0.1)
-        logger.info("Open buff success")
+        logger.info("[通用战斗] 打开加成成功")
         while 1:
             self.screenshot()
             if not self.appear(self.I_CLOUD):
@@ -1182,7 +1182,7 @@ def run_task_or_default_general_battle(task) -> bool:
     match_page_once = getattr(task, "match_page_once", None)
     navigator = getattr(task, "navigator", None)
     if not callable(match_page_once) or navigator is None:
-        logger.warning("Battle page recognized but no general battle handler is available")
+        logger.warning("[通用战斗] 识别到战斗页面但没有可用的通用战斗处理器")
         return False
 
     fallback = GeneralBattle(config=task.config, device=task.device)

@@ -352,7 +352,7 @@ class ConfigManager:
         new_config_data[task_key] = validated_task_value
         ConfigManager._validate_config_model(name, new_config_data)
         write_file(file_path, new_config_data)
-        logger.info(f'import task {task_key} to {file_path}')
+        logger.info(f'[服务器] 已导入任务 {task_key} 到 {file_path}')
         return name, task_key
 
     @staticmethod
@@ -400,7 +400,7 @@ class ConfigManager:
 
         ConfigManager._validate_config_model(name, data)
         write_file(file_path, data)
-        logger.info(f'import config {name} to {file_path}')
+        logger.info(f'[服务器] 已导入配置 {name} 到 {file_path}')
         return name
 
     @staticmethod
@@ -514,14 +514,14 @@ class ConfigManager:
         template_path = config_path / f'{template}.json'
         file_path = config_path / f'{file}.json'
         if file_path.exists():
-            logger.error(f'{file_path} is exists')
+            logger.error(f'[服务器] {file_path} 已存在')
             return
 
         with open(template_path, 'r', encoding='utf-8') as f:
             template_content = f.read()
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(template_content)
-        logger.info(f'copy {template_path} to {file_path}')
+        logger.info(f'[服务器] 已复制 {template_path} 到 {file_path}')
 
 
     @staticmethod
@@ -559,17 +559,17 @@ class ConfigManager:
         old_path = config_path / f'{old_name}.json'
         new_path = config_path / f'{new_name}.json'
         if not old_path.exists():
-            logger.error(f'{old_path} is not exists')
+            logger.error(f'[服务器] 未找到 {old_path}')
             return False
         if new_path.exists():
-            logger.error(f'{new_path} is exists')
+            logger.error(f'[服务器] {new_path} 已存在')
             return False
         try:
             old_path.rename(new_path)
-            logger.info(f'rename {old_path} to {new_path}')
+            logger.info(f'[服务器] 已重命名 {old_path} 为 {new_path}')
             return True
         except Exception as e:
-            logger.error(f'rename {old_path} to {new_path} failed: {e}')
+            logger.error(f'[服务器] 重命名 {old_path} 为 {new_path} 失败：{e}')
             return False
 
     @staticmethod
@@ -582,12 +582,12 @@ class ConfigManager:
         config_path = Path.cwd() / 'config'
         file_path = config_path / f'{file}.json'
         if not file_path.exists():
-            logger.error(f'{file_path} is not exists')
+            logger.error(f'[服务器] 未找到 {file_path}')
             return False
         try:
             file_path.unlink()
-            logger.info(f'delete {file_path}')
+            logger.info(f'[服务器] 已删除 {file_path}')
             return True
         except Exception as e:
-            logger.error(f'delete {file_path} failed: {e}')
+            logger.error(f'[服务器] 删除 {file_path} 失败：{e}')
             return False

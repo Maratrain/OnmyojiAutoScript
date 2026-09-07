@@ -14,5 +14,5 @@ def random_delay(min_value: float = 2.0, max_value: float = 6.0, decimal: int = 
 
 def random_sleep(probability: float = 0.05):
     if random.random() <= probability:
-        logger.info('Tigger random sleep')
+        logger.info('触发随机睡眠')
         random_delay()

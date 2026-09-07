@@ -396,11 +396,11 @@ async def annotator_frame_ws(websocket: WebSocket, session_id: str):
             await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         log_ws_event(f"annotator_ws[{session_id}] disconnect")
-        logger.info(f"[annotator] ws disconnect, session={session_id}")
+        logger.info(f"[标注工具] WebSocket 已断开，session={session_id}")
     except AnnotatorError as e:
         log_ws_event(f"annotator_ws[{session_id}] annotator_error: code={e.code}, message={e.message}", level="warning")
         if e.code != "invalid_session":
-            logger.warning(f"[annotator] ws annotator error, session={session_id}, code={e.code}")
+            logger.warning(f"[标注工具] WebSocket 标注异常，session={session_id}, code={e.code}")
         try:
             await websocket.send_json({"event": "error", "code": e.code, "message": e.message})
         except Exception:
@@ -413,10 +413,10 @@ async def annotator_frame_ws(websocket: WebSocket, session_id: str):
         message = str(e).strip().lower()
         if e.__class__.__name__ == "ClientDisconnected" or "disconnected" in message:
             log_ws_event(f"annotator_ws[{session_id}] client_disconnected_during_send")
-            logger.info(f"[annotator] ws client disconnected during send, session={session_id}")
+            logger.info(f"[标注工具] WebSocket 发送时客户端已断开，session={session_id}")
         else:
             log_ws_event(f"annotator_ws[{session_id}] error: {type(e).__name__}: {e}", level="error")
-            logger.exception(f"[annotator] ws failed, session={session_id}")
+            logger.exception(f"[标注工具] WebSocket 异常，session={session_id}")
         try:
             await websocket.close(code=1011)
         except Exception:

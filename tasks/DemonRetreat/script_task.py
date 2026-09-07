@@ -28,7 +28,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         """
         cfg: DemonRetreat = self.config.demon_retreat
         if not self.check_date(datetime.now()):
-            logger.warning("Demon retreat is not available now")
+            logger.warning("[首领退治] 当前不可挑战首领退治")
             self.set_next_run(task='DemonRetreat', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
         if cfg.switch_soul_config.enable:
@@ -40,7 +40,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
 
         # 进入妖怪退治
         if not self.goto_demon_retreat():
-            logger.warning("Failed to enter demon retreat")
+            logger.warning("[首领退治] 进入首领退治失败")
             if self.appear_then_click(self.I_DEMON_BACK_CHECK, interval=1):
                 pass
             self.goto_page(page_main)
@@ -55,15 +55,15 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         while 1:
             self.screenshot()
             if self.appear_then_click(self.I_PRAY, interval=1):
-                logger.warning("Claim rewards")
+                logger.warning("[首领退治] 点击领取奖励")
             if self.appear_then_click(self.I_HUNT, interval=1):
                 continue
             if self.appear_then_click(self.I_REWARD_ALL, interval=1.5):
                 self.ui_reward_appear_click(True)
-                logger.info('Claim rewards finished')
+                logger.info('[首领退治] 领取奖励完成')
                 break
             if self.appear(self.I_RANK_LSIT):
-                logger.info("No rewards to claim")
+                logger.info("[首领退治] 没有可领取的奖励")
                 if self.appear_then_click(self.I_DEMON_BACK_CHECK, interval=1):
                     break
 
@@ -77,7 +77,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         进入首领退治
         """
         cfg: DemonRetreat = self.config.demon_retreat
-        logger.info("Entering demon_retreat")
+        logger.info("[首领退治] 正在进入首领退治")
         self.goto_page(page_guild)
 
         goto_demon_retreat_num = 0
@@ -85,7 +85,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
             self.screenshot()
             # 进入神社
             if self.appear_then_click(self.I_SHRINE, interval=1):
-                logger.info("Enter I_SHRINE")
+                logger.info("[首领退治] 进入神社(I_SHRINE)")
                 continue
             # 进入首领退治
             if self.appear_then_click(self.I_HUNT, interval=1.5):
@@ -97,22 +97,22 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
             if self.appear(self.I_HUNT_CHECK):
                 if self.appear_then_click(self.I_QUIT_BACK, interval=1):
                     pass
-                logger.info("Enter demon_retreat success")
+                logger.info("[首领退治] 进入首领退治成功")
                 return True
 
             # 周六打完了，但是迟到了只能领取奖励
             if self.appear_then_click(self.I_REWARD_ALL, interval=1):
-                logger.info("Already challenged demon_retreat")
+                logger.info("[首领退治] 本周已挑战过首领退治")
                 sleep(1)
                 if self.appear_then_click(self.I_DEMON_BACK_CHECK, interval=1):
                     pass
-                logger.info(f"The next time the demon retreat is next Saturday")
+                logger.info(f"[首领退治] 下次首领退治为下周六")
                 self.custom_next_run(task='DemonRetreat', custom_time=cfg.demon_retreat_time.custom_run_time,
                                      time_delta=7)
                 raise TaskEnd
 
             if self.appear(self.I_RANK_LSIT):
-                logger.info("Enter demon_retreat false")
+                logger.info("[首领退治] 进入首领退治失败")
                 return False
             # 超过五次没有进入进入认为失败
             if goto_demon_retreat_num >= 3:
@@ -121,11 +121,11 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
 
     def demon_retreat(self):
         cfg: DemonRetreat = self.config.demon_retreat
-        logger.hr('demon retreat', 2)
+        logger.hr('首领退治', 2)
 
         # 来晚了直接进入战斗
         if not set(self.O_LATER_ENTER_CHECK.ocr(image=self.device.image)).intersection(set("集结")):
-            logger.info("arrive later")
+            logger.info("[首领退治] 迟到，直接进入战斗")
             self.ui_click_until_disappear(self.I_ENTER_FIRE, interval=1)
             self.device.stuck_record_add('BATTLE_STATUS_S')
             success = self.run_demon_battle(cfg.general_battle)
@@ -146,15 +146,15 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         三轮战斗 战斗过程中检测挑战
         """
         # TODO 战斗过程中切换预设
-        logger.hr("General battle start", 2)
+        logger.hr("战斗开始", 2)
         self.current_count += 1
-        logger.info(f"Current count: {self.current_count}")
+        logger.info(f"[首领退治] 当前次数: {self.current_count}")
         if config is None:
             config = GeneralBattleConfig()
 
         # 如果没有锁定队伍。那么可以根据配置设定队伍
         if not config.lock_team_enable:
-            logger.info("Lock team is not enable")
+            logger.info("[首领退治] 未启用锁定队伍")
             # 如果更换队伍
             if self.current_count == 1:
                 self.switch_preset_team(config.preset_enable, config.preset_group, config.preset_team)
@@ -169,7 +169,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
                 if self.appear_then_click(self.I_PREPARE_HIGHLIGHT, interval=1.5):
                     continue
 
-            logger.info("Click prepare ensure button")
+            logger.info("[首领退治] 点击准备按钮")
 
             # 照顾一下某些模拟器慢的
             sleep(0.1)
@@ -194,13 +194,13 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         self.device.stuck_record_add('BATTLE_STATUS_S')
         self.device.click_record_clear()
         # 战斗过程 随机点击和滑动 防封 并点击 准备
-        logger.info("Start battle process")
+        logger.info("[首领退治] 开始战斗流程")
         stuck_timer = Timer(180)
         stuck_timer.start()
         while 1:
             self.screenshot()
             if self.appear(self.I_WIN):
-                logger.info('Battle win')
+                logger.info('[首领退治] 战斗胜利')
                 self.ui_click_until_disappear(self.I_WIN)
                 return True
             # 战斗过程中出现准备
@@ -209,7 +209,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
                 self.device.stuck_record_add('BATTLE_STATUS_S')
             # 如果出现失败 就点击，返回False
             if self.appear(self.I_FALSE, threshold=0.8):
-                logger.info("Battle result is false")
+                logger.info("[首领退治] 战斗失败")
                 self.ui_click_until_disappear(self.I_FALSE)
                 return False
             # 如果三分钟还没打完，再延长五分钟

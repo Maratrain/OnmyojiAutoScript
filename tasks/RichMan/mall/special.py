@@ -20,10 +20,10 @@ class Special(Buy, MallNavbar):
         if not con:
             con = self.config.rich_man.special_room
         if not con.enable:
-            logger.info('Special room is not enable')
+            logger.info('[大富翁-杂货铺] 未启用')
             return
         if not self._enter_special():
-            logger.warning('Enter special mall failed')
+            logger.warning('[大富翁-杂货铺] 进入特殊商店失败')
             return
         # 向下滑找到购买的物品
         totem_bought, medium_bought, low_bought = False, False, False
@@ -40,11 +40,11 @@ class Special(Buy, MallNavbar):
                 low_bought = True
 
             if totem_bought and medium_bought and low_bought:
-                logger.info('All bought')
+                logger.info('[大富翁-杂货铺] 所有商品已购买完成')
                 break
             if self.appear(self.I_SP_SWIPE_CHECK):
                 # 如果滑动到底了
-                logger.info('Swipe to bottom')
+                logger.info('[大富翁-杂货铺] 已滑动到底部')
                 break
 
             if self.swipe(self.S_SP_DOWN, interval=2):
@@ -55,17 +55,17 @@ class Special(Buy, MallNavbar):
         购买御灵，要求必须下滑出现御灵
         :return:
         """
-        logger.hr('Buy totem', 3)
+        logger.hr('购买御灵', 3)
         if not totem_pass:
-            logger.info('Buy totem is disabled')
+            logger.info('[大富翁-杂货铺] 购买御灵未启用')
             return
         # 检查剩余数量
         buy_number = 40
         remain_number = self._special_check_remain(self.I_SP_BUY_TOTEM)
         if remain_number < buy_number:
-            logger.warning(f'Totem is not enough: {remain_number}')
+            logger.warning(f'[大富翁-杂货铺] 御灵剩余数量不足: {remain_number}')
             if remain_number <= 0:
-                logger.warning('Totem remain is empty')
+                logger.warning('[大富翁-杂货铺] 御灵剩余数量为 0')
                 return
             buy_number = remain_number
         # 用金币买的没必要再检查金币
@@ -78,22 +78,22 @@ class Special(Buy, MallNavbar):
         购买中级盘，要求必须下滑出现中级盘
         :return:
         """
-        logger.hr('Buy medium', 3)
+        logger.hr('购买中级盘', 3)
         if buy_number <= 0:
-            logger.info('Buy medium is disabled')
+            logger.info('[大富翁-杂货铺] 购买中级盘未启用')
             return
         # 检查剩余数量
         remain_number = self._special_check_remain(self.I_SP_BUY_MEDIUM)
         if remain_number < buy_number:
-            logger.warning(f'Medium is not enough: {remain_number}')
+            logger.warning(f'[大富翁-杂货铺] 中级盘剩余数量不足: {remain_number}')
             if remain_number <= 0:
-                logger.warning('Medium remain is empty')
+                logger.warning('[大富翁-杂货铺] 中级盘剩余数量为 0')
                 return
             buy_number = remain_number
         # 用金币买的没必要再检查金币
         # 购买 , 中级盘一次最多购买20个
         buy_max = 20
-        logger.info(f'Buy number is {buy_number}')
+        logger.info(f'[大富翁-杂货铺] 购买数量: {buy_number}')
         if buy_number >= buy_max:
             buy_cycles_number = buy_number // buy_max
             buy_res_number = buy_number % buy_max
@@ -114,22 +114,22 @@ class Special(Buy, MallNavbar):
         购买低级盘，要求必须下滑出现低级盘
         :return:
         """
-        logger.hr('Buy low', 3)
+        logger.hr('购买低级盘', 3)
         if buy_number <= 0:
-            logger.info('Buy low is disabled')
+            logger.info('[大富翁-杂货铺] 购买低级盘未启用')
             return
         # 检查剩余数量
         remain_number = self._special_check_remain(self.I_SP_BUY_LOW)
         if remain_number < buy_number:
-            logger.warning(f'Low is not enough: {remain_number}')
+            logger.warning(f'[大富翁-杂货铺] 低级盘剩余数量不足: {remain_number}')
             if remain_number <= 0:
-                logger.warning('Low remain is empty')
+                logger.warning('[大富翁-杂货铺] 低级盘剩余数量为 0')
                 return
             buy_number = remain_number
         # 用金币买的没必要再检查金币
         # 购买 , 低级级盘一次最多购买20个
         buy_max = 20
-        logger.info(f'Buy number is {buy_number}')
+        logger.info(f'[大富翁-杂货铺] 购买数量: {buy_number}')
         if buy_number >= buy_max:
             buy_cycles_number = buy_number // buy_max
             buy_res_number = buy_number % buy_max
@@ -165,7 +165,7 @@ class Special(Buy, MallNavbar):
         txt = txt.replace('？', '2').replace('?', '2').replace(':', '；').replace('火', '次').replace('教', '数').replace('刺', '剩').replace('头', '买')
         match = re.search(r'(\d+)', txt)
         result = int(match.group(1)) if match else 0
-        logger.info(f'Remain [{result}]')
+        logger.info(f'[大富翁-杂货铺] 剩余数量: [{result}]')
         return result
 
 

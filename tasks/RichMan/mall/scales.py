@@ -17,7 +17,7 @@ class Scales(Buy, MallNavbar):
         if not con:
             con = self.config.rich_man.scales
         if not con.enable:
-            logger.info('Scales is not enable')
+            logger.info('[大富翁-蛇皮] 未启用')
             return
         self._enter_scales()
 
@@ -67,7 +67,7 @@ class Scales(Buy, MallNavbar):
         while 1:
             self.screenshot()
             if self.appear(self.I_SCA_SIX_STAR) or self.appear(self.I_SCA_REWARD):
-                logger.info('Scales buy success')
+                logger.info('[大富翁-蛇皮] 购买成功')
                 time.sleep(1)
                 while 1:
                     self.screenshot()
@@ -76,7 +76,7 @@ class Scales(Buy, MallNavbar):
                     if self.click(self.C_SCA_SOULS_GET, interval=1):
                         continue
                 # 收获购买的东西
-                logger.info('Scales get success')
+                logger.info('[大富翁-蛇皮] 领取成功')
                 break
 
             if self.click(self.C_BUY_MORE, interval=5):
@@ -90,12 +90,12 @@ class Scales(Buy, MallNavbar):
                 break
             if self.click(self.C_BUY_MORE, interval=3):
                 continue
-        logger.info('Scales start select souls')
+        logger.info('[大富翁-蛇皮] 开始选择御魂')
         # 选择魂
         while 1:
             self.screenshot()
             if self.appear(self.I_SCA_SIX_STAR):
-                logger.info('Scales buy success')
+                logger.info('[大富翁-蛇皮] 购买成功')
                 time.sleep(1.8)
                 while 1:
                     self.screenshot()
@@ -104,7 +104,7 @@ class Scales(Buy, MallNavbar):
                     if self.click(self.C_SCA_SOULS_GET, interval=1.6):
                         continue
                 # 收获购买的东西
-                logger.info('Scales get success')
+                logger.info('[大富翁-蛇皮] 领取成功')
                 break
 
             if self.appear_then_click(self.I_SCA_SELECT_1, interval=1.6):
@@ -116,14 +116,14 @@ class Scales(Buy, MallNavbar):
         :param buy_number:
         :return:
         """
-        logger.hr('Scales orochi', 3)
+        logger.hr('朴素御魂', 3)
         if buy_number == 0:
-            logger.info('The purchase quantity of Scales orochi is 0')
+            logger.info('[大富翁-蛇皮] 朴素御魂购买数量为 0')
             return
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(self.I_SCA_OROCHI_SCALES):
-            logger.warning('Scales orochi is not appear')
+            logger.warning('[大富翁-蛇皮] 未找到朴素御魂兑换按钮')
             return
         while True:
             self.screenshot()
@@ -135,7 +135,7 @@ class Scales(Buy, MallNavbar):
             # 检查钱是否够
             cu, res, total = self.O_SCA_RES_OROCHI.ocr(self.device.image)
             if cu + res != total:
-                logger.warning('OCR error')
+                logger.warning('[大富翁-蛇皮] 识别失败')
                 continue
             if cu < 50:
                 logger.warning(f'紫色蛇皮不足,数量:{cu}')
@@ -150,34 +150,34 @@ class Scales(Buy, MallNavbar):
         :param buy_number:
         :return:
         """
-        logger.hr('Scales orochi', 3)
+        logger.hr('朴素御魂', 3)
         if buy_number == 0:
-            logger.info('The purchase quantity of Scales orochi is 0')
+            logger.info('[大富翁-蛇皮] 朴素御魂购买数量为 0')
             return
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(self.I_SCA_OROCHI_SCALES):
-            logger.warning('Scales orochi is not appear')
+            logger.warning('[大富翁-蛇皮] 未找到朴素御魂兑换按钮')
             return
         # 检查剩余数量
         remain_number = self.O_SCA_NUMBER_OROCHI.ocr(self.device.image)
         if remain_number == 0:
-            logger.warning(f'The remaining purchase quantity of xx is {remain_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}')
             return
         if remain_number < buy_number:
             buy_number = remain_number
-            logger.warning(f'Remaining purchase quantity is {remain_number}, buy_number is {buy_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}，购买数量: {buy_number}')
         # 检查钱是否够
         cu, res, total = self.O_SCA_RES_OROCHI.ocr(self.device.image)
         if cu + res != total:
-            logger.warning('OCR error')
+            logger.warning('[大富翁-蛇皮] 识别失败')
             return
         money_enough = cu >= 50*buy_number
         if not money_enough:
-            logger.warning('Scales orochi money is not enough')
+            logger.warning('[大富翁-蛇皮] 蛇皮不足')
             # 判断够不够买2个
             if cu < 100:
-                logger.warning('Scales orochi money can not buy two')
+                logger.warning('[大富翁-蛇皮] 蛇皮不够购买 2 个')
                 return
         # 购买
         if not money_enough:
@@ -194,38 +194,38 @@ class Scales(Buy, MallNavbar):
         :param buy_position:
         :return:
         """
-        logger.hr('Scales demon', 3)
+        logger.hr('首领御魂', 3)
         if buy_number == 0:
-            logger.info('The purchase quantity of Scales demon is 0')
+            logger.info('[大富翁-蛇皮] 首领御魂购买数量为 0')
             return
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(self.I_SCA_DEMON_SOULS):
-            logger.warning('Scales demon is not appear')
+            logger.warning('[大富翁-蛇皮] 未找到首领御魂兑换按钮')
             return
         # 检查剩余数量
         remain_number = self.O_SCA_NUMBER_DEMON.ocr(self.device.image)
         if remain_number == 0:
-            logger.warning(f'The remaining purchase quantity of xx is {remain_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}')
             return
         if remain_number < buy_number:
             buy_number = remain_number
-            logger.warning(f'Remaining purchase quantity is {remain_number}, buy_number is {buy_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}，购买数量: {buy_number}')
         # 检查钱是否够
         current_money = self.O_SCA_RES_DEMON.ocr(self.device.image)
         if not isinstance(current_money, int):
-            logger.warning('OCR error')
+            logger.warning('[大富翁-蛇皮] 识别失败')
             return
         money_enough = current_money >= 50*buy_number
         if not money_enough:
-            logger.warning('Scales demon money is not enough')
+            logger.warning('[大富翁-蛇皮] 首领御魂货币不足')
             # 判断够不够买2个
             if current_money < 100:
-                logger.warning('Scales demon money can not buy two')
+                logger.warning('[大富翁-蛇皮] 首领御魂货币不够购买 2 个')
                 return
             buy_number = current_money // 50
         # 选择购买的御魂和位置
-        logger.info(f'Scales demon buy {buy_number} {buy_class} in {buy_position} position')
+        logger.info(f'[大富翁-蛇皮] 购买首领御魂: {buy_number} 个，{buy_class}，位置 {buy_position}')
         match_class = {
             DemonClass.TSUCHIGUMO: self.I_SCA_DEMON_BOSS_1,  # 土蜘蛛
             DemonClass.OBOROGURUMA: self.I_SCA_DEMON_BOSS_2,  # 胧车
@@ -297,38 +297,38 @@ class Scales(Buy, MallNavbar):
         :param buy_rule:
         :return:
         """
-        logger.hr('Scales sea', 3)
+        logger.hr('海国御魂', 3)
         if buy_number == 0:
-            logger.info('The purchase quantity of Scales sea is 0')
+            logger.info('[大富翁-蛇皮] 海国御魂购买数量为 0')
             return
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(self.I_SCA_PICTURE_BOOK):
-            logger.warning('Scales sea is not appear')
+            logger.warning('[大富翁-蛇皮] 未找到海国御魂兑换按钮')
             return
         # 检查剩余数量
         remain_number = self.O_SCA_NUMBER_SEA.ocr(self.device.image)
         if remain_number == 0:
-            logger.warning(f'The remaining purchase quantity of xx is {remain_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}')
             return
         if remain_number < buy_number:
             buy_number = remain_number
-            logger.warning(f'Remaining purchase quantity is {remain_number}, buy_number is {buy_number}')
+            logger.warning(f'[大富翁-蛇皮] 剩余可购数量: {remain_number}，购买数量: {buy_number}')
         # 检查钱是否够
         current_money = self.O_SCA_RES_SEA.ocr(self.device.image)
         if not isinstance(current_money, int):
-            logger.warning('OCR error')
+            logger.warning('[大富翁-蛇皮] 识别失败')
             return
         money_enough = current_money >= 200*buy_number
         if not money_enough:
-            logger.warning('Scales sea money is not enough')
+            logger.warning('[大富翁-蛇皮] 海国御魂货币不足')
             # 判断够不够买2个
             if current_money < 400:
-                logger.warning('Scales sea money can not buy two')
+                logger.warning('[大富翁-蛇皮] 海国御魂货币不够购买 2 个')
                 return
             buy_number = current_money // 200
         # 购买# 一次最多可以买10个所以要分开来
-        logger.info(f'Scales sea buy {buy_number}')
+        logger.info(f'[大富翁-蛇皮] 购买海国御魂数量: {buy_number}')
         if buy_number >= 10:
             buy_cycles_number = buy_number // 10
             buy_res_number = buy_number % 10

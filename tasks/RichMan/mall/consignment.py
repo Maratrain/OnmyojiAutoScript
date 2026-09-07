@@ -22,27 +22,27 @@ class Consignment(Buy, MallNavbar):
         if not con:
             con = self.config.rich_man.consignment
         if not con.enable:
-            logger.info('Consignment is not enable')
+            logger.info('[大富翁-寄售屋] 未启用')
             return
         if not con.buy_sale_ticket:
-            logger.info('Consignment buy_sale_ticket is not enable')
+            logger.info('[大富翁-寄售屋] 购买寄售券未启用')
             return
         self._enter_consignment()
         self.ui_click(self.I_CON_ENTER, self.I_CON_ENTER_CHECK)
         time.sleep(0.5)
         self.screenshot()
         if not self.mall_check_money(3, 100):
-            logger.warning('Consignment money is not enough')
+            logger.warning('[大富翁-寄售屋] 货币不足')
             return
         remain_number = self.O_CON_NUMBER.ocr(self.device.image)
         if remain_number == 0:
-            logger.warning('Consignment number is 0')
+            logger.warning('[大富翁-寄售屋] 剩余数量为 0')
             return
         if remain_number == 10:
             self.buy_more(self.I_CON_TICKET)
         else:
             self.buy_one(self.I_CON_TICKET, remain_number)
-        logger.info('Consignment buy_sale_ticket is success')
+        logger.info('[大富翁-寄售屋] 购买寄售券成功')
 
 
 if __name__ == '__main__':

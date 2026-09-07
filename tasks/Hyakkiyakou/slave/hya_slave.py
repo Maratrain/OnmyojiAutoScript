@@ -126,7 +126,7 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
             if not self.appear(decade_img):
                 continue
             return i
-        logger.warning(f'Cannot predict result, current: {current}')
+        logger.warning(f'[百鬼夜行] 无法预测剩余式神数量，当前: {current}')
         return current
 
     def predict_bean(self, current: int):
@@ -180,7 +180,7 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
         if isinstance(num, int) and num >= 0:
             return num
 
-        logger.warning(f'Cannot predict bean, current: {current}')
+        logger.warning(f'[百鬼夜行] 无法预测豆子数量，当前: {current}')
         return current
 
     def predict_buff_state(self, pos: int, current: HyaBuff = None) -> HyaBuff:
@@ -216,13 +216,13 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
     # ------------------------------------------------------------------------------------------------------------------
 
     def invite_friend(self):
-        logger.hr('Invite friend', 2)
+        logger.hr('邀请好友', 2)
         self.ui_click(self.I_HINVITE, self.I_CHECK_INVITATION, interval=4)
-        logger.info('Entry check invitation')
+        logger.info('[百鬼夜行] 进入邀请界面检查')
         self.screenshot()  # 回归活动标志后出现会导致上一帧截图可能并不包含召回活动标志
         # 是否有召回活动(星重聚阴阳师)
         if self.appear(self.I_ENSURE_RECALL):
-            logger.info('Recall activity detected')
+            logger.info('[百鬼夜行] 检测到召回活动')
             hya_recall_activity = True
             # 应该动态改roi而不是新开一个图
             friend_buttons1 = [self.I_FRIEND_SAME_1_RECALL, self.I_FRIEND_REMOTE_1_RECALL, ]
@@ -236,19 +236,19 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
         while self.friend_state < 3:
             match self.friend_state:
                 case 0:
-                    logger.info('Invite same server friend')
+                    logger.info('[百鬼夜行] 邀请同区好友')
                     if not self._invite_friend(button1=friend_buttons1[0], button2=friend_buttons2[0], hya_recall_activity=hya_recall_activity):
                         self.friend_state += 1
                     else:
                         return True
                 case 1:
-                    logger.info('Invite remote friend')
+                    logger.info('[百鬼夜行] 邀请跨区好友')
                     if not self._invite_friend(button1=friend_buttons1[1], button2=friend_buttons2[1], hya_recall_activity=hya_recall_activity):
                         self.friend_state += 1
                     else:
                         return True
                 case 2:
-                    logger.info('Invite guild friend')
+                    logger.info('[百鬼夜行] 邀请阴阳寮好友')
                     if not self._invite_friend(button1=friend_buttons1[2], button2=friend_buttons2[2], hya_recall_activity=hya_recall_activity):
                         self.friend_state += 1
                     else:
@@ -257,9 +257,9 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
                     raise RequestHumanTakeover('Invite friend failed')
 
     def _invite_friend(self, button1: RuleImage, button2: RuleImage, hya_recall_activity: bool = False ) -> bool:
-        logger.info('Start clicking')
+        logger.info('[百鬼夜行] 开始点击')
         self.ui_click(button1, button2)
-        logger.info('End clicking')
+        logger.info('[百鬼夜行] 点击结束')
         invite_timer = Timer(8)
         invite_timer.start()
         while 1:
@@ -278,9 +278,9 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
                 if self.click(self.C_FRIEND_2, interval=3):
                     continue
             if invite_timer.reached():
-                logger.warning('Invite friend timeout, It may be no friend available')
+                logger.warning('[百鬼夜行] 邀请好友超时，可能没有可邀请的好友')
                 return False
-        logger.info('Invite friend done')
+        logger.info('[百鬼夜行] 邀请好友完成')
         return True
 
     def update_state(self):

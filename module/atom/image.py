@@ -81,7 +81,7 @@ class RuleImage:
         if height != self.roi_front[3] or width != self.roi_front[2]:
             self.roi_front[2] = width
             self.roi_front[3] = height
-            logger.debug(f"{self.name} roi_front size changed to {width}x{height}")
+            logger.debug(f"{self.name} roi_front 尺寸变更为 {width}x{height}")
 
     def load_kp_des(self) -> None:
         if self._kp is not None and self._des is not None:
@@ -147,7 +147,7 @@ class RuleImage:
     def _template_image_invalid(self, mat: np.array) -> bool:
         if mat is None or mat.shape[0] == 0 or mat.shape[1] == 0:
             mat_shape = None if mat is None else mat.shape
-            logger.error(f"Template image is invalid: {mat_shape}")  # 检测模板尺寸，避免非法模板参与匹配
+            logger.error(f"模板图像无效: {mat_shape}")  # 检测模板尺寸，避免非法模板参与匹配
             return True
         return False
 
@@ -195,7 +195,7 @@ class RuleImage:
         res = cv2.matchTemplate(source, mat, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, max_loc = cv2.minMaxLoc(res)
         if self.debug_mode:
-            logger.attr(self.name, f'matching score {max_val:.5f}')
+            logger.attr(self.name, f'匹配得分 {max_val:.5f}')
 
         if max_val > threshold:
             self._update_roi_front(max_loc, (mat.shape[1], mat.shape[0]))
@@ -247,7 +247,7 @@ class RuleImage:
                 best_shape = (scaled_w, scaled_h)
             cur_scale += step
         if self.debug_mode:
-            logger.attr(self.name, f'multi-scale matching score {best_val:.5f}')
+            logger.attr(self.name, f'多尺度匹配得分 {best_val:.5f}')
         if best_loc is not None and best_shape is not None and best_val > threshold:
             self._update_roi_front(best_loc, best_shape)
             return True

@@ -64,7 +64,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         """
         cfg: AbyssShadows = self.config.abyss_shadows
         if not self.check_date(datetime.now()):
-            logger.warning("Abyss shadows is not available now")
+            logger.warning("[狭间暗域] 当前不在开放时间，跳过")
             self.set_next_run(task='AbyssShadows', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
 
@@ -94,7 +94,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
             # 通过能否进入，检测狭间是否开启
             if not self.select_boss(area_enter):
-                logger.warning("Failed to enter abyss shadows")
+                logger.warning("[狭间暗域] 进入狭间失败")
                 self.goto_page(page_main)
                 self.set_next_run(task='AbyssShadows', server=False, target=self.get_next_dt(datetime.now()))
                 raise TaskEnd
@@ -110,7 +110,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
             # 检查活动是否结束
             if self.appear(self.I_CHECK_FINISH):
-                logger.info(f"{self.I_CHECK_FINISH} appear,abyss shadows finished")
+                logger.info(f"[狭间暗域] {self.I_CHECK_FINISH} 出现，狭间暗域已结束")
                 raise AbyssShadowsFinished
             self.device.stuck_record_add('BATTLE_STATUS_S')
             # 等待战斗开始
@@ -119,9 +119,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             #
             self.process()
         except AbyssShadowsFinished:
-            logger.info("Abyss shadows finished with Exception AbyssShadowsFinished")
+            logger.info("[狭间暗域] 活动已结束（AbyssShadowsFinished 异常）")
             pass
-        logger.info("Abyss shadows process done")
+        logger.info("[狭间暗域] 本次任务执行完成")
 
         # 使用 check_current_area 确认是否在狭间活动页面(防止剩余敌人被击杀，卡在区域选择页面)
         current_area = self.check_current_area()
@@ -142,7 +142,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
     def init_list_from_cfg(self):
         if datetime.today().strftime('%Y-%m-%d') != self.config.model.abyss_shadows.saved_params.save_date:
-            logger.info("Today is not saved date, clear saved params")
+            logger.info("[狭间暗域] 日期已变更，清空已保存参数")
             self.clear_saved_params()
         #
         self.ps_list = CodeList(self.config.model.abyss_shadows.process_manage.attack_order)
@@ -150,7 +150,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         self.done_list = CodeList(self.config.model.abyss_shadows.saved_params.done)
         #
         self.unavailable_list = CodeList(self.config.model.abyss_shadows.saved_params.unavailable)
-        logger.info(f"update list done!{self.done_list=} {self.unavailable_list=}")
+        logger.info(f"[狭间暗域] 列表已更新!{self.done_list=} {self.unavailable_list=}")
 
     def flash_list(self):
         """
@@ -163,19 +163,19 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         self.config.model.abyss_shadows.saved_params.unavailable = self.unavailable_list.parse2str()
 
         self.config.save()
-        logger.info(f"Flash list done!{self.done_list=} {self.unavailable_list=}")
+        logger.info(f"[狭间暗域] 进度已写入配置!{self.done_list=} {self.unavailable_list=}")
 
     def clear_saved_params(self):
         self.config.model.abyss_shadows.saved_params.done = ''
         self.config.model.abyss_shadows.saved_params.unavailable = ''
         self.config.save()
-        logger.info("Clear saved params done")
+        logger.info("[狭间暗域] 已清空保存参数")
 
     def check_current_area(self) -> AreaType:
         """ 获取当前区域
         :return AreaType
         """
-        logger.info("Checking current area")
+        logger.info("[狭间暗域] 正在检查当前区域")
         while 1:
             self.screenshot()
             # 关闭战报界面
@@ -202,7 +202,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         :return
         """
         # 确保进入区域,有 切换区域 按钮
-        logger.info(f"Change area to {area_name}")
+        logger.info(f"[狭间暗域] 切换区域到 {area_name}")
         while 1:
             self.screenshot()
             # 如果出现挑战完成，直接退出
@@ -223,7 +223,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         # 判断当前区域是否正确
         current_area = self.check_current_area()
         if current_area == area_name:
-            logger.info(f"Current area is {current_area.name}, no need to change")
+            logger.info(f"[狭间暗域] 当前区域为 {current_area.name}，无需切换")
             return True
 
         # 切换到选择区域界面
@@ -238,10 +238,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 break
             # 点击切换区域按钮
             if self.appear_then_click(self.I_CHANGE_AREA, interval=4):
-                logger.info(f"Click {self.I_CHANGE_AREA.name}")
+                logger.info(f"[狭间暗域] 点击 {self.I_CHANGE_AREA.name}")
                 continue
 
-        logger.info(f"enter change area page")
+        logger.info(f"[狭间暗域] 进入区域选择页面")
         # 判断区域是否可用，并进入一个区域
         available_areas, unavailable_areas = self.detect_area_status()
         success = area_name in available_areas
@@ -259,7 +259,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             area_name = available_areas[0]
 
         self.select_boss(area_name)
-        logger.info(f"Switch to {area_name.name}")
+        logger.info(f"[狭间暗域] 已切换到 {area_name.name}")
 
         return success
 
@@ -267,7 +267,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         """ 选择暗域类型
         :return
         """
-        logger.info(f"Select boss: {area_name.name} start")
+        logger.info(f"[狭间暗域] 开始选择区域: {area_name.name}")
         click_times = 0
         while 1:
             self.screenshot()
@@ -285,21 +285,21 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                         is_click = self.click(self.C_ABYSS_LEOPARD, interval=2)
                 if is_click:
                     click_times += 1
-                    logger.info(f"Click {area_name.name} {click_times} times")
+                    logger.info(f"[狭间暗域] 点击 {area_name.name} 第 {click_times} 次")
                 if click_times >= 3:
-                    logger.info(f"select boss: {area_name.name} failed")
+                    logger.info(f"[狭间暗域] 选择区域失败: {area_name.name}")
                     return False
                 continue
             if self.appear(self.I_ABYSS_NAVIGATION):
                 break
-        logger.info(f"select boss: {area_name.name} done")
+        logger.info(f"[狭间暗域] 选择区域完成: {area_name.name}")
         return True
 
     def goto_enemy(self, item_code: Code) -> bool:
         # 前往当前区域 的某个 敌人
-        logger.info(f"Goto enemy: {item_code}")
+        logger.info(f"[狭间暗域] 前往敌人: {item_code}")
         click_area = item_code.get_enemy_click()
-        logger.info(f"Click emeny area: {click_area.name}")
+        logger.info(f"[狭间暗域] 点击攻打区域: {click_area.name}")
         # 点击前往按钮的次数，阴阳师BUG:点击后不动，
         # 所以如果失败了，在点击前，尝试使用左下方的摇杆移动一点点
         count_click_goto_enemy = 0
@@ -320,11 +320,11 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 self.screenshot()
                 # 如果点3次还没进去就表示目标已死亡,跳过
                 if click_times >= 3:
-                    logger.warning(f"Failed to click {click_area}")
+                    logger.warning(f"[狭间暗域] 点击 {click_area} 失败")
                     return False
                 # 出现前往按钮就退出
                 if self.appear(self.I_ABYSS_GOTO_ENEMY):
-                    logger.info(f"{self.I_ABYSS_GOTO_ENEMY} appear")
+                    logger.info(f"[狭间暗域] {self.I_ABYSS_GOTO_ENEMY} 出现")
                     break
                 if self.click(click_area, interval=1.5):
                     click_times += 1
@@ -339,7 +339,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 if self.appear(self.I_CHECK_FINISH):
                     raise AbyssShadowsFinished
                 if self.appear(self.I_ABYSS_FIRE):
-                    logger.info(f"{self.I_ABYSS_FIRE} appear")
+                    logger.info(f"[狭间暗域] {self.I_ABYSS_FIRE} 出现")
                     break
                 if self.appear(self.I_ENSURE_BUTTON):
                     self.click(self.I_ENSURE_BUTTON, interval=1)
@@ -353,7 +353,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         return True
 
     def attack_enemy(self):
-        logger.info("Attack enemy")
+        logger.info("[狭间暗域] 攻击敌人")
         # 点击战斗按钮
         # NOTE: 以下暂时为猜测，待验证
         # 同一敌人,需要第二次攻击时,此时刚刚退出战斗,先出现大地图的帧,然后才会出现战斗按钮，故延迟几秒检测
@@ -384,12 +384,12 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 continue
             if self.appear(self.I_ABYSS_NAVIGATION, threshold=0.85):
                 # 已返回主界面
-                logger.info("Return to main page while try to attack enemy")
+                logger.info("[狭间暗域] 尝试攻击时已返回大地图")
                 return False
             if self.appear(self.I_ABYSS_GOTO_ENEMY):
                 # 为了修复问题:开始从一个怪物跑到另一个怪物时，还是可以打的，等小人到了之后，发现已经打死了
                 # 就会出现这个前往按钮
-                logger.info("Found goto enemy button while try to attack enemy")
+                logger.info("[狭间暗域] 尝试攻击时出现前往按钮，目标可能已被击败")
                 return False
         return True
 
@@ -397,10 +397,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         # 尝试开启狭间暗域
         self.wait_until_appear(self.I_SELECT_DIFFICULTY, wait_time=2)
         if not self.appear(self.I_SELECT_DIFFICULTY):
-            logger.info("Failed to Open abyss_shadows ,cause not found I_SELECT_DIFFICULTY")
+            logger.info("[狭间暗域] 开启狭间暗域失败，未找到 I_SELECT_DIFFICULTY")
             return
         if not self.appear(self.I_BTN_START):
-            logger.info("Failed to Open abyss_shadows ,cause not found I_BTN_START")
+            logger.info("[狭间暗域] 开启狭间暗域失败，未找到 I_BTN_START")
             return
         # 选择难度
         self.ui_click(self.I_SELECT_DIFFICULTY, stop=self.I_DIFFICULTY_EASY, interval=2)
@@ -437,7 +437,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
         if not self.config.model.abyss_shadows.process_manage.try_complete_enemy_count:
             #
-            logger.info("All done, don`t need to fix 246")
+            logger.info("[狭间暗域] 已全部完成，无需补全")
             return None
 
         # 已配置的已完成,若未打满奖励,尝试补全
@@ -456,7 +456,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         need_general = done_counts[EnemyType.GENERAL] < self.min_count[EnemyType.GENERAL]
         need_elite = done_counts[EnemyType.ELITE] < self.min_count[EnemyType.ELITE]
 
-        logger.info(f"Need boss: {need_boss}, need general: {need_general}, need elite: {need_elite}")
+        logger.info(f"[狭间暗域] 需打首领: {need_boss}, 需打副将: {need_general}, 需打精英: {need_elite}")
         all_possible_codes = []
         for area in AreaType:
             area_code = IndexMap[area.name].value  # 如 DRAGON -> 'A'
@@ -479,7 +479,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         return None
 
     def open_navigation(self):
-        logger.info("Open navigation")
+        logger.info("[狭间暗域] 打开导航")
         while True:
             self.screenshot()
             if self.appear(self.I_CHECK_FINISH):
@@ -494,7 +494,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 continue
 
     def execute(self, item_code: Code):
-        logger.info(f"Start to execute code {item_code}")
+        logger.info(f"[狭间暗域] 开始执行目标: {item_code}")
 
         # 先获取敌人类型
         enemy_type = item_code.get_enemy_type()
@@ -528,7 +528,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                     # 没战斗过直接返回重试
                     return
                 # 如果曾经战斗过，则认为该 item_code 已完成
-                logger.info(f"{item_code} has been killed")
+                logger.info(f"[狭间暗域] {item_code} 已被消灭")
                 break
             # 战斗
             suc = self.run_battle(item_code)
@@ -536,7 +536,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             if suc:
                 break
             battle_count -= 1
-        logger.info(f"{item_code} push into done_list")
+        logger.info(f"[狭间暗域] {item_code} 已加入完成列表")
         self.done_list.append(item_code)
         return True
 
@@ -592,12 +592,12 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         # 生成退出条件
         # 因为条件中可能是时间相关,所以在点击准备按钮后直接生成,尽量减小误差
         condition = self.config.model.abyss_shadows.process_manage.generate_quit_condition(enemy_type)
-        logger.info(f"enemyType{enemy_type}--{condition}")
+        logger.info(f"[狭间暗域] 敌人类型{enemy_type}--{condition}")
 
         # 标记主怪
         is_need_mark_main = self.config.model.abyss_shadows.process_manage.is_need_mark_main(enemy_type)
         if is_need_mark_main:
-            logger.info(f"enemyType{enemy_type}--Mark main")
+            logger.info(f"[狭间暗域] 敌人类型{enemy_type}--标记主怪")
             # 需要处理主怪没了的情况,增加最大次数
             count_click_mark_main = 0
             while count_click_mark_main < 5:
@@ -620,7 +620,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             if need_check_damage:
                 _cur_damage = self.O_DAMAGE.ocr_digit(self.device.image)
             if condition.is_valid(_cur_damage):
-                logger.info(f"Condition Validated,try to quit battle")
+                logger.info(f"[狭间暗域] 条件已满足，尝试退出战斗")
                 self.device.screenshot_interval_set()
                 self.quit_battle()
                 break
@@ -645,14 +645,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         if condition.is_passed() or (not _timer_battle.reached()):
             # 通过条件结束的,视其为完成
             # 条件未通过且战斗时间不足3分钟的,极大可能是打死了,视之为完成
-            logger.info(f"{enemy_type.name} battle result SUCCESS")
+            logger.info(f"[狭间暗域] {enemy_type.name} 战斗结果: 胜利")
             success = True
 
-        logger.info(f"{enemy_type.name} DONE")
+        logger.info(f"[狭间暗域] {enemy_type.name} 已完成")
         return success
 
     def quit_battle(self):
-        logger.info("Quitting battle")
+        logger.info("[狭间暗域] 正在退出战斗")
         while True:
             self.screenshot()
             if self.appear(self.I_EXIT_ENSURE):
@@ -676,7 +676,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
     def switch_preset_team_with_str(self, v: str):
         tmp = v.split(',')
         if not tmp or len(tmp) != 2:
-            logger.error(f"Due to a configuration error (value: {v}), an error occurred while switch preset team.")
+            logger.error(f"[狭间暗域] 配置错误（值: {v}），切换预设队伍失败")
             return
         self.switch_preset_team(True, int(tmp[0]), int(tmp[1]))
 
@@ -767,10 +767,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             if self.is_area_done(area):
                 unavailable_areas.append(area)
                 # self.unavailable_list += CodeList(IndexMap[area.name].value)
-                logger.info(f"{area.name} unavailable")
+                logger.info(f"[狭间暗域] {area.name} 已封印")
                 continue
             available_areas.append(area)
-            logger.info(f"{area.name} available")
+            logger.info(f"[狭间暗域] {area.name} 可挑战")
         return available_areas, unavailable_areas
 
     def is_area_done(self, area_type: AreaType):
@@ -803,7 +803,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         import random
         dx, dy = random.randint(-radius, radius), random.randint(-radius, radius)
         self.device.swipe_adb(p1, (p1[0] + dx, p1[1] + dy), duration=0.5)
-        logger.info(f"Swipe {p1} to {(p1[0] + dx, p1[1] + dy)}")
+        logger.info(f"[狭间暗域] 摇杆移动 {p1} -> {(p1[0] + dx, p1[1] + dy)}")
 
     def get_next_dt(self, now: datetime, success: bool = False) -> datetime:
         """

@@ -22,7 +22,7 @@ class BasePeacockKingdom(GeneralBattle, SixRealmsCommon):
         for skill_rule in skill_rule_list:
             if not self.appear(skill_rule):
                 continue
-            logger.info(f'Recognize skill: {skill_rule.name}')
+            logger.info(f'[六道-孔雀国] 识别技能: {skill_rule.name}')
             x, y = skill_rule.front_center()
             if 240 < x < 340:
                 return self.I_PK_SELECT_0
@@ -99,7 +99,7 @@ class BasePeacockKingdom(GeneralBattle, SixRealmsCommon):
                 return BattleAction.CONTINUE
         if self.appear(self.I_COIN, interval=2):
             self.coin_num += self.get_coin_num(self.I_COIN)
-            logger.info(f'Current coin: {self.coin_num}')
+            logger.info(f'[六道-孔雀国] 当前钱币: {self.coin_num}')
         self.click(pages.random_click(), interval=1.2)
         if context.last_page != pages.page_reward:
             self.device.click_record_clear()

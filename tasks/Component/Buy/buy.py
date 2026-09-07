@@ -45,7 +45,7 @@ class Buy(BaseTask, BuyAssets):
 
             if self.appear(self.I_BUY_RMB):
                 # 用人民币购买的，就取消
-                logger.warning('OAS do not support buy with RMB')
+                logger.warning('[购买] 脚本不支持人民币购买，已取消')
                 while 1:
                     self.screenshot()
                     if not self.appear(self.I_BUY_RMB):
@@ -56,7 +56,7 @@ class Buy(BaseTask, BuyAssets):
 
             if self.appear(self.I_BUY_SUCCESS):
                 self.ui_click_until_smt_disappear(random_click(), self.I_BUY_SUCCESS, interval=0.8)
-                logger.info('Get reward success')
+                logger.info('[购买] 获取奖励成功')
                 break
 
             if self.ui_reward_appear_click():
@@ -64,7 +64,7 @@ class Buy(BaseTask, BuyAssets):
                     self.screenshot()
                     # 等待动画结束
                     if not self.appear(self.I_UI_REWARD, threshold=0.6):
-                        logger.info('Get reward success')
+                        logger.info('[购买] 获取奖励成功')
                         break
                     # 一直点击
                     if self.ui_reward_appear_click():
@@ -91,8 +91,8 @@ class Buy(BaseTask, BuyAssets):
             if self.appear(self.I_BUY_PLUS):
                 break
             if try_click_count >= 5:
-                logger.warning(f'Buy_more failed, try_click_count: {try_click_count}')
-                logger.warning('Close the purchase')
+                logger.warning(f'[购买] 批量购买失败，已尝试点击次数: {try_click_count}')
+                logger.warning('[购买] 关闭购买界面')
                 return
 
             if isinstance(start_click, RuleImage):
@@ -130,7 +130,7 @@ class Buy(BaseTask, BuyAssets):
                 if current >= number:
                     break
                 if current == 0:
-                    logger.warning(f'OCR current number failed {current}')
+                    logger.warning(f'[购买] OCR 识别当前数量失败: {current}')
                 number_record.append(current)
                 if len(number_record) >= 4:
                     if number_record[0] == number_record[1] == number_record[2] == number_record[3]:
@@ -149,7 +149,7 @@ class Buy(BaseTask, BuyAssets):
                     self.screenshot()
                     # 等待动画结束
                     if not self.appear(self.I_UI_REWARD, threshold=0.6):
-                        logger.info('Get reward success')
+                        logger.info('[购买] 获取奖励成功')
                         break
                     # 一直点击
                     if self.ui_reward_appear_click():
@@ -157,13 +157,13 @@ class Buy(BaseTask, BuyAssets):
                 break
 
             if buy_more_mx_click <= 0:
-                logger.warning('Buy more click times limit')
+                logger.warning('[购买] 批量购买点击次数已达上限')
                 return False
 
             # 如果这个购买已达上限
             if self.appear(self.I_UI_CONFIRM_SAMLL):
                 self.ui_click_until_disappear(self.I_UI_CONFIRM_SAMLL, interval=1)
-                logger.warning('Buy number limit')
+                logger.warning('[购买] 购买数量已达上限')
                 return False
 
             if self.click(self.C_BUY_MORE, interval=2):
@@ -179,16 +179,16 @@ class Buy(BaseTask, BuyAssets):
         """
         self.screenshot()
         if not isinstance(target, RuleOcr):
-            logger.error('Target is not RuleOcr')
+            logger.error('[购买] 识别目标不是 RuleOcr 类型')
             return False
         current = target.ocr(self.device.image)
         if not isinstance(current, int):
-            logger.warning('OCR current money failed')
+            logger.warning('[购买] OCR 识别当前货币数量失败')
             return False
         if current >= minimum:
-            logger.info('Money is enough')
+            logger.info('[购买] 货币数量足够')
             return True
-        logger.info('Money is not enough')
+        logger.info('[购买] 货币数量不足')
         return False
 
 

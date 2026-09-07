@@ -120,7 +120,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             value = str(name_ocr.ocr(self.device.image)).strip()
             if len(self._normalize_name(value)) > len(self._normalize_name(best)):
                 best = value
-            logger.info(f'Quick loadout stage OCR {attempt}/3: {value}')
+            logger.info(f'[一键配置] 关卡名 OCR 第 {attempt}/3 次: {value}')
             if best:
                 break
             sleep(0.3)
@@ -153,7 +153,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
     ) -> QuickLoadoutConfig:
         stage_name = self._read_quick_loadout_stage_name(name_ocr)
         if not self._normalize_name(stage_name):
-            logger.warning('Quick loadout stage name OCR is empty, use default preset')
+            logger.warning('[一键配置] 关卡名 OCR 为空，使用默认预设')
             return config
 
         try:
@@ -164,7 +164,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
 
         best_name, best_target, best_score = self._match_custom_preset(stage_name, presets)
         if best_target is None:
-            logger.info(f'No custom quick loadout for stage {stage_name}, use default preset')
+            logger.info(f'[一键配置] 关卡 {stage_name} 没有自定义一键配置，使用默认预设')
             return config
 
         group, preset = best_target
@@ -181,7 +181,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 'preset_name': preset,
             }
         logger.info(
-            f'Custom quick loadout matched stage {stage_name} -> '
+            f'[一键配置] 自定义一键配置匹配关卡 {stage_name} -> '
             f'({group}, {preset}) [{best_score:.2f}]'
         )
         return config.model_copy(update=updates)
@@ -227,14 +227,14 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
         return QuickLoadoutLayout(panel, group_ocr, preset_ocr, group_swipe_to_top, group_swipe_down, preset_swipe_to_top, preset_swipe_down)
 
     def _open_quick_loadout(self, entry: RuleImage, fight_anchor: RuleImage) -> bool:
-        logger.info('Open quick loadout panel')
+        logger.info('[一键配置] 打开一键配置面板')
         timer = Timer(self.PANEL_OPEN_TIMEOUT).start()
         while not timer.reached():
             self.screenshot()
             if self.appear(fight_anchor):
                 return True
             self.appear_then_click(entry, interval=1)
-        logger.warning('Cannot open quick loadout panel')
+        logger.warning('[一键配置] 无法打开一键配置面板')
         return False
 
     def _dismiss_quick_loadout(self, fight_anchor: RuleImage, dismiss: RuleClick) -> bool:
@@ -244,7 +244,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             if not self.appear(fight_anchor):
                 return True
             self.click(dismiss, interval=1)
-        logger.warning('Cannot close quick loadout panel safely')
+        logger.warning('[一键配置] 无法安全关闭一键配置面板')
         return False
 
     def _rewind_list(self, ocr: RuleOcr, swipe: RuleSwipe, max_swipes: int) -> None:
@@ -317,7 +317,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             previous = current
             self.swipe(layout.group_swipe_down)
             sleep(0.6)
-        logger.warning(f'Quick loadout group not found: {config.group_name}')
+        logger.warning(f'[一键配置] 未找到分组: {config.group_name}')
         return False
 
     def _select_preset_row(self, layout: QuickLoadoutLayout, config: QuickLoadoutConfig):
@@ -346,7 +346,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             previous = current
             self.swipe(layout.preset_swipe_down)
             sleep(0.6)
-        logger.warning(f'Quick loadout preset not found: {target_label}')
+        logger.warning(f'[一键配置] 未找到预设: {target_label}')
         return None
 
     def _equip_quick_loadout_souls(self, layout: QuickLoadoutLayout, row_y: int) -> None:
@@ -360,7 +360,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 continue
             self.ui_click_until_disappear(self.I_SOU_SWITCH_SURE, interval=0.6)
             return
-        logger.info('Quick loadout soul confirmation did not appear; preset may already be equipped')
+        logger.info('[一键配置] 未出现御魂确认弹窗，预设可能已装备')
 
     def _deploy_quick_loadout(self, layout, fight_anchor, dismiss, row_y) -> bool:
         panel_x = layout.panel[0]
@@ -371,10 +371,10 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
         while not timer.reached():
             self.screenshot()
             if not self.appear(fight_anchor):
-                logger.info('Quick loadout deployed')
+                logger.info('[一键配置] 一键配置出战完成')
                 return True
             sleep(0.2)
-        logger.warning('Quick loadout deploy did not close panel')
+        logger.warning('[一键配置] 出战后一键配置面板未关闭')
         self._dismiss_quick_loadout(fight_anchor, dismiss)
         return False
 
@@ -392,11 +392,11 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             return True
         if isinstance(config, NamedQuickLoadoutConfig) and config.custom_preset_enable:
             if name_ocr is None:
-                logger.warning('Named quick loadout enabled without a stage-name OCR rule')
+                logger.warning('[一键配置] 启用了按关卡名配置但未提供关卡名 OCR 规则')
             else:
                 config = self._resolve_named_quick_loadout(config, name_ocr)
         config.validate_target()
-        logger.hr('Quick loadout', 2)
+        logger.hr('一键配置', 2)
         if not self._open_quick_loadout(entry, fight_anchor):
             return False
         try:

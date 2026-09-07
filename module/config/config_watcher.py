@@ -35,7 +35,7 @@ class ConfigWatcher:
         """
         mtime = self.get_mtime()
         if mtime > self.start_mtime:
-            logger.info(f'Config "{self.config_name}" changed at {mtime}')
+            logger.info(f'[配置] 配置文件 "{self.config_name}" 已于 {mtime} 修改')
             return True
         else:
             return False

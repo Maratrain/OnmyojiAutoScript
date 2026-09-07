@@ -14,9 +14,9 @@ from tasks.RichMan.config import Shrine as ConfigShrine
 class Shrine(GameUi, RichManAssets):
 
     def execute_shrine(self, con: ConfigShrine):
-        logger.hr('Start Shrine')
+        logger.hr('开始神社')
         if not con.enable:
-            logger.info('Shrine is disabled')
+            logger.info('[大富翁] 神社未启用')
             return
         self.goto_page(page_summon)
 
@@ -26,7 +26,7 @@ class Shrine(GameUi, RichManAssets):
                 break
             if self.appear_then_click(self.I_S_SUMMON_TO_SHRINE, interval=2):
                 continue
-        logger.info('Enter Shrine')
+        logger.info('[大富翁] 进入神社')
         time.sleep(0.5)
         if con.black_daruma:
             self.shrine_black_daruma()
@@ -39,12 +39,12 @@ class Shrine(GameUi, RichManAssets):
         self.screenshot()
         current = self.O_TT_TOTOL.ocr(self.device.image)
         if not isinstance(current, int):
-            logger.warning('OCR current money failed')
+            logger.warning('[大富翁] 当前货币识别失败')
             return False
         if current >= mix:
-            logger.info('Money is enough')
+            logger.info('[大富翁] 货币足够')
             return True
-        logger.info('Money is not enough')
+        logger.info('[大富翁] 货币不足')
         return False
 
     def _check_bought(self, target) -> bool:
@@ -55,23 +55,23 @@ class Shrine(GameUi, RichManAssets):
         self.screenshot()
         result = target.ocr(self.device.image)
         if '已' in result or '兑' in result or '换' in result:
-            logger.info('Already bought')
+            logger.info('[大富翁] 已购买')
             return True
-        logger.info('Not bought')
+        logger.info('[大富翁] 未购买')
         return False
 
     def shrine_black_daruma(self):
-        logger.hr('Shrine black daruma', 2)
+        logger.hr('神社黑达摩', 2)
         self.screenshot()
         if not self.shrine_check_money(1500):
             return
         if not self.appear(self.I_S_BLACK):
-            logger.info('Already bought black daruma')
+            logger.info('[大富翁] 黑达摩已购买')
             return
         self.ui_click(self.I_S_BLACK, self.I_S_CHECK_BLACK)
         self.screenshot()
         if not self.appear(self.I_S_BUY_BLACK, threshold=0.6):
-            logger.info('Already bought black daruma')
+            logger.info('[大富翁] 黑达摩已购买')
             self.ui_click_until_disappear(self.I_UI_BACK_RED)
             time.sleep(0.5)
             return
@@ -81,17 +81,17 @@ class Shrine(GameUi, RichManAssets):
         time.sleep(1)
 
     def shrine_white_five(self):
-        logger.hr('Shrine white five', 2)
+        logger.hr('神社五星白蛋', 2)
         self.screenshot()
         if not self.appear(self.I_S_WHITE_FIVE):
-            logger.info('White five is not available')
+            logger.info('[大富翁] 五星白蛋未上架')
             return
         if not self.shrine_check_money(1200):
             return
         self.ui_click(self.I_S_WHITE_FIVE, self.I_S_CHECK_WHITE_FIVE)
         self.screenshot()
         if not self.appear(self.I_S_BUY_WHITE_FIVE, threshold=0.9):
-            logger.info('Already bought white five')
+            logger.info('[大富翁] 五星白蛋已购买')
             self.ui_click_until_disappear(self.I_UI_BACK_RED)
             time.sleep(1)
             return
@@ -101,17 +101,17 @@ class Shrine(GameUi, RichManAssets):
         time.sleep(1)
 
     def shrine_white_four(self):
-        logger.hr('Shrine white four', 2)
+        logger.hr('神社四星白蛋', 2)
         self.screenshot()
         if not self.appear(self.I_S_WHITE_FOUR):
-            logger.info('White four is not available')
+            logger.info('[大富翁] 四星白蛋未上架')
             return
         if not self.shrine_check_money(400):
             return
         self.ui_click(self.I_S_WHITE_FOUR, self.I_S_CHECK_WHITE_FOUR)
         self.screenshot()
         if not self.appear(self.I_S_BUY_WHITE_FOUR, threshold=0.9):
-            logger.info('Already bought white four')
+            logger.info('[大富翁] 四星白蛋已购买')
             self.ui_click_until_disappear(self.I_UI_BACK_RED)
             time.sleep(1)
             return

@@ -65,7 +65,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -146,7 +146,7 @@ class Adb(Connection):
 
         self.__screenshot_method_fixed = self.__screenshot_method
         if len(screenshot) < 500:
-            logger.warning(f'Unexpected screenshot: {screenshot}')
+            logger.warning(f'[设备-截图] 异常截图数据: {screenshot}')
         raise OSError(f'cannot load screenshot')
 
     @retry
@@ -154,7 +154,7 @@ class Adb(Connection):
     def screenshot_adb(self):
         data = self.adb_shell(['screencap', '-p'], stream=True)
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-截图] 异常截图数据: {data}')
 
         return self.__process_screenshot(data)
 
@@ -163,7 +163,7 @@ class Adb(Connection):
     def screenshot_adb(self):
         data = self.adb_shell(['screencap'], stream=True)
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-截图] 异常截图数据: {data}')
 
         return load_screencap(data)
 
@@ -171,7 +171,7 @@ class Adb(Connection):
     def screenshot_adb_nc(self):
         data = self.adb_shell_nc(['screencap'])
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-截图] 异常截图数据: {data}')
 
         return load_screencap(data)
 
@@ -272,7 +272,7 @@ class Adb(Connection):
             # ## Network stats: elapsed time=4ms (0ms mobile, 0ms wifi, 4ms not connected)
             return True
 
-        logger.warning('Fallback to use am start')
+        logger.warning('[设备-平台] 回退使用 am start 启动')
         result = self.adb_shell(['dumpsys', 'package', package_name])
         res = re.search(r'android.intent.action.MAIN:\s+\w+ ([\w.\/]+) filter \w+\s+'
                         r'.*\s+Category: "android.intent.category.LAUNCHER"',

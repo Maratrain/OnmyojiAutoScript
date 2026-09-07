@@ -162,17 +162,17 @@ class Handle:
 
         :param config:
         """
-        logger.hr('Handle')
+        logger.hr('窗口句柄')
         if self.config is None:
             if isinstance(config, str):
                 self.config = Config(config, task=None)
             else:
                 self.config = config
         if not self.config.script.device.handle:
-            logger.info('Handle is empty. oas not use handle')
+            logger.info('[设备-句柄] 句柄为空，不使用句柄模式')
             return
         if self.config.script.device.handle == '':
-            logger.info('Handle is empty. oas not use handle')
+            logger.info('[设备-句柄] 句柄为空，不使用句柄模式')
             return
 
         # 获取根的句柄
@@ -180,41 +180,41 @@ class Handle:
         self.root_handle_num = 0
         self.root_handle = self.config.script.device.handle
         if self.root_handle == "auto":
-            logger.info('Handle is auto. oas will find window emulator')
+            logger.info('[设备-句柄] 句柄为 auto，将自动查找模拟器窗口')
             window_list = Handle.all_windows()
             self.root_handle_title = self.auto_handle_title(window_list)
             self.root_handle_num = handle_title2num(self.root_handle_title)
         if isinstance(self.root_handle, str):
             try:
                 self.root_handle_num = int(self.root_handle)
-                logger.info('Handle is handle num. oas use it as root handle num')
+                logger.info('[设备-句柄] 句柄为句柄号，将其作为根句柄号')
                 if is_handle_valid(self.root_handle_num):
-                    logger.info(f'Handle number {self.root_handle_num} is valid')
+                    logger.info(f'[设备-句柄] 句柄号 {self.root_handle_num} 有效')
                     self.root_handle_title = handle_num2title(self.root_handle_num)
             except ValueError:
-                logger.info('Handle is handle string. oas use it as root handle title')
+                logger.info('[设备-句柄] 句柄为窗口标题，将其作为根句柄标题')
                 if handle_title2num(self.root_handle) != 0:
                     self.root_handle_num = handle_title2num(self.root_handle)
                     self.root_handle_title = self.root_handle
-        logger.info(f'The root handle title is {self.root_handle_title} and num is {self.root_handle_num}')
+        logger.info(f'[设备-句柄] 根句柄标题: {self.root_handle_title}，句柄号: {self.root_handle_num}')
 
         # 获取句柄树
         self.root_node = WindowNode(name=self.root_handle_title, num=self.root_handle_num)
         Handle.handle_tree(self.root_handle_num, self.root_node)
-        logger.info('Emulator handle structure:')
+        logger.info('[设备-句柄] 模拟器句柄结构:')
         for pre, fill, node in RenderTree(self.root_node):
             logger.info("%s%s" % (pre, node.name))
         for pre, fill, node in RenderTree(self.root_node):
             logger.info("%s%s" % (pre, node.num))
 
         # 判断是哪一个模拟器 通过句柄树结构
-        logger.info(f'Emulator family: {self.emulator_family}')
+        logger.info(f'[设备-句柄] 模拟器类别: {self.emulator_family}')
 
         # window系统的缩放
-        logger.info(f'Your window screen scale rate: {window_scale_rate()}')
+        logger.info(f'[设备-句柄] Windows 屏幕缩放比例: {window_scale_rate()}')
         _ = self.screenshot_handle_num
-        logger.info(f'Screenshot handle num: {self.screenshot_handle_num}')
-        logger.info(f'Emulator screenshot size: {self.screenshot_size}')
+        logger.info(f'[设备-句柄] 截图句柄号: {self.screenshot_handle_num}')
+        logger.info(f'[设备-句柄] 模拟器截图大小: {self.screenshot_size}')
 
     @staticmethod
     def all_windows() -> list:
@@ -240,7 +240,7 @@ class Handle:
         :return:
         """
         if windows is None:
-            logger.error("handle_auto not get all wnidow")
+            logger.error("[设备-句柄] 自动句柄未能获取所有窗口")
 
         emu_list = []
         for window_title in windows:
@@ -249,7 +249,7 @@ class Handle:
                     emu_list.append(window_title)
 
         if not len(emu_list):
-            logger.error('Can not find emulator handle, please check your emulator is running')
+            logger.error('[设备-句柄] 未找到模拟器句柄，请确认模拟器正在运行')
             return None
 
         emulator_title = ''
@@ -264,13 +264,13 @@ class Handle:
             emulator_title = 'MuMu安卓设备'
 
         if len(emu_list) > 1 and emulator_title == '':
-            logger.warning(f'Find more than one emulator handle, oas will use the first one {emu_list[0]}')
+            logger.warning(f'[设备-句柄] 找到多个模拟器句柄，使用第一个 {emu_list[0]}')
             emulator_title = emu_list[0]
 
         if len(emu_list) == 1:
             emulator_title = emu_list[0]
 
-        logger.info(f'Handle auto seclect to find {emulator_title} and use it as root_title')
+        logger.info(f'[设备-句柄] 自动选择找到 {emulator_title}，将其作为根窗口标题')
         return emulator_title
 
     @staticmethod
@@ -345,13 +345,13 @@ class Handle:
             name = self.root_node.children[0].name
             num = self.root_node.children[0].num
             if name == 'MuMuPlayer':
-                logger.info('The emulator is MuMu模拟器12')
+                logger.info('[设备-句柄] 模拟器为 MuMu模拟器12')
                 return num
             elif name == 'NemuPlayer':
-                logger.info('The emulator is MuMu模拟器')
+                logger.info('[设备-句柄] 模拟器为 MuMu模拟器')
                 return num
             elif name == 'MuMuNxDevice':
-                logger.info('The emulator is MuMu模拟器5.0')
+                logger.info('[设备-句柄] 模拟器为 MuMu模拟器5.0')
                 return num
         # 夜神
         elif self.emulator_family == EmulatorFamily.FAMILY_NOX:
@@ -393,7 +393,7 @@ class Handle:
         if abs((height_before * scale_rate) - 720) < 5:
             height = 720
         if width is None or height is None:
-            logger.error(f'Get screenshot size error, width={width}, height={height}')
+            logger.error(f'[设备-句柄] 获取截图大小失败, width={width}, height={height}')
             return None
         return width, height
 
@@ -420,7 +420,7 @@ class Handle:
         Handle.handle_tree(hwnd=hwnd, node=root_node)
         handle_depth = WindowNode.get_tree_depth(root_node)
         if handle_depth > 1:
-            logger.info(f'Window handle [{hwnd}] depth: {handle_depth}')
+            logger.info(f'[设备-句柄] 窗口句柄 [{hwnd}] 深度: {handle_depth}')
             return True
         return False
 

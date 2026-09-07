@@ -50,7 +50,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, DyeTrialsAssets):
                 continue
             if self.appear_then_click(self.I_TOGGLE_BUTTON, interval=3):
                 continue
-        logger.info('Enter DyeTrials')
+        logger.info('[灵染试炼] 进入灵染试炼')
         boss_timer = Timer(60)
         boss_timer.start()
         battle_num = 0
@@ -62,7 +62,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, DyeTrialsAssets):
                 break
             # 关闭获得皮肤提示弹窗
             if self.appear_then_click(self.I_FP_CLOSE_GET_SKIN, interval=0.8):
-                logger.warning('Maybe already get skin, close tip')
+                logger.warning('[灵染试炼] 可能已获得皮肤，关闭提示')
                 continue
             # 获得奖励
             if self.ui_reward_appear_click():
@@ -75,11 +75,11 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, DyeTrialsAssets):
                 if cu == total == 50 and cu + res == total:
                     break
                 if battle_num >= 50:
-                    logger.info(f'Battle {battle_num}, enough battle, break')
+                    logger.info(f'第 {battle_num} 场战斗，已达战斗次数上限，退出')
                     break
                 self.ui_click_until_disappear(self.I_FP_CHALLENGE)
                 battle_num += 1
-                logger.info(f'Battle num [{battle_num}]')
+                logger.info(f'当前战斗场数 [{battle_num}]')
                 self.device.stuck_record_clear()
                 self.device.stuck_record_add('BATTLE_STATUS_S')
                 boss_timer.reset()

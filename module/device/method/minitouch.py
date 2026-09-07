@@ -394,7 +394,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -423,7 +423,7 @@ class Minitouch(Connection):
 
     @Config.when(DEVICE_OVER_HTTP=False)
     def minitouch_init(self):
-        logger.hr('MiniTouch init')
+        logger.hr('minitouch 初始化')
         max_x, max_y = 1280, 720
         max_contacts = 2
         max_pressure = 50
@@ -489,7 +489,7 @@ class Minitouch(Connection):
         self._minitouch_pid = pid
 
         logger.info(
-            "minitouch running on port: {}, pid: {}".format(self._minitouch_port, self._minitouch_pid)
+            "[minitouch] 正在运行, 端口: {}, pid: {}".format(self._minitouch_port, self._minitouch_pid)
         )
         logger.info(
             "max_contact: {}; max_x: {}; max_y: {}; max_pressure: {}".format(
@@ -532,11 +532,11 @@ class Minitouch(Connection):
 
     @Config.when(DEVICE_OVER_HTTP=True)
     def minitouch_init(self):
-        logger.hr('MiniTouch init')
+        logger.hr('minitouch 初始化')
         self.max_x, self.max_y = 1280, 720
         self.get_orientation()
 
-        logger.info('Stop minitouch service')
+        logger.info('[minitouch] 正在停止 minitouch 服务')
         s = U2Service('minitouch', self.u2)
         s.stop()
         while 1:
@@ -544,7 +544,7 @@ class Minitouch(Connection):
                 break
             self.sleep(0.05)
 
-        logger.info('Start minitouch service')
+        logger.info('[minitouch] 正在启动 minitouch 服务')
         s.start()
         while 1:
             if s.running():

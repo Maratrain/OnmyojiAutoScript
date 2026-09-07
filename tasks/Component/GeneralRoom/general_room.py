@@ -21,17 +21,17 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         创建队伍  一般是下方的黄色按钮
         :return:
         """
-        logger.info('Create room')
+        logger.info('[通用房间] 创建房间')
         create_room_rule = self.I_CREATE_ROOM if create_room_rule is None else create_room_rule
         if not self.appear(create_room_rule):
-            logger.warning('No create room button')
+            logger.warning('[通用房间] 未找到创建房间按钮')
             return False
         click_number = 0
         while 1:
             self.screenshot()
             if click_number > 3:
-                logger.warning('Create room button do not take effect')
-                logger.warning('The most possible reason is that there are not challenge tickets')
+                logger.warning('[通用房间] 创建房间按钮点击未生效')
+                logger.warning('[通用房间] 最可能的原因是没有挑战券了')
                 return False
             if self.appear_then_click(create_room_rule, interval=2):
                 click_number += 1
@@ -47,7 +47,7 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         确认私人房间, 不公开仅邀请
         :return:
         """
-        logger.info('Ensure private')
+        logger.info('[通用房间] 确认私人房间')
         while 1:
             self.screenshot()
             if self.appear(self.I_ENSURE_PRIVATE):
@@ -65,7 +65,7 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         确认公开房间， 允许任何人加入
         :return:
         """
-        logger.info('Ensure public')
+        logger.info('[通用房间] 确认公开房间')
         while 1:
             self.screenshot()
             if self.appear(self.I_ENSURE_PUBLIC):
@@ -82,7 +82,7 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         创建确认
         :return:
         """
-        logger.info('Create ensure')
+        logger.info('[通用房间] 创建确认')
         appear1 = self.I_CREATE_ENSURE.match(self.device.image, frame_id=self.device.image_frame_id)
         appear2 = self.I_CREATE_ENSURE_2.match(self.device.image, frame_id=self.device.image_frame_id)
         target = None
@@ -91,7 +91,7 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         elif appear2:
             target = self.I_CREATE_ENSURE_2
         if not target:
-            logger.warning('No create ensure button')
+            logger.warning('[通用房间] 未找到创建确认按钮')
             return False
 
         while True:
@@ -108,7 +108,7 @@ class GeneralRoom(BaseTask, GeneralRoomAssets):
         :return:
         """
         if self.appear(self.I_CHECK_TEAM):
-            logger.info('Exit team ui')
+            logger.info('[通用房间] 退出组队界面')
             while 1:
                 self.screenshot()
                 if not self.appear(self.I_CHECK_TEAM):

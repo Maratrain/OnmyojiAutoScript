@@ -50,11 +50,11 @@ class ScriptTask(GameUi, DelegationAssets):
                     break
                 if self.click(click, interval=1.5):
                     continue
-        logger.hr('Delegation one', 2)
+        logger.hr('式神委派一', 2)
         self.O_D_NAME.keyword = name
         self.screenshot()
         if not self.ocr_appear(self.O_D_NAME):
-            logger.warning(f'Delegation: {name} not found')
+            logger.warning(f'式神委派: 未找到 {name}')
             return False
         while 1:
             self.screenshot()
@@ -63,7 +63,7 @@ class ScriptTask(GameUi, DelegationAssets):
             # 如果出现’召回‘ ’返回‘ 说明这个是现在委派中
             # 需要退出
             if self.appear(self.I_D_BACK):
-                logger.warning(f'Delegation: {name} is in delegation')
+                logger.warning(f'式神委派: {name} 已在委派中')
                 self.ui_click_until_disappear(self.I_D_BACK)
                 self.wait_until_appear(self.I_REWARDS_MIN)
                 return False
@@ -74,13 +74,13 @@ class ScriptTask(GameUi, DelegationAssets):
             if self.ocr_appear_click(self.O_D_NAME, interval=1):
                 continue
         # 进入委派  fefe e  fe
-        logger.info(f'Enter Delegation: {name}')
+        logger.info(f'进入式神委派: {name}')
         ui_click(self.C_D_1, self.I_D_SELECT_1)
         ui_click(self.C_D_2, self.I_D_SELECT_2)
         ui_click(self.C_D_3, self.I_D_SELECT_3)
         ui_click(self.C_D_4, self.I_D_SELECT_4)
         # 委派开始
-        logger.info(f'Delegation: {name} start')
+        logger.info(f'式神委派: {name} 开始')
         while 1:
             self.screenshot()
             if not self.appear(self.I_D_START):

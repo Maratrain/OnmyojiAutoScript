@@ -74,7 +74,7 @@ class RuleAnimate(RuleImage):
         if matched:
             if refresh_after_stable:
                 self.refresh()
-            logger.info(f'Animation Stable @ {self.name}')
+            logger.info(f'动画已稳定 @ {self.name}')
             return True
         return False
 

@@ -18,7 +18,7 @@ from module.base.timer import Timer
 def on_message(client, userdata, msg):
     if msg.topic == 'FirstNotice':
         return
-    logger.info(f"Received `{msg.payload}` from `{userdata}` ")
+    logger.info(f"[MQTT] 从 `{userdata}` 收到 `{msg.payload}` ")
 # ----------------------------------------------------------------------------------------------------------------------
 # 使用MQTT是为了做广播，自己手撸的话太麻烦了
 # 0. 所有玩家更新自己的策略后必须广播出去, 可以延迟一下
@@ -32,24 +32,24 @@ class Mqtt:
     def __init__(self, team_flow: TeamFlow):
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
-                logger.info("Connected to MQTT Broker!")
+                logger.info("[MQTT] 已连接到 MQTT 服务器")
             elif rc == 1:
                 # 协议版本错误
-                logger.error(f"Connection refused - incorrect protocol version. return code: {rc}")
+                logger.error(f"[MQTT] 连接被拒绝 - 协议版本错误，返回码: {rc}")
             elif rc == 2:
                 # 无效的客户端标识
-                logger.error(f"Connection refused - invalid client identifier. return code: {rc}")
+                logger.error(f"[MQTT] 连接被拒绝 - 无效的客户端标识，返回码: {rc}")
             elif rc == 3:
                 # 服务器不可用
-                logger.error(f"Connection refused - server unavailable. return code: {rc}")
+                logger.error(f"[MQTT] 连接被拒绝 - 服务器不可用，返回码: {rc}")
             elif rc == 4:
                 # 错误的用户名或密码
-                logger.error(f"Connection refused - bad username or password. return code: {rc}")
+                logger.error(f"[MQTT] 连接被拒绝 - 错误的 username 或 password，返回码: {rc}")
             elif rc == 5:
                 # 未授权
-                logger.error(f"Connection refused - not authorised. return code: {rc}")
+                logger.error(f"[MQTT] 连接被拒绝 - 未授权，返回码: {rc}")
             else:
-                logger.info("Failed to connect, return code %d\n", rc)
+                logger.info("[MQTT] 连接失败，返回码 %d\n", rc)
         self.q_publish = Queue()
         self.broker = team_flow.broker
         self.port = team_flow.port
@@ -93,17 +93,17 @@ class Mqtt:
         :return:
         """
         if not isinstance(msg, dict):
-            logger.warning(f"Msg must be a dict, but got {type(msg)}")
+            logger.warning(f"[MQTT] 消息必须是 dict，但收到 {type(msg)}")
             return False
         msg = {self.username: msg}
         result = self.client.publish(topic, json.dumps(msg))
         # result: [0, 1]
         status = result[0]
         if status == 0:
-            logger.info(f"Send `msg` to topic `{topic}`")
+            logger.info(f"[MQTT] 发送消息到主题 `{topic}`")
             return True
         else:
-            logger.info(f"Failed to send message to topic {topic} {status}")
+            logger.info(f"[MQTT] 发送消息到主题 {topic} 失败: {status}")
             return False
 
     def TaskStart(self, msg):

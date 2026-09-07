@@ -35,8 +35,8 @@ class Benchmark(DaemonBase):
         Returns:
             float: Time cost on average.
         """
-        logger.hr(f'Benchmark test', level=2)
-        logger.info(f'Testing function: {func.__name__}')
+        logger.hr(f'基准测试', level=2)
+        logger.info(f'正在测试函数: {func.__name__}')
         record = []
 
         for n in range(1, self.TEST_TOTAL + 1):
@@ -46,11 +46,11 @@ class Benchmark(DaemonBase):
                 func(*args, **kwargs)
             except RequestHumanTakeover:
                 logger.critical('RequestHumanTakeover')
-                logger.warning(f'Benchmark tests failed on func: {func.__name__}')
+                logger.warning(f'基准测试失败，函数: {func.__name__}')
                 return 'Failed'
             except Exception as e:
                 logger.exception(e)
-                logger.warning(f'Benchmark tests failed on func: {func.__name__}')
+                logger.warning(f'基准测试失败，函数: {func.__name__}')
                 return 'Failed'
 
             cost = time.time() - start
@@ -60,9 +60,9 @@ class Benchmark(DaemonBase):
             )
             record.append(cost)
 
-        logger.info('Benchmark tests done')
+        logger.info('基准测试完成')
         average = float(np.mean(np.sort(record)[:self.TEST_BEST]))
-        logger.info(f'Time cost {float2str(average)} ({self.TEST_BEST} best results out of {self.TEST_TOTAL} tests)')
+        logger.info(f'耗时 {float2str(average)}（{self.TEST_TOTAL} 次测试中取最好的 {self.TEST_BEST} 次）')
         return average
 
     @staticmethod
@@ -130,9 +130,9 @@ class Benchmark(DaemonBase):
         logger.print(table, justify='center')
 
     def benchmark(self, screenshot: t.Tuple[str] = (), click: t.Tuple[str] = ()):
-        logger.hr('Benchmark', level=1)
-        logger.info(f'Testing screenshot methods: {screenshot}')
-        logger.info(f'Testing click methods: {click}')
+        logger.hr('基准测试', level=1)
+        logger.info(f'正在测试截图方案: {screenshot}')
+        logger.info(f'正在测试点击方案: {click}')
 
         screenshot_result = []
         for method in screenshot:
@@ -153,18 +153,18 @@ class Benchmark(DaemonBase):
             else:
                 return res
 
-        logger.hr('Benchmark Results', level=1)
+        logger.hr('基准测试结果', level=1)
         fastest_screenshot = 'ADB_nc'
         fastest_click = 'minitouch'
         if screenshot_result:
             self.show(test='Screenshot', data=screenshot_result, evaluate_func=self.evaluate_screenshot)
             fastest = sorted(screenshot_result, key=lambda item: compare(item))[0]
-            logger.info(f'Recommend screenshot method: {fastest[0]} ({float2str(fastest[1])})')
+            logger.info(f'推荐截图方案: {fastest[0]} ({float2str(fastest[1])})')
             fastest_screenshot = fastest[0]
         if click_result:
             self.show(test='Control', data=click_result, evaluate_func=self.evaluate_click)
             fastest = sorted(click_result, key=lambda item: compare(item))[0]
-            logger.info(f'Recommend control method: {fastest[0]} ({float2str(fastest[1])})')
+            logger.info(f'推荐控制方案: {fastest[0]} ({float2str(fastest[1])})')
             fastest_click = fastest[0]
 
         return fastest_screenshot, fastest_click
@@ -203,7 +203,7 @@ class Benchmark(DaemonBase):
             self.device.uninstall_minicap()
 
         except RequestHumanTakeover:
-            logger.critical('Request human takeover')
+            logger.critical('请求人工接管')
             return
 
         logger.attr('DeviceType', self.config.Benchmark_DeviceType)

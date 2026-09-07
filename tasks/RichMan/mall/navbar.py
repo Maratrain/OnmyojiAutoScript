@@ -141,9 +141,9 @@ class MallNavbar(GameUi, RichManAssets):
         # match = re.search(r'\d+', result)
         # result = int(match.group())
         if not isinstance(result, int):
-            logger.warning(f'Get mall resource {index} error, result: {result}')
+            logger.warning(f'[大富翁] 获取商城资源 {index} 失败，结果: {result}')
         if result == 0:
-            logger.warning(f'Get mall resource {index} error, result: {result}')
+            logger.warning(f'[大富翁] 获取商城资源 {index} 失败，结果: {result}')
         return result
 
     def mall_check_money(self, index: int, least: int) -> bool:

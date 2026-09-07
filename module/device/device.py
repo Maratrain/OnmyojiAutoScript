@@ -39,15 +39,15 @@ class Device(Platform, Screenshot, Control, AppControl):
                 break
             except EmulatorNotRunningError:
                 if trial >= 3:
-                    logger.critical('Failed to start emulator after 3 trial')
+                    logger.critical('[设备-平台] 模拟器启动失败 3 次')
                     raise RequestHumanTakeover
                 # Try to start emulator
                 if self.emulator_instance is not None:
                     self.emulator_start()
                 else:
                     logger.critical(
-                        f'No emulator with serial "{self.config.Emulator_Serial}" found, '
-                        f'please set a correct serial'
+                        f'[设备-平台] 未找到序列号为 "{self.config.Emulator_Serial}" 的模拟器，'
+                        f'请设置正确的序列号'
                     )
                     raise RequestHumanTakeover
 
@@ -92,7 +92,7 @@ class Device(Platform, Screenshot, Control, AppControl):
         Perform a screenshot method benchmark, test 3 times on each method.
         The fastest one will be set into config.
         """
-        logger.info('run_simple_screenshot_benchmark')
+        logger.info('[设备-截图] 开始截图方法基准测试')
         # Check resolution first
         # self.resolution_check_uiautomator2()
         # Perform benchmark
@@ -160,7 +160,7 @@ class Device(Platform, Screenshot, Control, AppControl):
         :return:
         """
         self.detect_record.add(str(button))
-        logger.info(f'Add stuck record: {button}')
+        logger.info(f'[设备-控制] 添加卡住检测记录: {button}')
 
     def stuck_record_clear(self):
         self.detect_record = set()
@@ -182,8 +182,8 @@ class Device(Platform, Screenshot, Control, AppControl):
                 if button in self.detect_record:
                     return False
 
-        logger.warning('Wait too long')
-        logger.warning(f'Waiting for {self.detect_record}')
+        logger.warning('[设备-控制] 等待时间过长')
+        logger.warning(f'[设备-控制] 正在等待: {self.detect_record}')
         self.stuck_record_clear()
 
         if self.app_is_running():
@@ -233,13 +233,13 @@ class Device(Platform, Screenshot, Control, AppControl):
             count[key] = count.get(key, 0) + 1
         count = sorted(count.items(), key=lambda item: item[1], reverse=True)
         if count[0][1] >= 10:
-            logger.warning(f'Too many click for a button: {count[0][0]}')
-            logger.warning(f'History click: {[str(prev) for prev in self.click_record]}')
+            logger.warning(f'[设备-控制] 同一按钮点击次数过多: {count[0][0]}')
+            logger.warning(f'[设备-控制] 点击历史: {[str(prev) for prev in self.click_record]}')
             self.click_record_clear()
             raise GameTooManyClickError(f'Too many click for a button: {count[0][0]}')
         if len(count) >= 2 and count[0][1] >= 6 and count[1][1] >= 6:
-            logger.warning(f'Too many click between 2 buttons: {count[0][0]}, {count[1][0]}')
-            logger.warning(f'History click: {[str(prev) for prev in self.click_record]}')
+            logger.warning(f'[设备-控制] 两个按钮之间点击次数过多: {count[0][0]}, {count[1][0]}')
+            logger.warning(f'[设备-控制] 点击历史: {[str(prev) for prev in self.click_record]}')
             self.click_record_clear()
             raise GameTooManyClickError(f'Too many click between 2 buttons: {count[0][0]}, {count[1][0]}')
 
@@ -247,7 +247,7 @@ class Device(Platform, Screenshot, Control, AppControl):
         """
         Disable stuck detection and its handler. Usually uses in semi auto and debugging.
         """
-        logger.info('Disable stuck detection')
+        logger.info('[设备-控制] 已禁用卡住检测')
 
         def empty_function(*arg, **kwargs):
             return False
@@ -257,8 +257,8 @@ class Device(Platform, Screenshot, Control, AppControl):
 
     def app_start(self):
         if not self.config.script.error.handle_error:
-            logger.critical('No app stop/start, because HandleError disabled')
-            logger.critical('Please enable Alas.Error.HandleError or manually login to AzurLane')
+            logger.critical('[设备-平台] HandleError 已禁用，不执行应用停止/启动')
+            logger.critical('请启用 Alas.Error.HandleError 或手动登录阴阳师')
             raise RequestHumanTakeover
         super().app_start()
         self.stuck_record_clear()
@@ -266,8 +266,8 @@ class Device(Platform, Screenshot, Control, AppControl):
 
     def app_stop(self):
         if not self.config.script.error.handle_error:
-            logger.critical('No app stop/start, because HandleError disabled')
-            logger.critical('Please enable Alas.Error.HandleError or manually login to AzurLane')
+            logger.critical('[设备-平台] HandleError 已禁用，不执行应用停止/启动')
+            logger.critical('请启用 Alas.Error.HandleError 或手动登录阴阳师')
             raise RequestHumanTakeover
         super().app_stop()
         self.stuck_record_clear()
@@ -297,18 +297,18 @@ class Device(Platform, Screenshot, Control, AppControl):
             try:
                 image = screenshot_method()
             except Exception as e:
-                logger.info(f'Wait game start ready: screenshot probe failed: {e}')
+                logger.info(f'[设备-平台] 等待游戏启动就绪: 截图探测失败: {e}')
                 time.sleep(interval)
                 continue
 
             color = get_color(image, area=(0, 0, 1280, 720))
             if sum(color) >= 1:
-                logger.info(f'Game start ready, frame color: {color}')
+                logger.info(f'[设备-平台] 游戏启动就绪，画面颜色: {color}')
                 return
 
             time.sleep(interval)
 
-        logger.info('Wait game start ready timeout, continue with login flow')
+        logger.info('[设备-平台] 等待游戏启动就绪超时，继续登录流程')
 
 
 if __name__ == "__main__":

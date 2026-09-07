@@ -66,7 +66,7 @@ class Answer:
                 result_index = index + 1
                 # 缓存问题和答案字符串
                 self._cache_store(question, option, option)
-                logger.debug('Answer strategy: special option hit.')
+                logger.debug('[逢魔] 答题策略：命中特殊选项')
                 return result_index
         # 1) 优先命中缓存
         cached_index = self._cache_hit(question, options)
@@ -84,7 +84,7 @@ class Answer:
         if result is not None:
             return result
         # 5) 完全未知：返回 None
-        logger.error('Unknown question: %s', question)
+        logger.error('[逢魔] 未知题目: %s', question)
         return None
 
     def _cache_store(self, question: str, std_answer: str, chosen: str) -> None:
@@ -110,7 +110,7 @@ class Answer:
         for ans in cached:
             idx = self._find_option_index(opts, ans)
             if idx is not None:
-                logger.info('Hit cache.')
+                logger.info('[逢魔] 命中缓存')
                 return idx
         return None
 
@@ -152,7 +152,7 @@ class Answer:
         for answer in self.question_answer[question]:
             idx = self._find_option_index(options, answer)
             if idx is not None:
-                logger.info('Hit question, correct answer.')
+                logger.info('[逢魔] 命中题目，精确匹配答案')
                 self._cache_store(question, answer, options[idx - 1])
                 return idx
         # 题目命中但选项不一致：按相似度选最接近答案
@@ -162,7 +162,7 @@ class Answer:
             if idx is not None and score > best_score:
                 best_idx, best_score, best_answer = idx, score, answer
         if best_idx is not None:
-            logger.info('Hit question, similar answer.')
+            logger.info('[逢魔] 命中题目，相似匹配答案')
             self._cache_store(question, best_answer, options[best_idx - 1])
         return best_idx
 
@@ -173,7 +173,7 @@ class Answer:
             for answer in self.question_answer.get(key, []):
                 idx = self._find_option_index(options, answer)
                 if idx is not None:
-                    logger.info('Hit similar question, correct answer')
+                    logger.info('[逢魔] 命中相似题目，精确匹配答案')
                     self._cache_store(question, answer, options[idx - 1])
                     return idx
         # 相似题答案不在选项中：做相似度匹配
@@ -184,7 +184,7 @@ class Answer:
                 if idx is not None and score > best_score:
                     best_idx, best_score, best_answer = idx, score, answer
         if best_idx is not None and best_score >= self.answer_sim_threshold:
-            logger.info('Hit similar question, similar answer')
+            logger.info('[逢魔] 命中相似题目，相似匹配答案')
             self._cache_store(question, best_answer, options[best_idx - 1])
             return best_idx
         return None
@@ -203,7 +203,7 @@ class Answer:
                 # 选项在答案中, 则问题相似度降级处理
                 if best_question is not None and best_score >= self.answer_sim_threshold:
                     self._cache_store(question, option, option)
-                    logger.info('Hit correct answer, lower similar question')
+                    logger.info('[逢魔] 命中答案选项，题目相似度降级匹配')
                     return idx + 1
         return None
 

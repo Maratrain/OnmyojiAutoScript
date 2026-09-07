@@ -39,7 +39,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
     def run(self):
         self.conf = self.config.demon_encounter
         if not self.check_time():
-            logger.warning('Time is not right')
+            logger.warning('[逢魔] 当前时间不在活动时间内')
             raise TaskEnd('DemonEncounter')
         # 切换御魂
         soul_config = self.config.demon_encounter.demon_soul_config
@@ -66,14 +66,14 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         if group and team:
             self.run_switch_soul_by_name(group, team)
             return
-        logger.error(f'Unknown switch soul conf: group[{group}], team[{team}]')
+        logger.error(f'[逢魔] 未知的御魂切换配置: group[{group}], team[{team}]')
 
     def execute_boss(self):
         """
         打boss
         :return:
         """
-        logger.hr('Start boss battle', 1)
+        logger.hr('开始首领战斗', 1)
 
         def find_boss():
             find_btn_clicked = False
@@ -84,7 +84,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
                     break
                 if timer_find_boss.reached():
-                    logger.warning('find boss timeout')
+                    logger.warning('[逢魔] 寻找首领超时')
                     self.set_next_run(task='DemonEncounter', success=False, finish=True, server=False)
                     raise TaskEnd('DemonEncounter')
                 if self.appear(self.I_JADE_50):
@@ -99,20 +99,20 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                     if self.appear(self.I_DE_BOSS_BEST) and (not find_btn_clicked):
                         self.device.click_record_remove(self.I_DE_BOSS_BEST)
                         if self.click(self.I_DE_BOSS_BEST, interval=4):
-                            logger.info("Finding best boss...")
+                            logger.info("[逢魔] 正在寻找极首领...")
                             find_btn_clicked = True
                         continue
                 else:
                     if self.appear(self.I_DE_BOSS) and (not find_btn_clicked):
                         self.device.click_record_remove(self.I_DE_BOSS)
                         if self.click(self.I_DE_BOSS, interval=4):
-                            logger.info("Finding normal boss...")
+                            logger.info("[逢魔] 正在寻找普通首领...")
                             find_btn_clicked = True
                         continue
             return True
 
         def enter_boss():
-            logger.info('trying to enter boss...')
+            logger.info('[逢魔] 正在尝试进入首领战斗...')
             # 点击集结挑战
             boss_fire_count = 0  # 三次没点到就意味着今天已经挑战过了
             ocr_people_item = self.O_DE_BEST_BOSS_PEOPLE if self.best_demon_enable else self.O_DE_BOSS_PEOPLE
@@ -122,16 +122,16 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
                     current, remain, total = ocr_people_item.ocr(self.device.image)
                     if total == 300 and current >= 290:
-                        logger.info('Boss battle people is full')
+                        logger.info('[逢魔] 首领战斗人数已满')
                         if not self.appear(self.I_UI_BACK_RED):
-                            logger.warning('Boss battle people is full but no red back')
+                            logger.warning('[逢魔] 首领战斗人数已满但未找到红色返回按钮')
                             continue
                         self.ui_click_until_disappear(self.I_UI_BACK_RED)
                         # 退出重新选一个没人慢的boss
-                        logger.info('Exit and reselect')
+                        logger.info('[逢魔] 退出并重新选择首领')
                         return False
 
-                logger.info('Boss battle people is not full')
+                logger.info('[逢魔] 首领战斗人数未满')
 
                 if self.appear(self.I_BOSS_CONFIRM):
                     self.ui_click(self.I_BOSS_NO_SELECT, self.I_BOSS_SELECTED)
@@ -140,7 +140,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 if self.appear(self.I_BOSS_GATHER):
                     break
                 if boss_fire_count >= 3:
-                    logger.warning('Boss battle already done')
+                    logger.warning('[逢魔] 今日首领战斗已完成')
                     self.set_next_run(task='DemonEncounter', success=False, finish=True, server=True)
                     self.ui_click_until_disappear(self.I_UI_BACK_RED)
                     raise TaskEnd('DemonEncounter')
@@ -161,7 +161,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 break
             fail_count += 1
 
-        logger.info('Boss battle confirm and enter')
+        logger.info('[逢魔] 确认并进入首领战斗')
         self.device.stuck_record_clear()
         # 等待挑战, 5秒也是等
         time.sleep(5)
@@ -174,12 +174,12 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 if not refresh_timer.started() or refresh_timer.reached():
                     self.device.stuck_record_clear()
                     self.device.stuck_record_add('BATTLE_STATUS_S')
-                    logger.info('Boss Gathering...')
+                    logger.info('[逢魔] 首领集结中...')
                     refresh_timer.reset()
                 sleep(2)
                 continue
             if self.appear(self.I_BOSS_WAIT):
-                logger.info('Boss battle failed, waiting for 2 seconds...')
+                logger.info('[逢魔] 首领战斗失败，等待 2 秒...')
                 self.device.stuck_record_clear()
                 self.device.stuck_record_add('BATTLE_STATUS_S')
                 refresh_timer.reset()
@@ -194,7 +194,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                                                                              demon_battle_conf=self.conf.demon_battle_config)
                 self.run_general_battle(config=general_battle_config, battle_key=self.boss_type)
                 continue
-            logger.info('Unknown scene Or Boss fight failed.waiting for Prepare_Button appear...')
+            logger.info('[逢魔] 未知场景或首领战斗失败，等待准备按钮出现...')
             self.wait_until_appear(self.I_PREPARE_HIGHLIGHT, wait_time=2)
 
         # 等待回到挑战boss主界面
@@ -225,14 +225,14 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 ocr_timer.reset()
             cu, re, total = self.O_DE_COUNTER.ocr(self.device.image)
             if cu + re != total:
-                logger.warning('Lantern count error')
+                logger.warning('[逢魔] 灯笼计数识别异常')
                 continue
             if cu == 0 and re == 4:
                 break
 
             if self.appear_then_click(self.I_DE_FIND, interval=2.5):
                 continue
-        logger.info('Lantern count success')
+        logger.info('[逢魔] 灯笼计数识别成功')
         # 然后领取红色达摩
         self.screenshot()
         if not self.appear(self.I_DE_AWARD):
@@ -246,7 +246,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             4: self.C_DE_4,
         }
         for i in range(1, 5):
-            logger.hr(f'Check lantern {i}', 3)
+            logger.hr(f'检查灯笼 {i}', 3)
             lantern_type = self.check_lantern(i)
             self.device.click_record_clear()
             match lantern_type:
@@ -257,7 +257,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 case LanternClass.REALM:
                     self._realm(match_click[i])
                 case LanternClass.EMPTY:
-                    logger.warning(f'Lantern {i} is empty')
+                    logger.warning(f'[逢魔] 灯笼 {i} 为空')
                 case LanternClass.BATTLE:
                     self._battle(match_click[i])
                 case LanternClass.MYSTERY:
@@ -299,26 +299,26 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         # 开始判断
         self.screenshot()
         if self.appear(target_box):
-            logger.info(f'Lantern {index} is box')
+            logger.info(f'[逢魔] 灯笼 {index} 是逢魔宝箱')
             return LanternClass.BOX
         elif self.appear(target_letter):
-            logger.info(f'Lantern {index} is letter')
+            logger.info(f'[逢魔] 灯笼 {index} 是逢魔密信')
             return LanternClass.MAIL
         elif self.appear(target_mystery):
-            logger.info(f'Lantern {index} is mystery task')
+            logger.info(f'[逢魔] 灯笼 {index} 是神秘任务')
             return LanternClass.MYSTERY
         elif self.appear(target_realm):
-            logger.info(f'Lantern {index} is realm')
+            logger.info(f'[逢魔] 灯笼 {index} 是结界')
             return LanternClass.REALM
         elif self.appear(target_empty):
-            logger.info(f'Lantern {index} is empty')
+            logger.info(f'[逢魔] 灯笼 {index} 为空')
             return LanternClass.EMPTY
         elif self.appear(target_find_boss):
-            logger.info(f'Lantern {index} is boss')
+            logger.info(f'[逢魔] 灯笼 {index} 是首领')
             return LanternClass.BOSS
         else:
             # 无法判断是否是战斗的还是结界的
-            logger.info(f'Lantern {index} is battle')
+            logger.info(f'[逢魔] 灯笼 {index} 是战斗')
             return LanternClass.BATTLE
 
     def _box(self, target_click):
@@ -336,12 +336,12 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                     break
             # 默认购买蓝票
             if self.appear(self.I_MYSTERY_AMULET):
-                logger.info('Buy a mystery amulet for 50 jade')
+                logger.info('[逢魔] 花费 50 勾玉购买蓝票')
                 self.click(self.I_JADE_50)
                 continue
             # 可选购买体力
             if box_buy_config.box_buy_sushi and self.appear(self.I_SUSHI):
-                logger.info('Buy one hundred sushi for 50 jade')
+                logger.info('[逢魔] 花费 50 勾玉购买 100 体力')
                 self.click(self.I_JADE_50)
                 continue
 
@@ -370,7 +370,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 index = Answer().answer_one(question=question, options=[answer_1, answer_2, answer_3])
             if index is None:
                 index = 1
-            logger.info(f'Question: {question}, Answer: {index}')
+            logger.info(f'[逢魔] 题目: {question}, 答案: {index}')
             return click_match[index]
 
         while 1:
@@ -379,10 +379,10 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 break
             if self.click(target_click, interval=1):
                 continue
-        logger.info('Question answering Start')
+        logger.info('[逢魔] 开始逢魔密信答题')
         for i in range(1, 4):
             # 还未测试题库无法识别的情况
-            logger.hr(f'Answer {i}', 3)
+            logger.hr(f'答题 {i}', 3)
             answer_click = answer()
             while 1:
                 self.screenshot()
@@ -392,7 +392,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                         self.screenshot()
                         # 等待动画结束
                         if not self.appear(self.I_UI_REWARD, threshold=0.6):
-                            logger.info('Get reward success')
+                            logger.info('[逢魔] 领取奖励成功')
                             break
                         # 一直点击
                         if self.ui_reward_appear_click():
@@ -403,7 +403,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                     time.sleep(1.8)
                     self.screenshot()
                     if not self.appear(self.I_LETTER_CLOSE):
-                        logger.warning('Answer finish')
+                        logger.warning('[逢魔] 答题已结束')
                         return
 
                 # 一直点击
@@ -414,11 +414,11 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         while 1:
             self.screenshot()
             if not self.appear(self.I_DE_LOCATION):
-                logger.info('Battle Start')
+                logger.info('[逢魔] 开始战斗')
                 break
             if self.appear(self.I_DE_SMALL_FIRE):
                 # 小鬼王
-                logger.info('Small Boss')
+                logger.info('[逢魔] 小鬼王')
                 while 1:
                     self.screenshot()
                     if not self.appear(self.I_DE_SMALL_FIRE):
@@ -431,14 +431,14 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 continue
         self.current_count = 0
         if self.run_general_battle():
-            logger.info('Battle End')
+            logger.info('[逢魔] 战斗结束')
 
     def _realm(self, target_click):
         # 结界
         while 1:
             self.screenshot()
             if not self.appear(self.I_DE_LOCATION):
-                logger.info('Battle Start')
+                logger.info('[逢魔] 开始战斗')
                 break
             if self.appear_then_click(self.I_DE_REALM_FIRE, interval=0.7):
                 continue
@@ -447,7 +447,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 continue
         self.current_count = 0
         if self.run_general_battle():
-            logger.info('Battle End')
+            logger.info('[逢魔] 战斗结束')
 
     def _mystery(self, target_click):
         # 神秘任务， 不做
@@ -459,7 +459,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             self.screenshot()
             if self.appear(self.I_BOSS_KILLED):
                 # 这个大鬼王已经击败
-                logger.warning('Boss already killed')
+                logger.warning('[逢魔] 首领已被击败')
                 self.ui_click_until_disappear(self.I_UI_BACK_RED)
                 break
             if self.appear(self.I_BOSS_FIRE):
@@ -478,13 +478,13 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         now = datetime.now()
         if now.hour < 17:
             # 17点之前，推迟到当天的17点半
-            logger.info('Before 17:00, wait to 17:30')
+            logger.info('[逢魔] 17 点前，推迟到当天 17:30')
             target_time = datetime(now.year, now.month, now.day, 17, 30, 0)
             self.set_next_run(task='DemonEncounter', success=False, finish=False, target=target_time)
             return False
         elif now.hour >= 23:
             # 23点之后，推迟到第二天的17:30
-            logger.info('After 23:00, wait to 17:30')
+            logger.info('[逢魔] 23 点后，推迟到次日 17:30')
             target_time = datetime(now.year, now.month, now.day, 17, 30, 0) + timedelta(days=1)
             self.set_next_run(task='DemonEncounter', success=False, finish=False, target=target_time)
             return False

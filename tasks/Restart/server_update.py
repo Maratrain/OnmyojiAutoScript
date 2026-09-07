@@ -30,10 +30,10 @@ def build_server_update_delay_target(now: datetime | None = None) -> datetime:
 def delay_pending_tasks_for_server_update(config, reason: str) -> datetime:
     delay_target = build_server_update_delay_target()
     logger.info(
-        f'Detect possible server update because {reason}, '
-        f'delay pending tasks until {delay_target.strftime("%Y-%m-%d %H:%M:%S")}'
+        f'检测到可能的服务器维护，原因: {reason}，'
+        f'延迟待处理任务至 {delay_target.strftime("%Y-%m-%d %H:%M:%S")}'
     )
-    logger.warning('Delay pending tasks')
+    logger.warning('延迟待处理任务')
 
     config.update_scheduler()
     delayed: set[str] = set()

@@ -30,15 +30,15 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
             # 已经下注
             if self.appear(self.I_BETTED):
-                logger.info('You have betted')
+                logger.info('已下注')
                 break
             # 休息中
             if self.appear(self.I_FROG_BOSS_REST):
-                logger.info('Frog Boss Rest')
+                logger.info('[对弈竞猜] 对弈休息中')
                 break
             # 竞猜成功
             if self.appear(self.I_BET_SUCCESS):
-                logger.info('You bet win')
+                logger.info('竞猜成功')
                 self.detect()
                 while 1:
                     self.screenshot()
@@ -53,7 +53,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 continue
             # 竞猜失败
             if self.appear(self.I_BET_FAILURE):
-                logger.info('You bet lose')
+                logger.info('竞猜失败')
                 self.ui_click_until_disappear(self.I_NEXT_COMPETITION)
                 self.detect()
                 continue
@@ -62,7 +62,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 self.do_bet()
                 continue
 
-        logger.info('FrogBoss end')
+        logger.info('[对弈竞猜] 对弈竞猜结束')
         self.next_run()
         raise TaskEnd('FrogBoss')
 
@@ -91,7 +91,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         self.set_next_run(task='FrogBoss', target=time_set - time_delta)
 
     def do_bet(self):
-        logger.hr('do bet', level=2)
+        logger.hr('下注', level=2)
         self.screenshot()
         flag_glod_30 = 0
         count_left = self.O_LEFT_COUNT.ocr(self.device.image)
@@ -111,7 +111,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 click_image = self.I_BET_RIGHT
             case _:
                 raise ValueError(f'Unknown bet mode: {self.config.model.frog_boss.frog_boss_config.strategy_frog}')
-        logger.info(f'You strategy is {self.config.model.frog_boss.frog_boss_config.strategy_frog} and bet on {click_image}')
+        logger.info(f'策略为 {self.config.model.frog_boss.frog_boss_config.strategy_frog}，下注 {click_image}')
         self.ui_click_until_disappear(click_image)
         gold_30_timer = Timer(10)
         gold_30_timer.start()
@@ -120,12 +120,12 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             if self.appear(self.I_GOLD_30_CHECK):
                 break
             if gold_30_timer.reached():
-                logger.info('Gold 30 not appear')
+                logger.info('未出现金币30')
                 break
             if self.appear_then_click(self.I_GOLD_30, interval=3):
                 continue
         # 正式下注
-        logger.info('Formal bet')
+        logger.info('正式下注')
         while 1:
             self.screenshot()
             if self.appear(self.I_BETTED):
@@ -147,10 +147,10 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         """
         if self.appear(self.I_SUCCESS_LEFT) and self.appear(self.I_FAILURE_RIGHT):
             result = True
-            logger.info('Left win')
+            logger.info('左边赢了')
         elif self.appear(self.I_SUCCESS_RIGHT) and self.appear(self.I_FAILURE_LEFT):
             result = False
-            logger.info('Right win')
+            logger.info('右边赢了')
         else:
             result = True
         return result
@@ -167,7 +167,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         获取博主的策略选择，整合多个博主的投注策略，并返回最终的下注建议
         :return: 'left' 或 'right' 的下注目标
         """
-        logger.info('Fetching strategy from multiple Dashen UPer')
+        logger.info('正在获取多位大神UP主的策略')
         # 定义正则表达式
         red_regex = re.compile(r'(押红|押左|压红|压左|红方|红色|我红|我左|红优|左|红六|红七|红八|红九|红十|91开|82开|73开|64开)')
         blue_regex = re.compile(r'(押蓝|押右|压蓝|压右|蓝方|蓝色|我蓝|我右|蓝优|右|蓝六|蓝七|蓝八|蓝九|蓝十|19开|28开|37开|46开)')
@@ -297,13 +297,13 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
         # 最终输出决策
         if count_uper_left > count_uper_right:
-            logger.info(f"Final decision: The best bet is LEFT({count_uper_left}:{count_uper_right})")
+            logger.info(f"最终决策: 最佳下注为左边({count_uper_left}:{count_uper_right})")
             return self.I_BET_LEFT  # 返回下注的目标是左边
         elif count_uper_right > count_uper_left:
-            logger.info(f"Final decision: The best bet is RIGHT({count_uper_right}:{count_uper_left})")
+            logger.info(f"最终决策: 最佳下注为右边({count_uper_right}:{count_uper_left})")
             return self.I_BET_RIGHT  # 返回下注的目标是右边
         else:
-            logger.info("Final decision:Left and right bets are equal, default bet is minority")
+            logger.info("最终决策: 左右票数相等，默认押少数方")
             # 若五五开则投注少数博反压奖励
             if count_left < count_right:
                 return self.I_BET_LEFT

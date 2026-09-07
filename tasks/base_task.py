@@ -70,33 +70,33 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         appear_invitation = self.appear(self.I_G_ACCEPT)
         if not appear_invitation:
             return False
-        logger.info('Invitation appearing')
+        logger.info('[基础] 检测到邀请弹窗')
         invite_type = self.config.global_game.emergency.friend_invitation
         detect_record = self.device.detect_record
         match invite_type:
             case FriendInvitation.ACCEPT:
-                logger.info(f"Accept friend invitation")
+                logger.info(f"[基础] 接受好友邀请")
                 click_button = self.I_G_ACCEPT
             case FriendInvitation.REJECT:
-                logger.info(f"Reject friend invitation")
+                logger.info(f"[基础] 拒绝好友邀请")
                 click_button = self.I_G_REJECT
             case FriendInvitation.ONLY_JADE:
                 # 勾协
-                logger.info(f"Only accept jade invitation")
+                logger.info(f"[基础] 只接受勾协邀请")
                 if self.appear(self.I_G_JADE):
                     click_button = self.I_G_ACCEPT
                 else:
                     click_button = self.I_G_IGNORE
             case FriendInvitation.JADE_AND_FOOD:
                 # 如果是接受勾协和粮协
-                logger.info(f"Accept jade and food invitation")
+                logger.info(f"[基础] 接受勾协和粮协邀请")
                 if self.appear(self.I_G_JADE) or self.appear(self.I_G_CAT_FOOD) or self.appear(self.I_G_DOG_FOOD):
                     click_button = self.I_G_ACCEPT
                 else:
                     click_button = self.I_G_IGNORE
             case FriendInvitation.IGNORE:
                 # 如果是忽略
-                logger.info(f"Ignore friend invitation")
+                logger.info(f"[基础] 忽略好友邀请")
                 click_button = self.I_G_IGNORE
             case _:
                 raise ScriptError(f'Unknown friend invitation type: {invite_type}')
@@ -105,7 +105,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         while 1:
             self.device.screenshot()
             if not self.appear(target=click_button):
-                logger.info('Deal with invitation done')
+                logger.info('[基础] 邀请处理完成')
                 break
             if self.appear_then_click(click_button, interval=0.8):
                 continue
@@ -279,7 +279,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             else:
                 self.screenshot()
             if wait_timer and wait_timer.reached():
-                logger.warning(f"Wait until appear {target.name} timeout")
+                logger.warning(f"[基础] 等待 {target.name} 出现超时")
                 return False
             if isinstance(target, RuleImage) and self.appear(target):
                 return True
@@ -325,7 +325,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         :param timeout: 等待稳定的超时时间
         :return: timer时间内稳定出现则返回True, 否则False
         """
-        logger.info(f'Wait until {target.name} position stable')
+        logger.info(f'[基础] 正在等待 {target.name} 位置稳定')
         timeout_timer = Timer(timeout).start()
         stable_timer = Timer(stable_time).start()
         pre_roi_front, cur_roi_front = None, None
@@ -336,14 +336,14 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             # 当前页面能够匹配到target
             if target.match(self.device.image, threshold=threshold, frame_id=self.device.image_frame_id):
                 cur_roi_front = target.roi_front
-                logger.info(f'Current:{cur_roi_front}, pre:{pre_roi_front}')
+                logger.info(f'[基础] 当前:{cur_roi_front}，上次:{pre_roi_front}')
                 target.roi_back = pre_roi_front
                 # 上一次匹配到的位置还能匹配到target
                 if pre_roi_front is not None and target.match(self.device.image, threshold=threshold,
                                                               frame_id=self.device.image_frame_id):
                     # 到达稳定时间
                     if stable_timer.reached():
-                        logger.info(f'{target.name} position has stabilized')
+                        logger.info(f'[基础] {target.name} 位置已稳定')
                         target.roi_back = origin_roi_back
                         return True
                 else:
@@ -354,7 +354,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             pre_roi_front = cur_roi_front
             # 还原target的匹配区域
             target.roi_back = origin_roi_back
-        logger.warning(f'Wait until pos stable({target}) timeout')
+        logger.warning(f'[基础] 等待位置稳定({target})超时')
         return False
 
     def wait_until_stable(self,
@@ -390,7 +390,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 target._match_init = True
 
             if timeout.reached():
-                logger.warning(f'Wait_until_stable({target}) timeout')
+                logger.warning(f'[基础] wait_until_stable({target}) 等待超时')
                 break
 
     def wait_animate_stable(self, rule: RuleAnimate, interval: float = None, timeout: float = None):
@@ -423,7 +423,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 break
 
             if timeout_timer and timeout_timer.reached():
-                logger.info(f'Wait_animate_stable({rule}) timeout')
+                logger.info(f'[基础] wait_animate_stable({rule}) 等待超时')
                 break
 
     def swipe(self, swipe: RuleSwipe, interval: float = None) -> bool:
@@ -682,7 +682,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                     self.screenshot()
                     # 等待动画结束
                     if not self.appear(self.I_UI_REWARD, threshold=0.6):
-                        logger.info('Get reward success')
+                        logger.info('[基础] 领取奖励成功')
                         break
 
                     # 一直点击
@@ -690,7 +690,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                         continue
                 break
             if _timer.reached():
-                logger.warning('Get reward timeout')
+                logger.warning('[基础] 领取奖励超时')
                 break
 
             if isinstance(click_image, RuleImage):
@@ -796,7 +796,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 continue
 
     def push_notify(self, content='', title=None, level=3):
-        logger.info(f'Push notify: {content}')
+        logger.info(f'[基础] 推送通知: {content}')
 
     def save_image(self, task_name=None, content=None, wait_time=2, image_type=False, push_flag=False, level=3):
-        logger.info(f'Save image: {task_name}')
+        logger.info(f'[基础] 保存图片: {task_name}')

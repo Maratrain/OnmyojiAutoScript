@@ -51,9 +51,9 @@ class ScriptProcess(ScriptWSManager):
         self.state = ScriptState.RUNNING
         await self.broadcast_state({"state": self.state})
         if self._process:
-            logger.warning(f'Script {self.config_name} is initialized')
+            logger.warning(f'[脚本进程] 脚本 {self.config_name} 已初始化')
         if self._process and self._process.is_alive():
-            logger.warning(f'Script {self.config_name} is already running and first stop it')
+            logger.warning(f'[脚本进程] 脚本 {self.config_name} 已在运行，将先停止')
             self.stop()
         self._process = _SCRIPT_PROCESS_CONTEXT.Process(
             target=func,
@@ -68,10 +68,10 @@ class ScriptProcess(ScriptWSManager):
         self.state = ScriptState.INACTIVE
         await self.broadcast_state({"state": self.state})
         if self._process is None:
-            logger.warning(f'Script {self.config_name} process is removed')
+            logger.warning(f'[脚本进程] 脚本 {self.config_name} 进程已被移除')
             return
         if not self._process.is_alive():
-            logger.warning(f'Script {self.config_name} is not running')
+            logger.warning(f'[脚本进程] 脚本 {self.config_name} 未在运行')
             return
         self._process.terminate()
         self._process = None
@@ -95,14 +95,14 @@ class ScriptProcess(ScriptWSManager):
                         self.state = ScriptState.WARNING
                     await self.broadcast_state(data)
                 except QueueEmpty as e:
-                    logger.warning(f'QueueEmpty: {e}')
+                    logger.warning(f'[脚本进程] 队列为空 QueueEmpty：{e}')
                     await sleep(0.5)
                     continue
                 except Exception as e:
-                    logger.error(f'Error: {e}')
+                    logger.error(f'[脚本进程] 错误：{e}')
                     continue
         except CancelledError as e:
-            logger.warning(f'{self.config_name} state coroutine is cancelled')
+            logger.warning(f'[脚本进程] {self.config_name} 状态协程已取消')
             return
 
     async def coroutine_broadcast_log(self):
@@ -130,13 +130,13 @@ class ScriptProcess(ScriptWSManager):
                     await self.broadcast_log(log)
                 except EOFError as e:
                     await sleep(0.5)
-                    logger.warning(f'EOFError: {e}')
+                    logger.warning(f'[脚本进程] 日志管道已关闭 EOFError：{e}')
                     continue
                 except Exception as e:
-                    logger.error(f'Log Error: {e}')
+                    logger.error(f'[脚本进程] 日志异常：{e}')
                     continue
         except CancelledError as e:
-            logger.warning(f'{self.config_name} log coroutine is cancelled')
+            logger.warning(f'[脚本进程] {self.config_name} 日志协程已取消')
             return
 
 
@@ -148,8 +148,8 @@ def func(config: str, state_queue: multiprocessing.Queue, log_pipe_in) -> None:
             set_file_logger(name=config)
             set_func_logger(log_pipe_in.send)
         except Exception as e:
-            logger.exception(f'Start log error')
-            logger.error(f'Error: {e}')
+            logger.exception(f'[脚本进程] 启动日志失败')
+            logger.error(f'[脚本进程] 错误：{e}')
             raise
     start_log()
     import time
@@ -163,14 +163,14 @@ def func(config: str, state_queue: multiprocessing.Queue, log_pipe_in) -> None:
         script.state_queue = state_queue
         script.loop()
     except SystemExit as e:
-        logger.info(f'Script {config} process exit')
-        logger.error(f'Error: {e}')
+        logger.info(f'[脚本进程] 脚本 {config} 进程退出')
+        logger.error(f'[脚本进程] 错误：{e}')
         state_queue.put({"state": ScriptState.WARNING})
         time.sleep(0.1)
         exit(-1)
     except Exception as e:
-        logger.exception(f'Run script {config} error')
-        logger.error(f'Error: {e}')
+        logger.exception(f'[脚本进程] 运行脚本 {config} 失败')
+        logger.error(f'[脚本进程] 错误：{e}')
         raise
 
 

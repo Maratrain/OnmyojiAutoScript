@@ -82,7 +82,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -140,14 +140,14 @@ class DroidCast(Uiautomator2):
 
 
     def droidcast_init(self):
-        logger.hr('DroidCast init')
+        logger.hr('DroidCast 初始化')
         self.droidcast_stop()
         self._droidcast_update_resolution()
 
-        logger.info('Pushing DroidCast apk')
+        logger.info('[DroidCast] 正在推送 DroidCast apk')
         self.adb_push(self.config.DROIDCAST_FILEPATH_LOCAL, self.config.DROIDCAST_FILEPATH_REMOTE)
 
-        logger.info('Starting DroidCast apk')
+        logger.info('[DroidCast] 正在启动 DroidCast apk')
         # DroidCast_raw-release-1.0.apk
         # CLASSPATH=/data/local/tmp/DroidCast_raw.apk app_process / ink.mol.droidcast_raw.Main > /dev/null
         # adb shell CLASSPATH=/data/local/tmp/DroidCast_raw.apk app_process / ink.mol.droidcast_raw.Main
@@ -170,17 +170,17 @@ class DroidCast(Uiautomator2):
             logger.attr('DroidCast_raw', self.droidcast_raw_url())
             self.droidcast_wait_startup()
         else:
-            logger.error(f'Unknown DROIDCAST_VERSION: {self.config.DROIDCAST_VERSION}')
+            logger.error(f'[DroidCast] 未知的 DROIDCAST_VERSION: {self.config.DROIDCAST_VERSION}')
 
     def _droidcast_update_resolution(self):
         if self.is_mumu_over_version_356:
-            logger.info('Update droidcast resolution')
+            logger.info('[DroidCast] 正在更新 DroidCast 分辨率')
             w, h = self.resolution_uiautomator2(cal_rotation=False)
             self.get_orientation()
             # 720, 1280
             # mumu12 > 3.5.6 is always a vertical device
             self.droidcast_width, self.droidcast_height = w, h
-            logger.info(f'Droicast resolution: {(w, h)}')
+            logger.info(f'[DroidCast] 分辨率: {(w, h)}')
 
 
     @retry
@@ -244,7 +244,7 @@ class DroidCast(Uiautomator2):
                 arr = arr.reshape(shape)
         except ValueError as e:
             if len(image) < 500:
-                logger.warning(f'Unexpected screenshot: {image}')
+                logger.warning(f'[DroidCast] 异常截图数据: {image}')
             # Try to load as `DroidCast`
             image = np.frombuffer(image, np.uint8)
             if image is not None:
@@ -305,12 +305,12 @@ class DroidCast(Uiautomator2):
                 resp = self.droidcast_session.get(self.droidcast_url('/'), timeout=3)
                 # Route `/` is unavailable, but 404 means startup completed
                 if resp.status_code == 404:
-                    logger.attr('DroidCast', 'online')
+                    logger.attr('DroidCast', '在线')
                     return True
             except requests.exceptions.ConnectionError:
-                logger.attr('DroidCast', 'offline')
+                logger.attr('DroidCast', '离线')
 
-        logger.warning('Wait DroidCast startup timeout, assume started')
+        logger.warning('[DroidCast] 等待启动超时，假设已启动')
         return False
 
     def droidcast_uninstall(self):
@@ -319,7 +319,7 @@ class DroidCast(Uiautomator2):
         DroidCast hasn't been installed but a JAVA class call, uninstall is a file delete.
         """
         self.droidcast_stop()
-        logger.info('Removing DroidCast')
+        logger.info('[DroidCast] 正在移除 DroidCast')
         self.adb_shell(["rm", self.config.DROIDCAST_FILEPATH_REMOTE])
 
 
@@ -340,9 +340,9 @@ class DroidCast(Uiautomator2):
         """
         Stop DroidCast processes.
         """
-        logger.info('Stopping DroidCast')
+        logger.info('[DroidCast] 正在停止 DroidCast')
         for proc in self._iter_droidcast_proc():
-            logger.info(f'Kill pid={proc.pid}')
+            logger.info(f'[DroidCast] 结束进程 pid={proc.pid}')
             self.adb_shell(['kill', '-s', 9, proc.pid])
 
 

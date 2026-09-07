@@ -39,14 +39,14 @@ class ScriptTask(ScriptTaskBase):
         while True:
             self.screenshot()
             if click_failure_count >= 3:
-                logger.warning("Click failure, check your click position")
+                logger.warning("[战斗皮肤] 点击失败，请检查点击位置")
                 return False
             if not self.appear(self.I_TOPPA_RECORD, threshold=0.85):
                 time.sleep(1)
                 self.screenshot()
                 if self.appear(self.I_TOPPA_RECORD, threshold=0.85):
                     continue
-                logger.info("Start attach area [%s]" % str(index + 1))
+                logger.info("[战斗皮肤] 开始进攻区域 [%s]" % str(index + 1))
                 return self.run_general_battle(config=self.build_quick_exit_config(self.battle_config))
 
             if self.appear_then_click(RealmRaidAssets.I_FIRE, interval=2, threshold=0.8):
@@ -58,7 +58,7 @@ class ScriptTask(ScriptTaskBase):
     def set_costume(self, costume: BattleType=BattleType.COSTUME_BATTLE_DEFAULT):
         self.config.model.global_game.costume_config.costume_battle_type = costume
         self.check_costume()
-        logger.info('Set costume to %s' % self.config.model.global_game.costume_config.costume_battle_type)
+        logger.info('设置战斗皮肤为 %s' % self.config.model.global_game.costume_config.costume_battle_type)
 
 
 if __name__ == '__main__':

@@ -121,7 +121,7 @@ class RuleList:
                 self._target.name = name
                 self._target.keyword = name
         else:
-            logger.error(f'Not found {name} in {self.array}')
+            logger.error(f'在 {self.array} 中未找到 {name}')
             return False
 
     def targets_check(self, targets: list):
@@ -166,7 +166,7 @@ class RuleList:
             return False
 
         else:
-            logger.error(f'Mode is not image')
+            logger.error(f'当前模式不是 image')
             return False
 
     def ocr_appear(self, image: np.array, name: str):
@@ -184,7 +184,7 @@ class RuleList:
         # 开始一次ocr的检测
         boxed_results: list[BoxedResult] = self._target.detect_and_ocr(image)
         if not boxed_results:
-            logger.warning(f'Not angy result in image')
+            logger.warning(f'图像中未识别到任何结果')
             return 0, 0
 
         # 判断所有的结果，给获取的列表建立引索
@@ -199,7 +199,7 @@ class RuleList:
             rec_x, rec_y, rec_w, rec_h = box[0, 0], box[0, 1], box[1, 0] - box[0, 0], box[2, 1] - box[0, 1]
             x = rec_x + rec_w // 2 + self.roi_back[0]
             y = rec_y + rec_h // 2 + self.roi_back[1]
-            logger.info(f'Ocr {name} appear in current screen, do not need to scroll')
+            logger.info(f'OCR 识别到 {name} 在当前屏幕，无需滑动')
             return x, y
 
         # if index_list and len(index_list) >= 1:
@@ -213,9 +213,9 @@ class RuleList:
 
             # 判断识别处理的文字是否属于要验证识别的文字（array）
             keyword_list = [keyword for keyword in keyword_list if keyword in self.array]
-            logger.info(f'After list: {keyword_list}')
+            logger.info(f'过滤后列表: {keyword_list}')
             if not keyword_list:
-                logger.warning(f'Not found {name} in {self.array}')
+                logger.warning(f'在 {self.array} 中未找到 {name}')
                 return 2
 
             start_index = self.array.index(keyword_list[0])
@@ -234,7 +234,7 @@ class RuleList:
             # 如果目标的是在当前的显示的后面， 则distance为正的
             # 所有前面返回的是负的，后面返回的是正的
             if distance_start == 0 and distance_end == 0:
-                logger.error(f'{name} not found in {keyword_list}')
+                logger.error(f'{keyword_list} 中未找到 {name}')
 
             return (distance_start + distance_end) // 2
 

@@ -37,13 +37,13 @@ class PlatformBase(EmulatorManagerBase):
         - Retry is required.
         - Using bored sleep to wait startup is forbidden.
         """
-        logger.info(f'Current platform {sys.platform} does not support emulator_start, skip')
+        logger.info(f'[设备-平台] 当前平台 {sys.platform} 不支持 emulator_start，跳过')
 
     def emulator_stop(self):
         """
         Stop a emulator.
         """
-        logger.info(f'Current platform {sys.platform} does not support emulator_stop, skip')
+        logger.info(f'[设备-平台] 当前平台 {sys.platform} 不支持 emulator_stop，跳过')
 
     @cached_property
     def config_interface(self) -> dict:
@@ -72,7 +72,7 @@ class PlatformBase(EmulatorManagerBase):
         Refresh emulator detection caches and resolve current target instance again.
         """
         if reason:
-            logger.info(f'[emu-instance] refresh: {reason}')
+            logger.info(f'[模拟器实例] 刷新: {reason}')
         del_cached_property(self, 'emulator_instance')
         del_cached_property(self, 'emulator_info')
         del_cached_property(self, 'config_interface')
@@ -180,7 +180,7 @@ class PlatformBase(EmulatorManagerBase):
         Returns:
             EmulatorInstance: Emulator instance or None if no instances not found.
         """
-        logger.hr('Find emulator instance', level=2)
+        logger.hr('查找模拟器实例', level=2)
         instances = SelectedGrids(self.all_emulator_instances)
         for instance in instances:
             logger.info(instance)
@@ -193,18 +193,18 @@ class PlatformBase(EmulatorManagerBase):
             # because this is just a trial
             if select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
         # Search by serial
         select = instances.select(**search_args)
         if select.count == 0:
-            logger.warning(f'No emulator instance with {search_args}, serial invalid')
+            logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，serial 无效')
             return None
         if select.count == 1:
             instance = select[0]
-            logger.hr('Emulator instance', level=2)
-            logger.info(f'Found emulator instance: {instance}')
+            logger.hr('模拟器实例', level=2)
+            logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
             return instance
 
         # Multiple instances in given serial, search by name
@@ -212,12 +212,12 @@ class PlatformBase(EmulatorManagerBase):
             search_args['name'] = name
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, name invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，name 无效')
                 search_args.pop('name')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # Multiple instances in given serial and name, search by path
@@ -225,12 +225,12 @@ class PlatformBase(EmulatorManagerBase):
             search_args['path'] = path
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, path invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，path 无效')
                 search_args.pop('path')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # Multiple instances in given serial, name and path, search by emulator
@@ -238,35 +238,35 @@ class PlatformBase(EmulatorManagerBase):
             search_args['type'] = emulator
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, type invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，type 无效')
                 search_args.pop('type')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # Still too many instances, search from running emulators
         running = remove_duplicated_path(list(self.iter_running_emulator()))
-        logger.info('Running emulators')
+        logger.info('[设备-平台] 正在运行的模拟器')
         for exe in running:
             logger.info(exe)
         if len(running) == 1:
-            logger.info('Only one running emulator')
+            logger.info('[设备-平台] 仅有一个正在运行的模拟器')
             # Same as searching path
             search_args['path'] = running[0]
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, path invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，path 无效')
                 search_args.pop('path')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # Still too many instances
-        logger.warning(f'Found multiple emulator instances with {search_args}')
+        logger.warning(f'[设备-平台] 找到多个模拟器实例 {search_args}')
         return None
 
 

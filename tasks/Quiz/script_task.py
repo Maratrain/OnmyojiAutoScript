@@ -77,10 +77,10 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
                 break
             if self.appear_then_click(self.I_ENTRY, interval=1):
                 continue
-        logger.info('Quiz start')
+        logger.info('[智力答题] 答题开始')
 
     def once(self) -> bool:
-        logger.hr('Quiz', 3)
+        logger.hr('智力答题', 3)
         start_cnt = 0
         self.answer_cnt = 0
         # 重置倒计时状态
@@ -90,7 +90,7 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
             if self.appear(self.I_MESSAGE):
                 break
             if start_cnt >= 4:
-                logger.error('No ticket')
+                logger.error('没有答题门票')
                 raise NoTicket('No ticket')
             if self.appear_then_click(self.I_START, interval=1.5):
                 start_cnt += 1
@@ -106,12 +106,12 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
                 continue
             if self.appear(self.I_FAIL_QUIT):
                 # 失败
-                logger.info('Quiz Fail and exit')
+                logger.info('答题失败，退出')
                 self.ui_click(self.I_FAIL_QUIT, self.I_START)
                 break
             if self.appear(self.I_SHARE):
                 # 结算
-                logger.info('Quiz Victory and exit')
+                logger.info('答题胜利，退出')
                 self.ui_click(self.I_UI_BACK_RED, self.I_START)
                 break
             if quiz_timer.reached():
@@ -144,7 +144,7 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
         
         """  # 检查倒计时状态变化：从大于0变为0时进入下一题
         if self.last_countdown is not None and self.last_countdown > 0 and countdown == 0:
-            logger.info("Countdown changed from greater than 0 to 0, moving to next question")
+            logger.info("倒计时从大于0变为0，进入下一题")
             return False
         
         self.last_countdown = countdown """
@@ -168,11 +168,11 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
                 pass
             return False
         self.answer_cnt += 1
-        logger.info(f'Question count: {self.answer_cnt}')
+        logger.info(f'答题数量: {self.answer_cnt}')
 
         index = self.anwser.answer_one(question=question,  options=[answer_1, answer_2, answer_3, answer_4])
         if index is None:
-            logger.error('Now question has no answer, please check')
+            logger.error('当前题目没有答案，请检查')
             self.append_one(question=question, options=[answer_1, answer_2, answer_3, answer_4])
             self.config.notifier.push(title='Quiz',
                                       content=f"New question: \n{question} \n{[answer_1, answer_2, answer_3, answer_4]}")
@@ -182,7 +182,7 @@ class ScriptTask(GameUi, QuizAssets, ActivityShikigamiAssets, Debugger):
             index_options = {1, 2, 3, 4}
             index_options.remove(index)
             index = random.choice(list(index_options))
-        logger.attr(index, 'Answer')
+        logger.attr(index, '答案')
         self.click(self.click_options[index-1], interval=1)
         time.sleep(0.5)
         if index == 1:

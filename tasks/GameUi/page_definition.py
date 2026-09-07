@@ -16,7 +16,7 @@ def _clamp_priority(value: int, page_key: str) -> int:
 
     priority = max(1, min(100, value))
     if priority != value:
-        logger.warning(f"Page priority out of range: key={page_key}, value={value}, clamped={priority}")
+        logger.warning(f"[界面] 页面优先级超出范围: key={page_key}, value={value}, clamped={priority}")
     return priority
 
 

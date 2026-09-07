@@ -18,7 +18,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
 
     def run(self):
         if not self.check_date(datetime.now()):
-            logger.warning("GuildBanquet is not available now")
+            logger.warning("[寮宴会] 寮宴会当前未开放")
             self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
         self.goto_page(pages.page_guild)
@@ -27,7 +27,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
             self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
             self.goto_page(pages.page_main)
             raise TaskEnd
-        logger.info("Start guild banquet!")
+        logger.info("[寮宴会] 开始寮宴会")
         self.device.stuck_record_clear()
         max_wait_seconds = 660
         wait_interval_seconds = 6
@@ -36,12 +36,12 @@ class ScriptTask(GameUi, GuildBanquetAssets):
         while True:
             self.screenshot()
             if datetime.now() - start_banquet_time > timedelta(seconds=max_wait_seconds):
-                logger.info('Guild banquet timeout, exit')
+                logger.info('[寮宴会] 寮宴会等待超时，退出')
                 break
             if not self.appear(self.I_BANQUET_FLAG):
-                logger.info("Guild banquet finished, exit")
+                logger.info("[寮宴会] 寮宴会结束，退出")
                 break
-            logger.attr(f'{(datetime.now()-start_banquet_time).seconds}s',"Banquet ongoing, waiting...")
+            logger.attr(f'{(datetime.now()-start_banquet_time).seconds}s',"宴会进行中，等待...")
             if self.config.guild_banquet.guild_banquet_config.auto_switch_shikigami:
                 if self.appear(self.I_BANQUET_EXP_FULL):
                     # 连续第2次识别到满了则进行更换, 防止是动画过渡导致的误识别
@@ -69,7 +69,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
                     time.sleep(0.5)
                 case pages.page_banquet_switch_shikigami:
                     if max_tries <= 0:
-                        logger.warning('Maybe shikigami not enough, exit switch')
+                        logger.warning('[寮宴会] 式神可能不足，退出切换')
                         break
                     cur, _, total = self.O_BANQUET_SHIKIGAMI_NUM.ocr_digit_counter(self.device.image)
                     if cur != total or cur == 0:
@@ -79,7 +79,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
                         self.appear_then_click(self.I_BANQUET_ALL_PUT, interval=1.5)
                         continue
                     # 当前式神数量不为0且等于总数, 切换完毕
-                    logger.info('Switch shikigami done, back to banquet')
+                    logger.info('[寮宴会] 切换式神完成，返回宴会')
                     self.appear_then_click(self.I_BANQUET_CONFIRM, interval=1.5)
                 case pages.page_banquet_shikigami:
                     # 回到了式神展示界面, 说明已经切换完毕直接退出即可

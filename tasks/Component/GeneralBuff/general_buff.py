@@ -18,7 +18,7 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         打开buff的总界面
         :return:
         """
-        logger.info('Open buff')
+        logger.info('[通用加成] 打开加成界面')
         while 1:
             self.screenshot()
             if self.appear(self.I_CLOUD):
@@ -39,7 +39,7 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         关闭buff的总界面, 但是要确保buff界面已经打开了
         :return:
         """
-        logger.info('Close buff')
+        logger.info('[通用加成] 关闭加成界面')
         while 1:
             self.screenshot()
             if not self.appear(self.I_CLOUD):
@@ -89,18 +89,18 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return: 识别到且操作成功True
         """
-        logger.info('Gold 50 buff')
+        logger.info('[通用加成] 金币50加成')
         self.screenshot()
         area = self.get_area(self.O_GOLD_50)
         if not area:
-            logger.warning('No gold 50 buff')
+            logger.warning('[通用加成] 未找到金币50加成')
             return False
         self.set_switch_area(area)
         if is_open:
-            logger.info('Start open gold50 buff')
+            logger.info('[通用加成] 开始开启金币50加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close gold50 buff')
+        logger.info('[通用加成] 开始关闭金币50加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 
@@ -110,18 +110,18 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return:
         """
-        logger.info('Gold 100 buff')
+        logger.info('[通用加成] 金币100加成')
         self.screenshot()
         area = self.get_area(self.O_GOLD_100)
         if not area:
-            logger.warning('No gold 100 buff')
+            logger.warning('[通用加成] 未找到金币100加成')
             return False
         self.set_switch_area(area)
         if is_open:
-            logger.info('Start open gold100 buff')
+            logger.info('[通用加成] 开始开启金币100加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close gold100 buff')
+        logger.info('[通用加成] 开始关闭金币100加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 
@@ -131,12 +131,12 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return:
         """
-        logger.info('Exp 50 buff')
+        logger.info('[通用加成] 经验50加成')
         max_swipe = 2
         while True:
             self.screenshot()
             if max_swipe <= 0:
-                logger.warning('No exp 50 buff')
+                logger.warning('[通用加成] 未找到经验50加成')
                 return False
             area = self.get_area(self.O_EXP_50)
             if area:
@@ -148,10 +148,10 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
                 continue
             break
         if is_open:
-            logger.info('Start open exp50 buff')
+            logger.info('[通用加成] 开始开启经验50加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close exp50 buff')
+        logger.info('[通用加成] 开始关闭经验50加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 
@@ -161,11 +161,11 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return:
         """
-        logger.info('Exp 100 buff')
+        logger.info('[通用加成] 经验100加成')
         max_swipe = 2
         while True:
             if max_swipe <= 0:
-                logger.warning('No exp 100 buff')
+                logger.warning('[通用加成] 未找到经验100加成')
                 return False
             self.screenshot()
             area = self.get_area(self.O_EXP_100)
@@ -178,10 +178,10 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
                 continue
             break
         if is_open:
-            logger.info('Start open exp100 buff')
+            logger.info('[通用加成] 开始开启经验100加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close exp100 buff')
+        logger.info('[通用加成] 开始关闭经验100加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 
@@ -197,7 +197,7 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         self.screenshot()
 
         if not self.appear(target):
-            logger.warning(f'No {target.name} buff')
+            logger.warning(f'[通用加成] 未找到 {target.name} 加成')
             return None
         start_x = int(target.roi_front[0] + 390)
         start_y = int(target.roi_front[1])
@@ -211,18 +211,18 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return:
         """
-        logger.info('Awake buff')
+        logger.info('[通用加成] 觉醒加成')
         self.screenshot()
         area = self.get_area_image(self.I_AWAKE)
         if not area:
-            logger.warning('No awake buff')
+            logger.warning('[通用加成] 未找到觉醒加成')
             return None
         self.set_switch_area(area)
         if is_open:
-            logger.info('Start open awake buff')
+            logger.info('[通用加成] 开始开启觉醒加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close awake buff')
+        logger.info('[通用加成] 开始关闭觉醒加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 
@@ -232,18 +232,18 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :param is_open: 是否打开
         :return:
         """
-        logger.info('Soul buff')
+        logger.info('[通用加成] 御魂加成')
         self.screenshot()
         area = self.get_area_image(self.I_SOUL)
         if not area:
-            logger.warning('No soul buff')
+            logger.warning('[通用加成] 未找到御魂加成')
             return None
         self.set_switch_area(area)
         if is_open:
-            logger.info('Start open soul buff')
+            logger.info('[通用加成] 开始开启御魂加成')
             self.ui_click(self.I_CLOSE_RED, self.I_OPEN_YELLOW, interval=1)
             return True
-        logger.info('Start close soul buff')
+        logger.info('[通用加成] 开始关闭御魂加成')
         self.ui_click(self.I_OPEN_YELLOW, self.I_CLOSE_RED, interval=1)
         return True
 

@@ -226,7 +226,7 @@ class GameUi(BaseTask, GameUiAssets):
             logger.attr("UI", page.name)
             return page
 
-        logger.warning(f"Page detect miss[{context}]: scoped={sorted_categories}")
+        logger.warning(f"[界面] 页面识别未命中[{context}]: 作用域={sorted_categories}")
         return None
 
     def _detect_pages(
@@ -506,7 +506,7 @@ class GameUi(BaseTask, GameUiAssets):
         source = transition.source
         destination = transition.destination
 
-        logger.info(f"Page switch: {source} -> {destination}")
+        logger.info(f"[界面] 页面跳转: {source} -> {destination}")
 
         action_timer = Timer(6.0).start()
         action_done = False
@@ -521,7 +521,7 @@ class GameUi(BaseTask, GameUiAssets):
             self._run_hooks(destination.on_enter_failure)
             self._run_hooks(transition.on_enter_failure)
             penalty = self.navigator.add_penalty(transition)
-            logger.warning(f"Transition failed before leaving {source}: {transition.key}, penalty={penalty:.1f}")
+            logger.warning(f"[界面] 离开页面 {source} 前跳转失败: {transition.key}，惩罚={penalty:.1f}")
             self.navigator.current_page = self._detect_current_page_with_fallback(
                 skip_first_screenshot=False,
                 categories=self._navigation_detect_categories(destination),
@@ -534,7 +534,7 @@ class GameUi(BaseTask, GameUiAssets):
             self._run_hooks(destination.on_enter_success)
             self._run_hooks(transition.on_enter_success)
             self._mark_page_entered(destination)
-            logger.info(f"Page arrived {destination}")
+            logger.info(f"[界面] 已到达页面 {destination}")
             return True
 
         self._run_hooks(source.on_leave_failure)
@@ -542,7 +542,7 @@ class GameUi(BaseTask, GameUiAssets):
         self._run_hooks(destination.on_enter_failure)
         self._run_hooks(transition.on_enter_failure)
         penalty = self.navigator.add_penalty(transition)
-        logger.warning(f"Transition cannot reach {destination}: {transition.key}, penalty={penalty:.1f}")
+        logger.warning(f"[界面] 跳转无法到达 {destination}: {transition.key}，惩罚={penalty:.1f}")
         self.navigator.current_page = self._detect_current_page_with_fallback(
             skip_first_screenshot=False,
             categories=self._navigation_detect_categories(destination),
@@ -599,20 +599,20 @@ class GameUi(BaseTask, GameUiAssets):
             if value > 0
         }
         check_results = self._collect_page_check_results(destination)
-        logger.warning("Unknown ui page or navigation stalled")
-        logger.warning(f"Current page: {current}")
-        logger.warning(f"Target page: {destination.name}")
-        logger.warning(f"Allowed categories: {allowed_categories}")
-        logger.warning(f"Current task category: {self.navigator.task_category}")
-        logger.warning(f"Current page checks: {check_results}")
-        logger.warning(f"Last path signature: {last_path_signature}")
+        logger.warning("[界面] 未知页面或导航停滞")
+        logger.warning(f"[界面] 当前页面: {current}")
+        logger.warning(f"[界面] 目标页面: {destination.name}")
+        logger.warning(f"[界面] 允许的页面分类: {allowed_categories}")
+        logger.warning(f"[界面] 当前任务分类: {self.navigator.task_category}")
+        logger.warning(f"[界面] 当前页面命中: {check_results}")
+        logger.warning(f"[界面] 最近路径签名: {last_path_signature}")
         logger.warning(
-            "Repeated transition failure: "
+            "[界面] 跳转连续失败: "
             f"key={repeated_failure_transition_key}, count={repeated_failure_count}"
         )
-        logger.warning(f"Last repeated-failure close result: {last_repeated_failure_close_result}")
-        logger.warning(f"Edge penalties: {penalties}")
-        logger.warning(f"Unknown close history: {self.navigator.unknown_close_history}")
+        logger.warning(f"[界面] 最近连续失败后关闭结果: {last_repeated_failure_close_result}")
+        logger.warning(f"[界面] 边惩罚: {penalties}")
+        logger.warning(f"[界面] 未知页关闭历史: {self.navigator.unknown_close_history}")
         raise GamePageUnknownError(f"Cannot goto page[{destination}]")
 
     def get_current_page(self, skip_first_screenshot: bool = True, fallback: bool = False) -> Page | None:
@@ -684,7 +684,7 @@ class GameUi(BaseTask, GameUiAssets):
         """
 
         self.maybe_screenshot(skip_first_screenshot)
-        logger.warning("Try switch to a supported page")
+        logger.warning("[界面] 尝试切换到已知页面")
         for action in [*self.navigator.local_unknown_closers, *self.DEFAULT_UNKNOWN_CLOSERS]:
             action_name = self._action_name(action)
             # 若最后3次执行的都是该动作，则跳过该动作尝试其他动作
@@ -736,7 +736,7 @@ class GameUi(BaseTask, GameUiAssets):
         self._run_enter_success_hooks_if_needed(destination)
         if confirm_wait > 0:
             Timer(confirm_wait, count=int(confirm_wait // 0.5)).start().wait()
-        logger.attr(f'{time.time() - start_time:.1f}s', f"Page arrived {destination}")
+        logger.attr(f'{time.time() - start_time:.1f}s', f"[界面] 已到达页面 {destination}")
         return True
 
     def goto_page(self, destination: Page, confirm_wait: float = 0, skip_first_screenshot: bool = True,
@@ -757,7 +757,7 @@ class GameUi(BaseTask, GameUiAssets):
         """
 
         destination = self.navigator.resolve_page(destination) or self.navigator.add_page(destination)
-        logger.hr(f"UI goto {destination}")
+        logger.hr(f"界面跳转 {destination}")
         start_time = time.time()
         progress_timer = Timer(timeout).start()
         last_progress_signature: tuple[str, str] | None = None
@@ -823,8 +823,8 @@ class GameUi(BaseTask, GameUiAssets):
             if path_signature != last_progress_signature:
                 progress_timer.reset()
                 last_progress_signature = path_signature
-            logger.info(f"Current page: {current}. Following path:")
-            logger.info(" -> ".join([current.name, *[transition.destination.name for transition in path]]))
+            logger.info(f"[界面] 当前页面: {current}，导航路径:")
+            logger.info("→".join([current.name, *[transition.destination.name for transition in path]]))
 
             advanced = True
             for transition in path:
@@ -837,7 +837,7 @@ class GameUi(BaseTask, GameUiAssets):
                         repeated_failure_count = 1
                     if repeated_failure_count % self.REPEATED_TRANSITION_FAILURE_THRESHOLD == 0:
                         close_success = self.close_unknown_pages(skip_first_screenshot=False)
-                        logger.warning(f"Transition {transition.key} repeated failure close result: {close_success}")
+                        logger.warning(f"[界面] 跳转 {transition.key} 连续失败后关闭结果: {close_success}")
                         if close_success:
                             progress_timer.reset()
                             last_progress_signature = ("close_unknown_after_repeated_failure", transition.key)

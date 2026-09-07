@@ -17,13 +17,13 @@ class ScriptTask(GameUi, FindJadeAssets):
         self.fade_conf = self.config.find_jade
 
         for accountInfo in self.fade_conf.sup_account_list:
-            logger.info("start %s-%s ", accountInfo.character, accountInfo.svr)
+            logger.info("开始 %s-%s ", accountInfo.character, accountInfo.svr)
             if not self.is_need_login(accountInfo):
-                logger.warning("%s Skipped last Login Time:%s", accountInfo.character, accountInfo.last_complete_time)
+                logger.warning("%s 已跳过，上次完成登录时间:%s", accountInfo.character, accountInfo.last_complete_time)
                 continue
             suc = SwitchAccount(self.config, self.device, accountInfo).switchAccount()
             if not suc:
-                logger.warning("switch to %s-%s Failed", accountInfo.character, accountInfo.svr)
+                logger.warning("切换到 %s-%s 失败", accountInfo.character, accountInfo.svr)
                 continue
             #
             wq = self.CreatObjectFromModule("WantedQuests", config=self.config, device=self.device)
@@ -32,7 +32,7 @@ class ScriptTask(GameUi, FindJadeAssets):
             try:
                 wq.run()
             except TaskEnd as e:
-                logger.warning("%s-%s TaskEnd", accountInfo.character, accountInfo.svr)
+                logger.warning("%s-%s 任务结束", accountInfo.character, accountInfo.svr)
                 # 更新配置文件中的时间
                 self.fade_conf.update_account_login_history(accountInfo)
                 self.save_config()

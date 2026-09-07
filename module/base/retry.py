@@ -59,7 +59,7 @@ def __retry_internal(f, exceptions=Exception, tries=-1, delay=0, max_delay=None,
             if logger is not None:
                 # Difference, show exception
                 logger.exception(e)
-                logger.warning(f'{type(e).__name__}({e}), retrying in {_delay} seconds...')
+                logger.warning(f'{type(e).__name__}({e})，{_delay} 秒后重试...')
 
             time.sleep(_delay)
             _delay *= backoff

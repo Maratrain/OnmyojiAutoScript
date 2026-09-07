@@ -23,11 +23,11 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
     def run(self):
         day_of_week = self.start_time.weekday()
         if day_of_week != 2 and day_of_week != 5:
-            logger.warning('Today is not MysteryShop day')
+            logger.warning('[神秘商店] 今天不是神秘商店开放日')
             self.next_time(False)
         self.goto_page(page_mall)
         self.ui_click(self.I_ME_ENTER, self.I_MS_SHARE)
-        logger.info('Enter MysteryShop')
+        logger.info('[神秘商店] 进入神秘商店')
         con = self.config.mystery_shop
         self.share(con.invite_config)
         while 1:
@@ -35,7 +35,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
             if not self.next_one():
                 break
         self.shop_reward()
-        logger.info('Exit MysteryShop')
+        logger.info('[神秘商店] 退出神秘商店')
         self.back_mall()
 
 
@@ -53,7 +53,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
             if self.appear(self.I_MS_NEXT):
                 pass
             else:
-                logger.info('No next friend')
+                logger.info('没有下一个好友')
                 return False
 
         own_page = self.appear(self.I_MS_SHARE)
@@ -64,7 +64,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
                     break
                 if self.appear_then_click(self.I_MS_NEXT, interval=1):
                     continue
-            logger.info('Switch to next friend')
+            logger.info('切换到下一个好友')
             return True
 
         present_friend = self.O_MS_FRIEND.ocr(self.device.image)
@@ -76,7 +76,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
             if self.appear_then_click(self.I_MS_NEXT, interval=2.5):
                 continue
 
-        logger.info('Switch to next friend')
+        logger.info('切换到下一个好友')
         return True
 
 
@@ -104,21 +104,21 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
                 pass
 
     def share(self, invite_config: InviteConfig = None):
-        logger.hr('Share', 3)
+        logger.hr('分享', 3)
         if len(invite_config.friend_list_v) == 0:
-            logger.info('Share is disabled')
+            logger.info('分享未开启')
             return
         self.ui_click(self.I_MS_SHARE, self.I_INVITE_ENSURE)
         self.invite_friends(invite_config, False, self.I_INVITE_ENSURE)
 
     def shop_reward(self):
-        logger.info('Shop reward')
+        logger.info('领取商店奖励')
         self.screenshot()
         number = self.O_MS_RECORDS.ocr(self.device.image)
         if not isinstance(number, int):
-            logger.warning('No shop reward')
+            logger.warning('没有商店奖励')
             return
-        logger.info(f'Shop reward {number}')
+        logger.info(f'领取商店奖励 {number}')
         if number >= 3:
             self.ui_get_reward(self.I_MS_REWARD_3)
             sleep(0.5)
@@ -128,7 +128,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
         if number >= 10:
             self.ui_get_reward(self.I_MS_REWARD_10)
             sleep(0.5)
-        logger.info('Shop reward done')
+        logger.info('商店奖励领取完成')
 
     def next_time(self, success: bool = True):
         """
@@ -154,7 +154,7 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
             next_time = now_datetime + timedelta(days=6 - day_of_week + 3) + target_time
         else:
             next_time = now_datetime + timedelta(days=2 - day_of_week) + target_time
-            logger.warning('Now is not in the time of mystery shop')
+            logger.warning('[神秘商店] 当前不在神秘商店开放时间')
         self.set_next_run(task='MysteryShop', target=next_time)
         raise TaskEnd('MysteryShop')
 

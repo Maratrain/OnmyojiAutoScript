@@ -171,7 +171,7 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             origin = self.config.script.optimization.screenshot_interval
             interval = limit_in(origin, 0.1, 0.3)
             if interval != origin:
-                logger.warning(f'Optimization.ScreenshotInterval {origin} is revised to {interval}')
+                logger.warning(f'[设备-截图] Optimization.ScreenshotInterval {origin} 已修正为 {interval}')
                 self.config.script.optimization.screenshot_interval = interval
             # Allow nemu_ipc to have a lower default
             if self.config.Emulator_ScreenshotMethod == 'nemu_ipc':
@@ -180,13 +180,13 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             origin = self.config.script.optimization.combat_screenshot_interval
             interval = limit_in(origin, 0.3, 1.0)
             if interval != origin:
-                logger.warning(f'Optimization.CombatScreenshotInterval {origin} is revised to {interval}')
+                logger.warning(f'[设备-截图] Optimization.CombatScreenshotInterval {origin} 已修正为 {interval}')
                 self.config.script.optimization.combat_screenshot_interval = interval
         elif isinstance(interval, (int, float)):
             # No limitation for manual set in code
             pass
         else:
-            logger.warning(f'Unknown screenshot interval: {interval}')
+            logger.warning(f'[设备-截图] 未知的截图间隔: {interval}')
             raise ScriptError(f'Unknown screenshot interval: {interval}')
         # Screenshot interval in scrcpy is meaningless,
         # video stream is received continuously no matter you use it or not.
@@ -195,7 +195,7 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             interval = 0.1
 
         if interval != self._screenshot_interval.limit:
-            logger.info(f'Screenshot interval set to {interval}s')
+            logger.info(f'[设备-截图] 截图间隔已设为 {interval}s')
             self._screenshot_interval.limit = interval
 
     def image_show(self, image=None):
@@ -223,13 +223,13 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
                 self._screen_size_checked = True
                 return True
             elif not orientated and (width == 720 and height == 1280):
-                logger.info('Received orientated screenshot, handling')
+                logger.info('[设备-截图] 收到旋转方向的截图，正在处理')
                 self.get_orientation()
                 self.image = self._handle_orientated_image(self.image)
                 orientated = True
                 width, height = image_size(self.image)
                 if width == 720 and height == 1280:
-                    logger.info('Unable to handle orientated screenshot, continue for now')
+                    logger.info('[设备-截图] 无法处理旋转方向的截图，暂时继续')
                     return True
                 else:
                     continue
@@ -237,11 +237,11 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             #     self.display_resize_wsa(0)
             #     return False
             elif hasattr(self, 'app_is_running') and not self.app_is_running():
-                logger.warning('Received orientated screenshot, game not running')
+                logger.warning('[设备-截图] 收到旋转方向的截图，游戏未运行')
                 return True
             else:
-                logger.critical(f'Resolution not supported: {width}x{height}')
-                logger.critical('Please set emulator resolution to 1280x720')
+                logger.critical(f'[设备-截图] 分辨率不支持: {width}x{height}')
+                logger.critical('请将模拟器分辨率设置为 1280x720')
                 raise RequestHumanTakeover
 
     def check_screen_black(self):
@@ -261,20 +261,20 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             #     self.app_stop_uiautomator2()
             #     return False
             if self.config.script.device.screenshot_method == 'uiautomator2':
-                logger.warning(f'Received pure black screenshots from emulator, color: {color}')
-                logger.warning('Uninstall minicap and retry')
+                logger.warning(f'[设备-截图] 收到模拟器的纯黑截图，颜色: {color}')
+                logger.warning('[设备-截图] 卸载 minicap 后重试')
                 self.uninstall_minicap()
                 self._screen_black_checked = False
                 return False
             else:
-                logger.warning(f'Received pure black screenshots from emulator, color: {color}')
-                logger.warning(f'Screenshot method {self.config.script.device.screenshot_method}'
-                               f'may not work on emulator `{self.serial}`, or the emulator is not fully started')
+                logger.warning(f'[设备-截图] 收到模拟器的纯黑截图，颜色: {color}')
+                logger.warning(f'[设备-截图] 截图方式 {self.config.script.device.screenshot_method}'
+                               f'在模拟器 `{self.serial}` 上可能不可用，或模拟器尚未完全启动')
                 if self.is_mumu_family:
                     if self.config.script.device.screenshot_method == 'DroidCast':
                         self.droidcast_stop()
                     else:
-                        logger.warning('If you are using MuMu X, please upgrade to version >= 12.1.5.0')
+                        logger.warning('[设备-截图] 如使用 MuMu X，请升级到 12.1.5.0 及以上版本')
                 self._screen_black_checked = False
                 return False
         else:

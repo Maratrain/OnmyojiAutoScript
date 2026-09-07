@@ -34,17 +34,17 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
             case UserStatus.LEADER: success = self.run_leader()
             case UserStatus.MEMBER: success = self.run_member()
             case UserStatus.ALONE: self.run_alone()
-            case _: logger.error('Unknown user status')
+            case _: logger.error('[彼世逢魔] 未知的用户身份')
         self.goto_page(pages.page_main)
         self.set_next_run('OtherWorldTwilight', finish=not success, success=success)
         raise TaskEnd
 
     def run_leader(self):
-        logger.info('Start run leader')
+        logger.info('[彼世逢魔] 开始队长流程')
         self.goto_page(pages.page_owt)
         self.check_lock(self.conf.general_battle_config.lock_team_enable, self.I_OWT_LOCK, self.I_OWT_UNLOCK)
         # 创建队伍
-        logger.info('Create team')
+        logger.info('创建队伍')
         self.ui_click(self.I_OWT_TEAM, self.I_CHECK_TEAM, interval=1)
         # 创建房间
         self.create_room()
@@ -62,16 +62,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
                 continue
             if self.current_count >= self.conf.other_world_twilight_config.limit_count:
                 if self.is_in_room():
-                    logger.info('Count limit out')
+                    logger.info('[彼世逢魔] 已达到次数上限')
                     break
             if datetime.now() - self.start_time >= self.conf.other_world_twilight_config.limit_time_v:
                 if self.is_in_room():
-                    logger.info('Time limit out')
+                    logger.info('[彼世逢魔] 已达到时间上限')
                     break
             # 如果没有进入房间那就不需要后面的邀请
             if not self.is_in_room(False):
                 if self.is_room_dead():
-                    logger.warning('Task failed')
+                    logger.warning('[彼世逢魔] 任务失败')
                     success = False
                     break
                 continue
@@ -81,13 +81,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
                     self.run_general_battle(config=self.conf.general_battle_config, exit_matcher=self.team_exit_matcher)
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this task')
+                    logger.warning('[彼世逢魔] 邀请失败，退出本次任务')
                     success = False
                     break
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self.conf.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this task')
+                    logger.warning('[彼世逢魔] 邀请失败，退出本次任务')
                     success = False
                     break
                 else:
@@ -106,17 +106,17 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         return True
 
     def run_member(self):
-        logger.info('Start run member')
+        logger.info('[彼世逢魔] 开始队员流程')
         self.goto_page(pages.page_main)
         # 进入战斗流程
         self.device.stuck_record_add('BATTLE_STATUS_S')
         while True:
             self.screenshot()
             if self.current_count >= self.conf.other_world_twilight_config.limit_count:
-                logger.info('Count limit out')
+                logger.info('[彼世逢魔] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.conf.other_world_twilight_config.limit_time_v:
-                logger.info('Time limit out')
+                logger.info('[彼世逢魔] 已达到时间上限')
                 break
             if self.check_then_accept():
                 continue
@@ -143,15 +143,15 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         return True
 
     def run_alone(self):
-        logger.info('Start run alone')
+        logger.info('[彼世逢魔] 开始单人流程')
         self.goto_page(pages.page_owt)
         self.check_lock(self.conf.general_battle_config.lock_team_enable, self.I_OWT_LOCK, self.I_OWT_UNLOCK)
         while True:
             if self.current_count >= self.conf.other_world_twilight_config.limit_count:
-                logger.info('Count limit out')
+                logger.info('[彼世逢魔] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.conf.other_world_twilight_config.limit_time_v:
-                logger.info('Time limit out')
+                logger.info('[彼世逢魔] 已达到时间上限')
                 break
             self.screenshot()
             current_page = self.get_current_page(False)

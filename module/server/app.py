@@ -61,18 +61,18 @@ async def on_startup():
     :return:
     """
     ensure_api_logger()
-    logger.info('OAS web service startup done')
+    logger.info('[服务器] OAS WebUI 服务启动完成')
     if app.state.script_instances:
         await mm.restart_processes(app.state.script_instances)
 
 
 async def on_shutdown():
-    logger.info('OAS web service shutdown done')
+    logger.info('[服务器] OAS WebUI 服务已停止')
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Internal Server Error: ", exc_info=True)
+    logger.error(f"[服务器] 服务器内部错误: ", exc_info=True)
 
     message = ', '.join(str(arg) for arg in exc.args) if exc.args else str(exc)
 

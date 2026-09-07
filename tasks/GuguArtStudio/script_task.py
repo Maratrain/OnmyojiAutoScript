@@ -30,7 +30,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GuguArtStudioAssets):
         while True:
             self.screenshot()
             if max_submit <= 0:
-                logger.info('Submit paint success, exit')
+                logger.info('提交画作完成，退出')
                 break
             current_page = self.get_current_page()
             match current_page:
@@ -44,10 +44,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GuguArtStudioAssets):
                 case pages.page_gugu_fire:
                     unknown_page_timer = Timer(unknown_page_seconds)
                     if self.appear_then_click(self.I_GOTO_SUBMIT):
-                        logger.info('Get paint finish, go to submit paint')
+                        logger.info('画作已完成，去提交画作')
                         continue
                     if self.appear(self.I_GAS_CANNOT_FIRE):  # 无法挑战则退出到提交颜料页面
-                        logger.info('Cannot fire, go to submit paint')
+                        logger.info('无法挑战，去提交画作')
                         self.goto_page(pages.page_gugu)
                         continue
                     self.switch_lock()
@@ -80,22 +80,22 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GuguArtStudioAssets):
                                          self.conf.switch_soul_config.team_name)
 
     def get_reward(self):
-        logger.hr('Get gugu reward', 3)
+        logger.hr('领取呱呱奖励', 3)
         reward_click = [self.C_GAS_REWARD_1, self.C_GAS_REWARD_2, self.C_GAS_REWARD_3, self.C_GAS_REWARD_4, self.C_GAS_REWARD_5]
         for click in reward_click:
             self.I_GAS_REWARD_LOCK.roi_back = click.roi_back
             self.I_GAS_ALREADY_GET_REWARD.roi_back = click.roi_back
             self.screenshot()
             if self.appear(self.I_GAS_REWARD_LOCK):
-                logger.info(f'Skip {click.name} on lock')
+                logger.info(f'已锁定，跳过 {click.name}')
                 break
             if self.appear(self.I_GAS_ALREADY_GET_REWARD):
-                logger.info(f'Skip {click.name} on already get')
+                logger.info(f'已领取，跳过 {click.name}')
                 continue
-            logger.info(f'Get {click.name}')
+            logger.info(f'领取 {click.name}')
             self.ui_get_reward(click, click_interval=2.5)
             break
-        logger.info('Get gugu reward done')
+        logger.info('呱呱奖励领取完成')
 
 
 if __name__ == '__main__':

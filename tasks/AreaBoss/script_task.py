@@ -78,7 +78,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         now = datetime.now().time()
         time_not_passed: bool = time(0, 0, 0) <= now <= time(6, 0, 0)
         if time_not_passed:
-            logger.error("It's not time to challenge boss")
+            logger.error("[地域鬼王] 现在不是挑战鬼王的时间")
             self.goto_page(page_main)
             self.set_next_run(task='AreaBoss', server=False, target=datetime.now().replace(hour=10))
             raise TaskEnd
@@ -86,7 +86,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
     def boss(self, battle: RuleImage, collect: bool = False):
 
         # 点击右上角的鬼王选择
-        logger.info("Script filter")
+        logger.info("[地域鬼王] 打开筛选")
         while 1:
             self.screenshot()
             # 如果筛选界面已经打开 点击热门按钮
@@ -100,13 +100,13 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             self.switch_to_collect()
         # 页面没有可挑战的BOSS
         if not (self.appear(self.I_BATTLE_1) or self.appear(self.I_BATTLE_2) or self.appear(self.I_BATTLE_3)):
-            logger.error("There is no boss could be challenged")
+            logger.error("[地域鬼王] 没有可挑战的鬼王")
             return
         # 点击第几个鬼王
-        logger.info(f'Script area boss {battle}')
+        logger.info(f'[地域鬼王] 选择鬼王 {battle}')
         self.ui_click(battle, self.I_AB_CLOSE_RED)
         # 点击挑战
-        logger.info("Script fire ")
+        logger.info("[地域鬼王] 点击挑战")
         while 1:
             self.screenshot()
             if self.appear_then_click(self.I_FIRE, interval=1):
@@ -116,7 +116,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         if not self.run_general_battle(self.config.area_boss.general_battle):
             logger.info("地域鬼王第2只战斗失败")
         # 红色关闭
-        logger.info("Script close red")
+        logger.info("[地域鬼王] 点击关闭")
         self.wait_until_appear(self.I_AB_CLOSE_RED)
         self.ui_click(self.I_AB_CLOSE_RED, self.I_FILTER)
 
@@ -152,7 +152,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
                 elif self.config.area_boss.boss.Attack_60:  # 没有出现极则一次没打过, 拉到60级再打
                     self.switch_to_level_60()
                     if not self.start_fight():  # 60级没打过退出吧
-                        logger.warning("you are so weakness!")
+                        logger.warning("[地域鬼王] 挑战失败，实力不足")
                         self.wait_until_appear(self.I_AB_CLOSE_RED)
                         self.ui_click_until_disappear(self.I_AB_CLOSE_RED, interval=3)
                         return False
@@ -165,11 +165,11 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             match reward_floor:
                 case AreaBossFloor.ONE: self.switch_to_floor_1()
                 case AreaBossFloor.TEN: self.switch_to_floor_10()
-                case AreaBossFloor.DEFAULT: logger.info("Not change floor")
+                case AreaBossFloor.DEFAULT: logger.info("不切换层数")
         result = True
         if not self.start_fight():
             result = False
-            logger.warning("Area Boss Fight Failed ")
+            logger.warning("[地域鬼王] 挑战鬼王失败")
         self.wait_until_appear(self.I_AB_CLOSE_RED)
         self.ui_click_until_disappear(self.I_AB_CLOSE_RED, interval=1)
         return result
@@ -233,7 +233,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             self.screenshot()
             if self.appear(self.I_AB_JI_FLOOR_ONE):
                 self.click(self.I_AB_JI_FLOOR_ONE)
-                logger.info("Switch to floor 1")
+                logger.info("切换到 1 层")
                 break
             self.swipe(self.S_AB_FLOOR_DOWN, interval=1)
             # 等待滑动动画
@@ -249,7 +249,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             self.screenshot()
             if self.appear(self.I_AB_JI_FLOOR_TEN):
                 self.click(self.I_AB_JI_FLOOR_TEN)
-                logger.info("Switch to floor 10")
+                logger.info("切换到 10 层")
                 break
             self.wait_until_appear(self.I_AB_JI_FLOOR_TEN, False, 1)
 
@@ -263,7 +263,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         if not need_open_filter:
             return self.boss_fight(photo, True, fileter_open=False)
         # 滑动到最顶层
-        logger.info("Swipe to top")
+        logger.info("滑动到顶部")
         for i in range(random.randint(1, 3)):
             self.swipe(self.S_AB_FILTER_DOWN)
         # 遍历所有boss找到名称一致的即目前挑战人数最多的
@@ -311,7 +311,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             else:
                 name = self.get_bossName(photo)
                 if num >= 20000 and not self.appear(self.I_AB_NUM_CHALLENGE_RAIL):
-                    logger.info("The number of challenges is enough")
+                    logger.info("挑战人数已满足条件")
                     return True, num, name
             # 没找到满足的则关闭boss页面
             self.ui_click_until_disappear(self.I_AB_CLOSE_RED)
@@ -334,7 +334,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
                 mx_challenge_num = challenge_num
                 mx_challenge_boss_name = boss_name
                 photo = cfg['photo']
-                logger.attr(mx_challenge_num, f'Select:{boss_name},{photo.name}')
+                logger.attr(mx_challenge_num, f'选择:{boss_name},{photo.name}')
         return True, mx_challenge_boss_name if mx_challenge_boss_name else '声望不够', photo if mx_challenge_boss_name else None
 
     def get_num_challenge(self, click_area):
@@ -347,7 +347,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         """
         # 如果鬼王不可挑战(未解锁),限制3次尝试打开鬼王详情界面
         if not self.open_boss_detail(click_area, 3):
-            logger.info("%s unavailable", str(click_area))
+            logger.info("%s 不可挑战", str(click_area))
             return 0
         return self.O_AB_NUM_OF_CHALLENGE.ocr_digit(self.device.image)
 
@@ -361,7 +361,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         """
         # 如果鬼王不可挑战(未解锁),限制3次尝试打开鬼王详情界面
         if not self.open_boss_detail(click_area, 3):
-            logger.info("%s unavailable", str(click_area))
+            logger.info("%s 不可挑战", str(click_area))
             return 0
         ocrName = self.O_AB_BOSS_NAME.detect_and_ocr(self.device.image)
         bossName = re.sub(r"[\'\[\]]", "", str([result.ocr_text for result in ocrName]))
@@ -400,7 +400,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
 
     def open_filter(self):
         """打开筛选界面"""
-        logger.info("openFilter")
+        logger.info("打开筛选")
         self.ui_click(self.I_FILTER, self.I_AB_FILTER_OPENED, interval=3)
 
     def switch_to_collect(self):

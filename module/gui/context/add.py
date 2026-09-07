@@ -62,14 +62,14 @@ class Add(QObject):
         template_path = config_path / f'{template}.json'
         file_path = config_path / f'{file}.json'
         if file_path.exists():
-            logger.error(f'{file_path} is exists')
+            logger.error(f'[GUI] {file_path} 已存在')
             return
 
         with open(template_path, 'r', encoding='utf-8') as f:
             template_content = f.read()
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(template_content)
-        logger.info(f'copy {template_path} to {file_path}')
+        logger.info(f'[GUI] 已复制 {template_path} 到 {file_path}')
 
 
     @Slot(result="QString")

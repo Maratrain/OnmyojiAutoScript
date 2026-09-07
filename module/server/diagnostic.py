@@ -31,6 +31,9 @@ _DEVICE_FIELDS = [
 _V = r'[^\s"\',:;&?{}\[\]]'
 _SCRUB_PATTERNS = [
     (re.compile(r'(账号[:：]\s*)(' + _V + r'{3,})'), r'\1***'),
+    (re.compile(r'(令牌[:：]\s*)(' + _V + r'{6,})'), r'\1***'),
+    (re.compile(r'(密码[:：]\s*)(' + _V + r'+)'), r'\1***'),
+    (re.compile(r'(凭据[:：]\s*)(' + _V + r'{6,})'), r'\1***'),
     (re.compile(r'(account["\'\s:：=]+)(' + _V + r'{3,})', re.I), r'\1***'),
     (re.compile(r'(token["\'\s:：=]+)(' + _V + r'{6,})', re.I), r'\1***'),
     (re.compile(r'(urs[\w]*["\'\s:：=]+)(' + _V + r'{6,})', re.I), r'\1***'),
@@ -124,13 +127,13 @@ def build_diagnostic_zip(config_name: str = '') -> Path:
             try:
                 zf.writestr(f'log/{f.name}', _scrub(f.read_text(encoding='utf-8', errors='replace')))
             except OSError as e:
-                logger.warning(f'diagnostic: skip {f}: {e}')
+                logger.warning(f'[诊断] 跳过打包 {f}：{e}')
         for f in error_logs:
             try:
                 zf.writestr(f'error/{f.parent.name}/log.txt',
                             _scrub(f.read_text(encoding='utf-8', errors='replace')))
             except OSError as e:
-                logger.warning(f'diagnostic: skip {f}: {e}')
+                logger.warning(f'[诊断] 跳过打包 {f}：{e}')
 
-    logger.info(f'诊断日志已导出: {zip_path}')
+    logger.info(f'[诊断] 诊断日志已导出: {zip_path}')
     return zip_path

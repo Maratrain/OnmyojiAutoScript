@@ -122,7 +122,7 @@ class WantedQuestsConfig(BaseModel):
         for wq_type_txt in wq_type_ordered_txt.split('>'):
             wq_type_txt = wq_type_txt.strip()
             if not WQType.contains(wq_type_txt):
-                logger.warning(f'Read unsupported wq type: {wq_type_txt}, skip')
+                logger.warning(f'[悬赏] 不支持的悬赏类型: {wq_type_txt}，跳过')
                 continue
             wq_type_list.append(WQType(wq_type_txt))
         return wq_type_list

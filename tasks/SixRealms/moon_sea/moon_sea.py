@@ -43,7 +43,7 @@ class MoonSea(BaseMoonSea):
 
     def run(self):
         self.before_run()
-        logger.hr('Moon Sea', 1)
+        logger.hr('月之海', 1)
         while True:
             self.screenshot()
             current_page = self.get_current_page()
@@ -58,7 +58,7 @@ class MoonSea(BaseMoonSea):
                 handle()
             except TaskEnd:
                 break
-        logger.info('Moon Sea task ended')
+        logger.info('[六道-月之海] 月之海任务结束')
 
     def run_on_ms(self):
         """月之海界面"""
@@ -85,7 +85,7 @@ class MoonSea(BaseMoonSea):
             return []
         # 出现商店&岛屿数量>2&金币不够买柔风&剩余回合数>1, 则不选择商店, 先攒金币
         if appeared_shop and len(appeared_islands) >= 2 and self.coin_num < 300 and remain_turns > 1:
-            logger.info('Money is not enough, choose other land')
+            logger.info('[六道-月之海] 钱币不足，选择其他岛屿')
             appeared_islands.remove(self.I_MS_LAND_SHOP)
         return appeared_islands
 
@@ -93,7 +93,7 @@ class MoonSea(BaseMoonSea):
         """月之海主界面 执行策略选岛屿"""
         if self.appear(self.I_BOSS_FIRE_PREPARE) and \
                 self.enter_battle(self.I_BOSS_FIRE, boss_unlock=self.I_BOSS_TEAM_UNLOCK, boss_lock=self.I_BOSS_TEAM_LOCK):
-            logger.info('Start boss battle')
+            logger.info('[六道-月之海] 开始首领战斗')
             self.run_general_battle(battle_key='boss', exit_matcher=pages.page_moon_sea)
             raise TaskEnd
         # 优先级：商店 > 神秘 > 混沌 > 星之屿 > 战斗
@@ -107,27 +107,27 @@ class MoonSea(BaseMoonSea):
 
     def run_on_ms_store(self):
         """宁息商店"""
-        logger.hr('shop land')
+        logger.hr('宁息之屿')
         if self.cnt_skill101 >= 5:
-            logger.info('Skill level is enough, skip shopping')
+            logger.info('[六道-月之海] 技能已满级，跳过购物')
             self.goto_page(pages.page_ms_main)
             return
         self.coin_num, buy_times = self.buy_skill(self.I_STORE_SKILL_101, 300, self.O_COIN_NUM,
                                        self.I_STORE_REFRESH, self.O_STORE_REFRESH_TIME)
         self.cnt_skill101 += buy_times
-        logger.info(f'Skill 101 level: {self.cnt_skill101}')
+        logger.info(f'[六道-月之海] 柔风等级: {self.cnt_skill101}')
         self.goto_page(pages.page_ms_main)
 
     def run_on_ms_mistery(self):
         """神秘之屿 转换/仿造"""
-        logger.hr('mistery land')
+        logger.hr('神秘之屿')
         if not self.appear(self.I_MISTERY_IMITATE):
-            logger.info('Do not transfer skill')
+            logger.info('[六道-月之海] 无可转换技能')
             self.goto_page(pages.page_ms_main)
             return
-        logger.info('Imitate skill')
+        logger.info('[六道-月之海] 仿造技能')
         if self.cnt_skill101 >= 5:
-            logger.info('Skill level is enough, skip imitating')
+            logger.info('[六道-月之海] 技能已满级，跳过仿造')
             self.goto_page(pages.page_ms_main)
             return
         if not self.appear_then_click(self.I_MISTERY_IMITATE_SKILL_101):
@@ -140,7 +140,7 @@ class MoonSea(BaseMoonSea):
             if self.get_current_page() == pages.page_ms_main:
                 break
             if max_imitate <= 0:
-                logger.warning("Skill level may be maxed out, skip")
+                logger.warning('[六道-月之海] 技能可能已满级，跳过')
                 break
             if self.appear(self.I_MISTERY_IMITATE_SUCCESS):
                 self.click(pages.random_click(), interval=1.5)
@@ -152,37 +152,37 @@ class MoonSea(BaseMoonSea):
             if self.appear_then_click(self.I_MISTERY_IMITATE, interval=2.5):
                 max_imitate -= 1
         self.cnt_skill101 += 1 if imitated else 0
-        logger.info(f'Skill 101 level: {self.cnt_skill101}')
-        logger.info('Finish Imitate')
+        logger.info(f'[六道-月之海] 柔风等级: {self.cnt_skill101}')
+        logger.info('[六道-月之海] 仿造完成')
         self.goto_page(pages.page_ms_main)
 
     def run_on_ms_chaos(self):
         """混沌之屿 宝箱/精英"""
-        logger.hr('chaos land')
+        logger.hr('混沌之屿')
         is_box: bool = self.appear(self.I_CHAOS_BOX_EXIT)
         if is_box:
-            logger.info('Do not get box')
+            logger.info('[六道-月之海] 不领取宝箱')
             self.goto_page(pages.page_ms_main)
             return
         self.ui_click(self.C_NPC_FIRE_CENTER, self.I_BATTLE_FIRE, interval=0.8)
         if self.enter_battle(self.I_BATTLE_FIRE):
-            logger.info('Start elite battle')
+            logger.info('[六道-月之海] 开始精英战斗')
             self.run_general_battle(battle_key="elite", exit_matcher=pages.page_ms_main)
 
     def run_on_ms_star(self):
         """星之屿 红蛋/星之子"""
-        logger.hr('star land')
+        logger.hr('星之屿')
         self.ui_click(self.C_NPC_FIRE_LEFT, self.I_BATTLE_FIRE, interval=0.8)
         if self.enter_battle(self.I_BATTLE_FIRE):
-            logger.info('Start star red egg battle')
+            logger.info('[六道-月之海] 开始红蛋战斗')
             self.run_general_battle(battle_key="normal", exit_matcher=pages.page_ms_main)
 
     def run_on_ms_battle(self):
         """鏖战之屿 普通怪"""
-        logger.hr('fire land')
+        logger.hr('鏖战之屿')
         self.ui_click(self.C_NPC_FIRE_RIGHT, self.I_BATTLE_FIRE, interval=0.8)
         if self.enter_battle(self.I_BATTLE_FIRE):
-            logger.info('Start normal battle')
+            logger.info('[六道-月之海] 开始普通战斗')
             self.run_general_battle(battle_key="normal", exit_matcher=pages.page_ms_main)
 
 

@@ -40,12 +40,12 @@ class HyaDevice(BaseTask):
         from module.config.config import Config
         root_handle = self.device.config.script.device.handle
         if not root_handle:
-            logger.warning('Device handle config is empty, cannot build root_node')
+            logger.warning('[百鬼夜行] 设备句柄配置为空，无法构建 root_node')
             return
         root_handle_title = ''
         root_handle_num = 0
         if root_handle == 'auto':
-            logger.info('Handle is auto, searching for emulator window')
+            logger.info('[百鬼夜行] 句柄为 auto，正在搜索模拟器窗口')
             window_list = Handle.all_windows()
             root_handle_title = Handle.auto_handle_title(window_list)
             root_handle_num = handle_title2num(root_handle_title)
@@ -62,7 +62,7 @@ class HyaDevice(BaseTask):
         self.device.root_handle_num = root_handle_num
         self.device.root_node = WindowNode(name=root_handle_title, num=root_handle_num)
         Handle.handle_tree(root_handle_num, self.device.root_node)
-        logger.info(f'root_node initialized: title={root_handle_title}, num={root_handle_num}')
+        logger.info(f'[百鬼夜行] root_node 已初始化: title={root_handle_title}, num={root_handle_num}')
 
     def fast_screenshot(self, screenshot: ScreenshotMethod):
         self._ensure_root_node()
@@ -71,15 +71,15 @@ class HyaDevice(BaseTask):
         if hasattr(self.device, 'root_node'):
             self.device.image = self.device.screenshot_window_background() if screenshot == ScreenshotMethod.WINDOW_BACKGROUND else self.device.screenshot_nemu_ipc()
         else:
-            logger.warning('root_node unavailable, falling back to standard screenshot')
+            logger.warning('[百鬼夜行] root_node 不可用，回退到标准截图')
             self.device.screenshot()
         self.device.image_frame_id = None
         if image_black(self.device.image):
-            logger.error('Screenshot image is black, try again')
+            logger.error('[百鬼夜行] 截图图像全黑，请重试')
             raise RequestHumanTakeover('Screenshot image is black, try again')
         if self.hya_fs_check_timer.reached():
-            logger.error('Fast screenshot check timer reached')
-            logger.error('Five minutes have not ended, the game is probably stuck, please check the game')
+            logger.error('[百鬼夜行] 快速截图检查计时器已达上限')
+            logger.error('[百鬼夜行] 五分钟仍未结束，游戏可能卡住，请检查游戏')
             raise GameStuckError
         if self.config.script.error.save_error:
             self.device.screenshot_deque.append({'time': datetime.now(), 'image': self.device.image})
@@ -88,23 +88,23 @@ class HyaDevice(BaseTask):
     def fast_click(self, x: int, y: int, control_method: ControlMethod = ControlMethod.WINDOW_MESSAGE) -> None:
         self._ensure_root_node()
         logger.info(
-            'Click %s @ %s' % (point2str(x, y), 'Click')
+            '点击 %s @ %s' % (point2str(x, y), 'Click')
         )
         if not hasattr(self.device, 'root_node'):
-            logger.warning('root_node unavailable, falling back to standard click')
+            logger.warning('[百鬼夜行] root_node 不可用，回退到标准点击')
             self.device.click(x, y)
             return
         if control_method == ControlMethod.MINITOUCH:
             try:
                 self.device.click_minitouch(x=x, y=y)
             except AttributeError:
-                logger.warning('click_minitouch failed, falling back to standard click')
+                logger.warning('[百鬼夜行] click_minitouch 失败，回退到标准点击')
                 self.device.click(x, y)
         else:
             try:
                 self.device.click_window_message(x=x, y=y, fast=True)
             except AttributeError:
-                logger.warning('click_window_message failed, falling back to standard click')
+                logger.warning('[百鬼夜行] click_window_message 失败，回退到标准点击')
                 self.device.click(x, y)
 
     def set_fast_screenshot_interval(self, interval: float):

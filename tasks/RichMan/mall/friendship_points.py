@@ -17,7 +17,7 @@ class FriendshipPoints(Special):
         if not con:
             con = self.config.rich_man.friendship_points
         if not con.enable:
-            logger.info('Friendship points is not enable')
+            logger.info('[大富翁-友情点] 未启用')
             return
         self._enter_friendship()
 
@@ -45,21 +45,21 @@ class FriendshipPoints(Special):
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(buy_button):
-            logger.warning('Buy button is not appear')
+            logger.warning('[大富翁-友情点] 未找到购买按钮')
             return False
         # 是否检查剩余数量
         _remain = self._special_check_remain(buy_button)
         if _remain == 0:
-            logger.warning('Remain number is 0')
+            logger.warning('[大富翁-友情点] 剩余数量为 0')
             return False
         # 检查总勋章
         current_money = money_ocr.ocr(self.device.image)
         if not isinstance(current_money, int):
-            logger.warning('Money ocr failed')
+            logger.warning('[大富翁-友情点] 货币识别失败')
             return False
         money_enough = current_money >= buy_money
         if not money_enough:
-            logger.warning(f'No enough money {current_money}')
+            logger.warning(f'[大富翁-友情点] 货币不足: {current_money}')
             return False
         # 点击购买
         return self.buy_one(buy_button, buy_check)
@@ -78,37 +78,37 @@ class FriendshipPoints(Special):
         """
         logger.hr(buy_button.name, 3)
         if buy_number == 0:
-            logger.info('Buy number is 0')
+            logger.info('[大富翁-友情点] 购买数量为 0')
             return
         self.screenshot()
         # 检查是否出现了购买按钮
         if not self.appear(buy_button):
-            logger.warning('Buy button is not appear')
+            logger.warning('[大富翁-友情点] 未找到购买按钮')
             return
         # 是否检查剩余数量
         if remain_number:
             _remain = self._special_check_remain(buy_button)
             if _remain == 0:
-                logger.warning('Remain number is 0')
+                logger.warning('[大富翁-友情点] 剩余数量为 0')
                 return
             if _remain < buy_number:
-                logger.warning(f'Remain number is {_remain}, buy number is {buy_number}')
+                logger.warning(f'[大富翁-友情点] 剩余数量: {_remain}，购买数量: {buy_number}')
                 buy_number = _remain
         # 检查钱够不够
         current_money = money_ocr.ocr(self.device.image)
         if not isinstance(current_money, int):
-            logger.warning('Money ocr failed')
+            logger.warning('[大富翁-友情点] 货币识别失败')
             return
         money_enough = current_money >= buy_money * buy_number
         if not money_enough:
-            logger.warning(f'Money is not enough {current_money}')
+            logger.warning(f'[大富翁-友情点] 货币不足: {current_money}')
             # 判断够不够买2个
             if current_money < buy_money * 2:
-                logger.warning('Money is not enough 2')
+                logger.warning('[大富翁-友情点] 货币不够购买 2 个')
                 return
             buy_number = current_money // buy_money
         # 购买
-        logger.info(f'Buy number is {buy_number}')
+        logger.info(f'[大富翁-友情点] 购买数量: {buy_number}')
         if buy_number >= buy_max:
             buy_cycles_number = buy_number // buy_max
             buy_res_number = buy_number % buy_max

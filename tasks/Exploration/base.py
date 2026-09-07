@@ -105,7 +105,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
                 try:
                     exp_level_enum_list.append(ExplorationLevel(txt))
                 except ValueError as e:
-                    logger.warning(f'convert {txt} failed')
+                    logger.warning(f'[探索] 转换 {txt} 失败')
             sorted(exp_level_enum_list, key=lambda x: x.get_index())  # Sort by index
             # 判断当前章节有无目标章节
             result = set(text1).intersection({config_exploration_level})
@@ -125,7 +125,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
                 elif config_exploration_level.get_index() > max_level.get_index():
                     self.swipe(self.S_SWIPE_LEVEL_DOWN)
             swipeCount += 1
-            debug_info = f"Swiped {swipeCount} times, current exploration level: {text1}"
+            debug_info = f"[探索] 已滑动 {swipeCount} 次，当前章节: {text1}"
             logger.info(debug_info)
             if swipeCount >= 25:
                 raise GameStuckError(
@@ -155,7 +155,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         # 候补出战数量识别
         cu, res, total = self.O_E_ALTERNATE_NUMBER.ocr(self.device.image)
         if cu >= 40:
-            logger.info("Alternate number is enough")
+            logger.info("[探索] 候补出战数量足够")
             self.goto_page(pages.page_exp_main)
             return
         choose_rarity = self._config.exploration_config.choose_rarity
@@ -167,17 +167,17 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             time.sleep(0.5)
             self.screenshot()
             if not self.appear(self.I_E_OPEN_SETTINGS):
-                logger.warning('Opening settings failed')
+                logger.warning('[探索] 打开设置失败')
                 return
             cur, res, total = self.O_E_ALTERNATE_NUMBER.ocr(self.device.image)
             if cur >= 40:
-                logger.info(f'Alternate number is enough, exit')
+                logger.info(f'[探索] 候补出战数量足够，退出')
                 break
             # 连续向后滑动超过6次还能识别到候补狗粮(1. 滑动的不够× 2. 没新狗粮了)
             if self.device.click_record.count(self.S_SWIPE_SHIKI_TO_LEFT.name) >= 6 or \
                     self.device.click_record.count(self.S_SWIPE_SHIKI_TO_LEFT_ONE.name) >= 6:
                 if cur > 0: # 上了一部分狗粮, 先用着
-                    logger.warning(f'Alternate number is not enough, current: {cur}')
+                    logger.warning(f'[探索] 候补出战数量不足，当前: {cur}')
                     break
                 # 滑动很多次了, 结果也没成功上狗粮, 要么滑的不够(基本不可能)要么没狗粮(大概率)
                 # TODO: 1. 增加选项狗粮不够时继续打 2. 去召唤界面换狗粮(这里还有问题是否去商店买厕纸)
@@ -193,7 +193,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             # 没识别到候补狗粮(没狗粮/已经全满级)导致不滑动了, 但是上狗粮后数量又没变
             if pre == cur:
                 if cur > 0:  # 上了一部分狗粮, 先用着
-                    logger.warning(f'Alternate number is not enough, current: {cur}')
+                    logger.warning(f'[探索] 候补出战数量不足，当前: {cur}')
                     break
                 # TODO: 同上一个todo
                 raise GameStuckError(f"Alternate number is not enough")
@@ -274,7 +274,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             self.exp_100(is_open=False)
             self.close_buff()
         # 设置下次执行行时间
-        logger.info("RealmRaid and Exploration  set_next_run !")
+        logger.info("[探索] 结界突破和探索已设置下次运行时间")
         next_run = datetime.now() + con_scrolls.scrolls_cd
         self.goto_page(pages.page_exploration)
         self.set_next_run(task='Exploration', success=False, finish=False, target=next_run)
@@ -285,14 +285,14 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
     def check_exit(self, current_page: pages.Page | None) -> bool:
         # True 表示要退出这个任务
         if self.current_count >= self._config.exploration_config.minions_cnt:
-            logger.info('Minions count is enough, exit')
+            logger.info('[探索] 已达小怪数量上限，退出')
             return True
         if datetime.now() - self.start_time >= self.limit_time:
-            logger.info('Exploration time limit out, exit')
+            logger.info('[探索] 探索时间已用完，退出')
             return True
         if self.user_status == UserStatus.MEMBER and \
                 datetime.now() - self.wait_start_time >= self._config.invite_config.wait_time_v:
-            logger.info('Member wait time out, exit')
+            logger.info('[探索] 队员等待超时，退出')
             return True
         self.activate_realm_raid(self._config.scrolls, self._config.exploration_config, current_page)
         return False
@@ -348,12 +348,12 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
     def collect_treasure_box(self) -> bool:
         """收集宝箱奖励"""
         if self.appear(self.I_E_REWARD_BOX_SMALL):  # 小宝箱
-            logger.info('Treasure box small appear, get it.')
+            logger.info('[探索] 出现小宝箱，领取')
             self.ui_click(self.I_E_REWARD_BOX_SMALL, self.I_REWARD, interval=0.8)
             self.ui_click_until_disappear(self.I_REWARD, interval=0.8)
             return True
         if self.appear(self.I_E_REWARD_BOX_BIG):  # 大宝箱
-            logger.info('Treasure box big appear, get it.')
+            logger.info('[探索] 出现大宝箱，领取')
             self.ui_click(self.I_E_REWARD_BOX_BIG, self.I_REWARD, interval=0.8)
             self.ui_click_until_disappear(self.I_REWARD, interval=0.8)
             return True
@@ -363,7 +363,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         """收集小纸人奖励, 若未开启则自动退出"""
         # 已经打过boss了且设置了不收集小纸人奖励则直接返回
         if self.fire_monster_type == 'boss' and not self._config.exploration_config.collect_paper_reward:
-            logger.info("Not collect paper doll reward")
+            logger.info("[探索] 未开启小纸人奖励收集")
             self.quit_exp_main()
             return True
         # 没打boss或者收集纸人奖励, 且出现了纸人则处理掉落奖励

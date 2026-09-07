@@ -30,7 +30,7 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
 
     def run(self):
         self.goto_page(page_collective_missions)
-        logger.info('Start to detect missions')
+        logger.info('[寮集体任务] 开始识别任务')
         self.get_task_reward()
         if self.is_finish():
             self.goto_page(page_main)
@@ -61,24 +61,24 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
         switch_cnt, max_switch = 0, random.randint(12, 15)  # 尝试最多15次内能中奖找到对应任务
         while True:
             if switch_fail_cnt >= max_retry:
-                logger.warning(f'Cannot switch next mission, stop select and try run')
+                logger.warning(f'[寮集体任务] 无法切换下一个任务，停止选择并尝试执行')
                 return False
             if switch_cnt >= max_switch:
-                logger.warning(f'Cannot find target mission: {mission.value}, exit')
+                logger.warning(f'[寮集体任务] 未找到目标任务: {mission.value}，退出')
                 return False
             self.screenshot()
             # 识别当前任务
             mission_text = self.O_CM_2.ocr(self.device.image)
             try:
                 detect_mission = MC(mission_text)
-                logger.info(f"Current: {detect_mission.value}, target: {mission.value}")
+                logger.info(f"[寮集体任务] 当前: {detect_mission.value}，目标: {mission.value}")
                 self.current_mission = detect_mission
                 if detect_mission == mission:
-                    logger.info(f"Success select mission[{mission_text}]")
+                    logger.info(f"[寮集体任务] 选择任务成功[{mission_text}]")
                     return True
             except ValueError as e:
-                logger.warning(f'Unknown {mission_text}, skip')
-            logger.info("Try switch to next mission")
+                logger.warning(f'[寮集体任务] 未知任务 {mission_text}，跳过')
+            logger.info("[寮集体任务] 尝试切换到下一个任务")
             switch_fail_cnt = 0 if pre_mission != mission_text else (switch_fail_cnt + 1)
             pre_mission = mission_text
             if self.appear_then_click(self.I_CM_SWITCH, interval=0.6):
@@ -89,7 +89,7 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
     def _donate(self):
         """捐材料"""
         self.ui_click(self.C_CM_1, self.I_CM_PRESENT, interval=1.5)
-        logger.info('Start to donate')
+        logger.info('[寮集体任务] 开始捐赠')
         # 判断哪一个的材料最多
         self.screenshot()
         max_index = 0
@@ -101,8 +101,8 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
                 max_number = total
                 max_index = i
         if max_number <= 30:
-            logger.info('The number of all matter is less than 30')
-            logger.info('Please check your game resolution')
+            logger.info('[寮集体任务] 所有材料总数少于 30')
+            logger.info('[寮集体任务] 请检查游戏分辨率')
             raise RequestHumanTakeover
         match_swipe = {
             0: self.S_CM_MATTER_1,
@@ -125,19 +125,19 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
                 continue
             # 为什么使用window_message无法滑动
             if window_control and click_count > 30:
-                logger.info('Swipe to the most matter failed')
-                logger.info('Please check your game resolution')
+                logger.info('[寮集体任务] 滑动到最多材料失败')
+                logger.info('[寮集体任务] 请检查游戏分辨率')
                 break
             if window_control and self.click(random.choice(random_click), interval=0.7):
                 click_count += 1
                 continue
             if not window_control and swipe_count >= 5:
-                logger.info('Swipe to the most matter failed')
-                logger.info('Please check your game resolution')
+                logger.info('[寮集体任务] 滑动到最多材料失败')
+                logger.info('[寮集体任务] 请检查游戏分辨率')
                 raise RequestHumanTakeover
-        logger.info('Swipe to the most matter')
+        logger.info('[寮集体任务] 滑动到最多的材料')
         self.get_reward_and_close(self.I_CM_PRESENT)
-        logger.info('Donate finished')
+        logger.info('[寮集体任务] 捐赠完成')
         return True
 
     def _soul(self):
@@ -151,22 +151,22 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
                 break
             if self.ocr_appear(self.O_SL_LEVEL):
                 # 如果没有识别到这个，那就说明没有御魂可以提交了，要退出
-                logger.warning('No soul can be submit')
+                logger.warning('[寮集体任务] 没有可提交的御魂')
                 self.ui_click(self.I_UI_BACK_RED, self.I_CM_RECORDS)
                 return False
             if self.click(self.L_SL_LONG, interval=2.5):
                 time.sleep(1)
                 continue
-        logger.info('Start to collect soul rewards')
+        logger.info('[寮集体任务] 开始领取御魂奖励')
         self.get_reward_and_close(self.I_SL_SUBMIT)
-        logger.info('Finish to collect soul rewards')
+        logger.info('[寮集体任务] 领取御魂奖励完成')
         return True
 
     def _feed(self):
         """提交N卡"""
-        logger.info('Start to feed N')
+        logger.info('[寮集体任务] 开始提交 N 卡')
         self.ui_click(self.C_CM_1, self.I_FEED_HEAP)
-        logger.info('Submit to feed N')
+        logger.info('[寮集体任务] 提交 N 卡')
         click_list = random.sample([self.L_FEED_CLICK_1, self.L_FEED_CLICK_2, self.L_FEED_CLICK_3, self.L_FEED_CLICK_4], 2)
         while 1:
             self.screenshot()
@@ -174,9 +174,9 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
                 break
             for click in click_list:
                 self.click(click)
-        logger.info('Start to collect feed N rewards')
+        logger.info('[寮集体任务] 开始领取 N 卡奖励')
         self.get_reward_and_close(self.I_FEED_SUBMIT)
-        logger.info('Finish to collect feed N rewards')
+        logger.info('[寮集体任务] 领取 N 卡奖励完成')
         return True
 
     def is_finish(self):
@@ -184,7 +184,7 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
         self.screenshot()
         current, remain, total = self.O_CM_NUMBER.ocr(self.device.image)
         if current == total == 30:
-            logger.info('Today\'s missions have been completed')
+            logger.info('[寮集体任务] 今日任务已全部完成')
             return True
         return False
 
@@ -197,13 +197,13 @@ class ScriptTask(GameUi, CollectiveMissionsAssets):
             if not self.appear(self.I_CM_GET_REWARD):
                 break
             process_reward = True
-            logger.info('Discover the tasks that have been completed')
+            logger.info('[寮集体任务] 发现已完成的任务')
             self.get_reward_and_close(self.I_CM_GET_REWARD)
             timeout_timer.reset()
         if process_reward:
-            logger.info('Get task reward finished')
+            logger.info('[寮集体任务] 领取任务奖励完成')
         else:
-            logger.info('No task reward')
+            logger.info('[寮集体任务] 没有可领取的任务奖励')
 
     def get_reward_and_close(self,  target: RuleImage):
         # 捐赠可能有双倍的，需要领两次

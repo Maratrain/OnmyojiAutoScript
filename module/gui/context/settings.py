@@ -16,14 +16,14 @@ class Setting(QObject):
         """
         template_path = Path.cwd() / 'module' / 'config' / 'argument' / 'setting-template.json'
         if not template_path.exists():
-            logger.error('template.json not exists')
+            logger.error('[GUI] 未找到 template.json')
             return
         with open(template_path, 'r', encoding='utf-8') as f:
             data = f.read()
         setting_path = Path.cwd() / 'module' / 'config' / 'argument' / 'setting.json'
         with open(setting_path, 'w', encoding='utf-8') as f:
             f.write(data)
-        logger.info('setting.json copy from template.json success')
+        logger.info('[GUI] setting.json 从 template.json 复制完成')
 
     @Slot(result="QString")
     def read(self) -> str:
@@ -33,7 +33,7 @@ class Setting(QObject):
         """
         setting_path = Path.cwd() / 'module' / 'config' / 'argument' / 'setting.json'
         if not setting_path.exists():
-            logger.error('setting.json not exists')
+            logger.error('[GUI] 未找到 setting.json')
             self.copy_from_template()
         with open(setting_path, 'r', encoding='utf-8') as f:
             return f.read()
@@ -46,8 +46,8 @@ class Setting(QObject):
         """
         setting_path = Path.cwd() / 'module' / 'config' / 'argument' / 'setting.json'
         if not setting_path.exists():
-            logger.error('setting.json not exists')
+            logger.error('[GUI] 未找到 setting.json')
             self.copy_from_template()
         with open(setting_path, 'w', encoding='utf-8') as f:
             f.write(data)
-        logger.info('setting.json update success')
+        logger.info('[GUI] setting.json 更新完成')

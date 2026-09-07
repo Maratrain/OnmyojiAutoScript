@@ -23,11 +23,11 @@ class AppControl(Adb, Uiautomator2):
         try:
             result = self.adb_shell(['pidof', package_name])
         except Exception as e:
-            logger.info(f'Check app alive by pidof failed: {e}')
+            logger.info(f'[设备-平台] 通过 pidof 检查应用存活失败: {e}')
             return False
 
         result = result.strip(' \t\r\n')
-        logger.attr('Package_pid', result if result else 'None')
+        logger.attr('Package_pid', result if result else '无')
         return bool(result)
 
     def app_is_running(self) -> bool:
@@ -45,7 +45,7 @@ class AppControl(Adb, Uiautomator2):
 
     def app_start(self):
         method = self.config.script.device.screenshot_method
-        logger.info(f'App start: {self.package}')
+        logger.info(f'[设备-平台] 正在启动游戏: {self.package}')
         # if self.config.Emulator_Serial == 'wsa-0':
         #     self.app_start_wsa(display=0)
         if method in AppControl._app_u2_family:
@@ -55,7 +55,7 @@ class AppControl(Adb, Uiautomator2):
 
     def app_stop(self):
         method = self.config.script.device.screenshot_method
-        logger.info(f'App stop: {self.package}')
+        logger.info(f'[设备-平台] 正在停止游戏: {self.package}')
         if method in AppControl._app_u2_family:
             self.app_stop_uiautomator2()
         else:

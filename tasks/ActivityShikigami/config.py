@@ -67,7 +67,7 @@ class GeneralClimb(ConfigBase):
                 try:
                     value = int(value)
                 except ValueError:
-                    logger.warning('Invalid limit_time value. Expected format: seconds')
+                    logger.warning('[爬塔] limit_time 值无效，期望格式: 秒数')
                     return time(hour=0, minute=30, second=0)
                 delta = timedelta(seconds=value)
                 return time(hour=delta.seconds // 3600, minute=delta.seconds // 60 % 60, second=delta.seconds % 60)
@@ -75,7 +75,7 @@ class GeneralClimb(ConfigBase):
                 try:
                     return time.fromisoformat(value)
                 except ValueError:
-                    logger.warning('Invalid limit_time value. Expected format: HH:MM:SS')
+                    logger.warning('[爬塔] limit_time 值无效，期望格式: HH:MM:SS')
                     return time(hour=0, minute=30, second=0)
         return value
 

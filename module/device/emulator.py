@@ -127,7 +127,7 @@ class EmulatorManager(Connection):
             list[EmulatorInstance, str]:Emulator and multi_id
         """
         if emulator is None:
-            logger.info('Detect emulator from all emulators installed')
+            logger.info('[设备-平台] 正在从所有已安装模拟器中检测')
             emulators = []
             for emulator in self.SUPPORTED_EMULATORS.values():
                 try:
@@ -138,34 +138,34 @@ class EmulatorManager(Connection):
                 except FileNotFoundError:
                     pass
 
-            logger.info('Detected emulators:')
+            logger.info('[设备-平台] 已检测到的模拟器:')
             for emulator in emulators:
-                logger.info(f'Name: {emulator[0].name}, Multi_id: {emulator[1]}')
+                logger.info(f'名称: {emulator[0].name}, Multi_id: {emulator[1]}')
 
             if len(emulators) == 1 or \
                     (len(emulators) > 0 and emulators[0][0] == self.SUPPORTED_EMULATORS['mumu_player']):
-                logger.info('Find the only emulator, using it')
+                logger.info('[设备-平台] 找到唯一模拟器，使用该模拟器')
                 return emulators[0][0], emulators[0][1]
             elif len(emulators) == 0:
-                logger.warning('The emulator corresponding to serial is not found, '
-                               'please check the setting or use custom command')
+                logger.warning('[设备-平台] 未找到序列号对应的模拟器，'
+                               '请检查设置或使用自定义命令')
             else:
-                logger.warning('Multiple emulators with the same serial have been found, '
-                               'please select one manually or use custom command')
+                logger.warning('[设备-平台] 发现多个相同序列号的模拟器，'
+                               '请手动选择一个或使用自定义命令')
             raise RequestHumanTakeover
 
         else:
             try:
-                logger.info(f'Detect emulator from {emulator.name}')
+                logger.info(f'[设备-平台] 正在从 {emulator.name} 检测模拟器')
                 serials = emulator.id_and_serial
                 for cur_serial in serials:
                     if cur_serial[1] == serial:
-                        logger.info('Find the only emulator, using it')
+                        logger.info('[设备-平台] 找到唯一模拟器，使用该模拟器')
                         return emulator, cur_serial[0]
             except FileNotFoundError:
                 pass
-            logger.warning('The emulator corresponding to serial is not found, '
-                           'please check the setting or use custom command')
+            logger.warning('[设备-平台] 未找到序列号对应的模拟器，'
+                           '请检查设置或使用自定义命令')
             raise RequestHumanTakeover
 
     @staticmethod
@@ -178,7 +178,7 @@ class EmulatorManager(Connection):
             subprocess.Popen:
         """
         command = command.replace(r"\\", "/").replace("\\", "/").replace('"', '"')
-        logger.info(f'Execute: {command}')
+        logger.info(f'[设备-平台] 执行命令: {command}')
         return subprocess.Popen(command, close_fds=True)  # only work on Windows
 
     @staticmethod
@@ -239,7 +239,7 @@ class EmulatorManager(Connection):
             if emulator.multi_para is not None and multi_id is not None:
                 command += " " + emulator.multi_para.replace("#id", multi_id)
 
-        logger.info('Start emulator')
+        logger.info('[设备-平台] 正在启动模拟器')
         pipe = self.execute(command)
         self.pid = pipe.pid
         self.sleep(10)
@@ -274,7 +274,7 @@ class EmulatorManager(Connection):
                 command += " " + emulator.multi_para.replace("#id", multi_id)
             command += " " + emulator.kill_para
 
-        logger.info('Kill emulator')
+        logger.info('[设备-平台] 正在关闭模拟器')
         if emulator == self.SUPPORTED_EMULATORS['bluestacks_5']:
             try:
                 self.adb_command(['reboot', '-p'], timeout=20)
@@ -305,10 +305,10 @@ class EmulatorManager(Connection):
             serial = self.serial
 
         if os.name != 'nt':
-            logger.warning('Restart simulator only works under Windows platform')
+            logger.warning('[设备-平台] 重启模拟器仅在 Windows 平台可用')
             return False
 
-        logger.hr('Emulator restart')
+        logger.hr('重启模拟器')
         # if self.config.RestartEmulator_EmulatorType == 'auto':
         if self.config.get_arg('Restart', '') == 'auto':
             emulator, multi_id = self.detect_emulator(serial)
@@ -322,7 +322,7 @@ class EmulatorManager(Connection):
             if self.emulator_start(serial, emulator, multi_id):
                 return True
 
-        logger.warning('Restart emulator failed for 3 times, please check your settings')
+        logger.warning('[设备-平台] 重启模拟器失败 3 次，请检查设置')
         raise RequestHumanTakeover
 
 

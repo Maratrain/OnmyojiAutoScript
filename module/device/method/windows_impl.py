@@ -35,7 +35,7 @@ from module.device.handle import Handle, window_scale_rate, EmulatorFamily
 class Window(Handle):
 
     def __init__(self, *args, **kwargs):
-        logger.info("Window init")
+        logger.info("[设备-句柄] 初始化窗口句柄")
         super().__init__(*args, **kwargs)
 
     def screenshot_window_background(self):
@@ -130,7 +130,7 @@ class Window(Handle):
         if int(height * self.window_scale_rate) == 45:
             # 说明是mumu12模拟器 不做处理
             pass
-        logger.info(f"Mumu emulator head height: {height}")
+        logger.info(f"[设备-句柄] MuMu 模拟器标题栏高度: {height}")
         return height
 
     def click_window_message(self, x: int, y: int, fast: bool = False):

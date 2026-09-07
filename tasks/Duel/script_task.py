@@ -52,7 +52,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if not self.can_start_duel():
                 break
             self.start_duel()
-        logger.info('Duel battle end')
+        logger.info('[斗技] 斗技结束')
         self.goto_page(page_main)
         self.set_next_run(task='Duel', success=True, finish=True)
         raise TaskEnd('Duel')
@@ -72,28 +72,28 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
         """是否可以运行斗技"""
         # 任务执行时间超过限制时间，退出
         if datetime.now() - self.start_time >= self.limit_time:
-            logger.info('Duel task is over time')
+            logger.info('[斗技] 斗技已超过限定时间')
             return False
         # 当前分数跟目标分数比较, 判断分数是否已经满足条件
         if self.get_and_update_cur_score() >= self.conf.duel_config.target_score:
-            logger.info('Duel task is over score')
+            logger.info('[斗技] 斗技已达到目标分数')
             return False
         # 若不开启名仕战斗, 则到达名士直接退出
         if not self.conf.duel_celeb_config.celeb_battle and self.is_celeb:
-            logger.info('You are already a celeb（名仕）')
+            logger.info('当前已是名仕')
             return False
         # 练习
         if self.appear(self.I_BATTLE_WITH_TRAIN) or self.appear(self.I_BATTLE_WITH_TRAIN2):
             return False
         # 荣誉满了，退出
         if self.conf.duel_config.honor_full_exit and self.check_honor():
-            logger.info('Duel task is over honor')
+            logger.info('[斗技] 荣誉已满')
             return False
         return True
 
     def start_duel(self):
         """进行一次斗技"""
-        logger.hr('Duel battle', 2)
+        logger.hr('[斗技] 斗技战斗', 2)
         self.current_count += 1
         self.enter_battle()
         self.battle_prepare()
@@ -105,14 +105,14 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             self.pre_battle_lose_cnt = self.battle_lose_count
             self.battle_lose_count += 1
         task_run_time_seconds = timedelta(seconds=int((datetime.now() - self.start_time).total_seconds()))
-        logger.info(f'battle result: {battle_ret}')
-        logger.info(f'battle count:{self.current_count} | win:{self.battle_win_count} failure:{self.battle_lose_count}')
-        logger.info(f'battle time: {task_run_time_seconds} / {self.limit_time}')
+        logger.info(f'战斗结果: {battle_ret}')
+        logger.info(f'战斗次数:{self.current_count} | 胜利:{self.battle_win_count} 失败:{self.battle_lose_count}')
+        logger.info(f'战斗时间: {task_run_time_seconds} / {self.limit_time}')
         self.goto_page(page_duel)
 
     def enter_battle(self):
         """点击开始战斗(一直到出现战斗准备界面)"""
-        logger.hr('duel battle matching')
+        logger.hr('斗技匹配中')
         while not self.is_in_battle_prepare():
             self.screenshot()
             # 战斗按钮
@@ -123,7 +123,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
 
     def battle_prepare(self):
         """选式神准备斗技阶段"""
-        logger.hr('duel battle preparing')
+        logger.hr('斗技准备阶段')
         not_in_prepare_cnt, max_retry = 0, 3
         while True:
             if not_in_prepare_cnt >= max_retry:  # max_retry次识别不到任何阶段元素(准备,战斗,结算), 退出
@@ -145,7 +145,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
                 ocr_name = self.O_D_BAN_NAME.ocr(self.device.image)
                 shikigami_banned = ocr_name != '' and not any(
                     char in ocr_name for char in self.conf.duel_celeb_config.ban_name)
-                logger.info(f'Check self shikigami is banned:{shikigami_banned}')
+                logger.info(f'检查己方式神是否被禁用:{shikigami_banned}')
                 if shikigami_banned:
                     self.duel_exit_battle()
                     continue
@@ -159,7 +159,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
 
     def wait_battle(self) -> bool:
         """等待战斗结束, 返回战斗结果, 最后会退出到斗技主界面"""
-        logger.hr('duel battle waiting')
+        logger.hr('斗技等待战斗结束')
         battle_operated = False
         battle_timeout_timer = Timer(270).start()
         ret_timer = Timer(5)
@@ -190,7 +190,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
                 self.click(random_click(ltrb=(True, True, False, True)), interval=1.2)
                 continue
             if not ret_timer.started() and battle_timeout_cnt >= max_timeout_cnt:
-                logger.warning('Duel battle timeout[>15 minutes], exit')
+                logger.warning('[斗技] 战斗超时（超过15分钟），退出')
                 self.duel_exit_battle()
                 continue
             if ret is None and not battle_operated:  # 进行战斗前的操作
@@ -202,7 +202,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if not ret_timer.started() and battle_timeout_timer.reached_and_reset():
                 battle_timeout_cnt += 1
                 self.reset_device('BATTLE_STATUS_S')
-                logger.warning("battle' time is too long, increase wait time")
+                logger.warning("战斗时间过长，增加等待时间")
         return ret
 
     def duel_exit_battle(self):
@@ -249,9 +249,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             score, remain, total = self.O_D_SCORE.ocr(self.device.image)
             if score > 10000:
                 # 识别错误分数超过一万, 去掉最高位
-                logger.warning('Recognition error, score is too high')
+                logger.warning('识别错误，分数过高')
                 score = int(str(score)[1:])
-        logger.info(f'battle score: {score}')
+        logger.info(f'当前分数: {score}')
         self.current_score = score
         return self.current_score
 
@@ -287,14 +287,14 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if self.appear_then_click(self.I_D_TEAM_SWTICH, interval=1):
                 click_count += 1
                 continue
-        logger.info('Souls Switch is complete')
+        logger.info('御魂切换完成')
         self.ui_click(self.I_UI_BACK_YELLOW, self.I_D_TEAM)
 
     def check_and_get_reward(self):
         """检查并收获奖励"""
         if self.appear(self.I_REWARD) or self.appear(self.I_UI_REWARD):
             if self.click(random_click(ltrb=(True, True, False, True)), interval=0.6):
-                logger.info('get reward')
+                logger.info('获得奖励')
 
     def is_in_battle_prepare(self, skip_screenshot=True) -> bool:
         """是否在战斗准备界面"""

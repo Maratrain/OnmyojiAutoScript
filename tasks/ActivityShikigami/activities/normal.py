@@ -84,8 +84,8 @@ class NormalClimbAct(BaseAct):
                 lock_rule = self.I_AP_LOCK
                 unlock_rule = self.I_AP_UNLOCK
         if enable:
-            logger.info(f"Lock {self.climb_type} team")
+            logger.info(f'[爬塔] 锁定 {self.climb_type} 队伍')
             self.ui_click(unlock_rule, stop=lock_rule, interval=1.5)
             return
-        logger.info(f"Unlock {self.climb_type} team")
+        logger.info(f'[爬塔] 解锁 {self.climb_type} 队伍')
         self.ui_click(lock_rule, stop=unlock_rule, interval=1.5)

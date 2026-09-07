@@ -18,9 +18,9 @@ def on_message(client, userdata, msg):
     try:
         data = json.loads(msg.payload)
     except json.JSONDecodeError:
-        logger.error(f'Get [{msg.topic}]: {msg.payload}')
+        logger.error(f'[MQTT] 接收 [{msg.topic}] 消息解析失败: {msg.payload}')
         return
-    logger.info(f'Get {msg.topic}: {data}')
+    logger.info(f'[MQTT] 接收 {msg.topic}: {data}')
     for username, data in data.items():
         # 反正只有一项
         if username == userdata.username:
@@ -48,7 +48,7 @@ class Host(Mqtt, Player):
     def on_first_notice(self, player: str, data: dict):
         # 其他人上线，就广播自己的策略出去
         if 'type' in data:
-            logger.info(f'Player {player} is online')
+            logger.info(f'[MQTT] 玩家 {player} 已上线')
             self.q_publish.put(['Strategy', self.publish_data()])
         else:
             # 如果是其他人像
@@ -56,10 +56,10 @@ class Host(Mqtt, Player):
 
     def on_last_will(self, player: str, data: dict):
         if player not in self.players:
-            logger.warning(f'Player {player} is not in players')
+            logger.warning(f'[MQTT] 玩家 {player} 不在玩家列表中')
             return
         self.players.remove(player)
-        logger.info(f'Player {player} is offline')
+        logger.info(f'[MQTT] 玩家 {player} 已离线')
         self._config_to_player()
         self._update_strategy()
         self._player_to_config()
@@ -116,7 +116,7 @@ class Host(Mqtt, Player):
                 continue
             if task_name not in self.multi_tasks:
                 # 第一次
-                logger.info(f'First time to add [{task_name}] to multi_tasks')
+                logger.info(f'[MQTT] 首次将 [{task_name}] 加入 multi_tasks')
                 self.multi_tasks[task_name] = Task(
                     next_run=value.scheduler.next_run,
                     target_run=value.scheduler.next_run,
@@ -127,7 +127,7 @@ class Host(Mqtt, Player):
                 )
             else:
                 # 更新
-                logger.info(f'Update {task_name} to multi_tasks')
+                logger.info(f'[MQTT] 更新 {task_name} 到 multi_tasks')
                 self.multi_tasks[task_name].update_info(next_run=value.scheduler.next_run,
                                                         limit_time=limit_time,
                                                         role=role,

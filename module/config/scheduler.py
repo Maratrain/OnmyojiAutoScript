@@ -27,10 +27,10 @@ class TaskScheduler:
         :return:
         """
         if rule != ScheduleRule.FILTER and rule != ScheduleRule.FIFO and rule != ScheduleRule.PRIORITY:
-            logger.error(f"Invalid rule: {rule}")
+            logger.error(f"[配置] 非法的调度规则: {rule}")
             return pending
         if isinstance(pending, list) is False:
-            logger.error(f"Invalid pending: {pending}")
+            logger.error(f"[配置] 非法的待运行任务列表: {pending}")
             return pending
 
         # 第一种

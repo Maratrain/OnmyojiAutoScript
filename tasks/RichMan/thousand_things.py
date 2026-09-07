@@ -18,14 +18,14 @@ class ThousandThings(GameUi, RichManAssets):
         :param con:
         :return:
         """
-        logger.hr('Start Thousand Things')
+        logger.hr('开始千物宝箱')
         if not con.enable:
-            logger.info('Thousand Things is disabled')
+            logger.info('[大富翁] 千物宝箱未启用')
             return
         self.goto_page(page_travel)
 
         if con.earn_money:
-            logger.info('Start Earn Money')
+            logger.info('[大富翁] 开始赚钱')
             self.tt_earn_money()
 
         while 1:
@@ -34,7 +34,7 @@ class ThousandThings(GameUi, RichManAssets):
                 break
             if self.appear_then_click(self.I_TT_ENTER, interval=1):
                 continue
-        logger.info('Enter Thousand Things')
+        logger.info('[大富翁] 进入千物宝箱')
         self.screenshot()
         if not self.appear(self.I_TT_TICKET_BULE) and not self.appear(self.I_TT_BLACK) and not self.appear(self.I_TT_AP):
             time.sleep(1)
@@ -53,7 +53,7 @@ class ThousandThings(GameUi, RichManAssets):
                 break
             if self.appear_then_click(self.I_UI_BACK_RED, interval=1):
                 continue
-        logger.info('Exit Thousand Things')
+        logger.info('[大富翁] 退出千物宝箱')
 
     def tt_buy_mystery_amulet(self) -> bool:
         """
@@ -62,7 +62,7 @@ class ThousandThings(GameUi, RichManAssets):
         """
         self.screenshot()
         if not self.appear(self.I_TT_TICKET_BULE):
-            logger.info('No mystery amulet')
+            logger.info('[大富翁] 未找到蓝票')
             return False
         if not self.tt_check_money(2000):
             return False
@@ -72,16 +72,16 @@ class ThousandThings(GameUi, RichManAssets):
                 break
             if self.ocr_appear_click(self.O_TT_BLUE_TICKET, interval=1):
                 continue
-        logger.info('Buy mystery amulet')
+        logger.info('[大富翁] 购买蓝票')
         self.tt_get_reward(self.I_TT_BUY_CONFIRM)
-        logger.info('Buy mystery amulet success')
+        logger.info('[大富翁] 购买蓝票成功')
         time.sleep(0.5)
         return True
 
     def tt_buy_black_daruma_scrap(self):
         self.screenshot()
         if not self.appear(self.I_TT_BLACK):
-            logger.info('No black daruma scrap')
+            logger.info('[大富翁] 未找到黑碎')
             return False
         if not self.tt_check_money(350):
             return False
@@ -91,16 +91,16 @@ class ThousandThings(GameUi, RichManAssets):
                 break
             if self.ocr_appear_click(self.O_TT_BLACK, interval=1):
                 continue
-        logger.info('Buy black daruma scrap')
+        logger.info('[大富翁] 购买黑碎')
         self.tt_get_reward(self.I_TT_BUY_CONFIRM)
-        logger.info('Buy black daruma scrap success')
+        logger.info('[大富翁] 购买黑碎成功')
         time.sleep(0.5)
         return True
 
     def tt_buy_ap(self):
         self.screenshot()
         if not self.appear(self.I_TT_AP):
-            logger.info('No ap')
+            logger.info('[大富翁] 未找到体力')
             return False
         if not self.tt_check_money(600):
             return False
@@ -112,16 +112,16 @@ class ThousandThings(GameUi, RichManAssets):
                 break
             appear_max = self.appear(self.I_TT_BUY_UP)
             if click_count >= 4:
-                logger.warning('Buy ap failed')
+                logger.warning('[大富翁] 购买体力失败')
                 break
             if self.appear_then_click(self.I_TT_BUY_UP, interval=0.5):
                 click_count += 1
                 continue
             if not appear_max and self.ocr_appear_click(self.O_TT_AP, interval=2.3):
                 continue
-        logger.info('Buy ap')
+        logger.info('[大富翁] 购买体力')
         self.tt_get_reward(self.I_TT_BUY_CONFIRM)
-        logger.info('Buy ap success')
+        logger.info('[大富翁] 购买体力成功')
         time.sleep(0.5)
         return True
 
@@ -129,12 +129,12 @@ class ThousandThings(GameUi, RichManAssets):
         self.screenshot()
         current = self.O_S_TOTAL.ocr(self.device.image)
         if not isinstance(current, int):
-            logger.warning('OCR current money failed')
+            logger.warning('[大富翁] 当前货币识别失败')
             return False
         if current >= mix:
-            logger.info('Money is enough')
+            logger.info('[大富翁] 货币足够')
             return True
-        logger.info('Money is not enough')
+        logger.info('[大富翁] 货币不足')
         return False
 
     def tt_get_reward(self, image_button):
@@ -144,7 +144,7 @@ class ThousandThings(GameUi, RichManAssets):
             self.screenshot()
 
             if click_count >= 6:
-                logger.warning('Get reward failed')
+                logger.warning('[大富翁] 领取奖励失败')
                 while 1:
                     self.screenshot()
                     if not self.appear(self.I_TT_BUY_UP):
@@ -159,7 +159,7 @@ class ThousandThings(GameUi, RichManAssets):
                     self.screenshot()
                     # 等待动画结束
                     if not self.appear(self.I_UI_REWARD, threshold=0.6):
-                        logger.info('Get reward success')
+                        logger.info('[大富翁] 领取奖励成功')
                         break
 
                     # 一直点击

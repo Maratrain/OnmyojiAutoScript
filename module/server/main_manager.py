@@ -49,7 +49,7 @@ class MainManager(ConfigManager):
     def add_script_file(self, file_name: str):
         # 当你添加了新的脚本文件后，需要添加缓存的列表
         if file_name in self._all_script_files:
-            logger.warning(f'[{file_name}] script file already exists')
+            logger.warning(f'[服务器] 脚本文件 {file_name} 已存在')
             return
         self._all_script_files = self.all_script_files()
         self.script_process[file_name] = ScriptProcess(file_name)
@@ -58,7 +58,7 @@ class MainManager(ConfigManager):
         try:
             asyncio.run(self.push_data_handle())
         except SystemExit as e:
-            logger.info('Kill the main process')
+            logger.info('[服务器] 正在结束主进程')
             # sys.exit(0)
             try:
                 os.kill(os.getpid(), signal.SIGILL)
@@ -76,10 +76,10 @@ class MainManager(ConfigManager):
         while 1:
             await sleep(3)
             if MainManager.signal_kill_server:  # 结束所有的进程
-                logger.info('Kill all server')
+                logger.info('[服务器] 正在停止全部服务')
                 for script_p in self.script_process.values():
                     await script_p.stop()
-                logger.info('Kill push data thread')
+                logger.info('[服务器] 正在停止数据推送线程')
                 sys.exit(0)
             # logger.info(asyncio.all_tasks())
             for name, script_p in self.script_process.items():
@@ -101,12 +101,12 @@ class MainManager(ConfigManager):
 
     async def restart_processes(self, script_instances: list[str]):
         for instance in script_instances:
-            logger.info(f'Restart script {instance}')
+            logger.info(f'[服务器] 正在重启脚本 {instance}')
             if instance not in self.script_process:
                 try:
                     self.script_process[instance] = ScriptProcess(instance)
                 except FileNotFoundError:
-                    logger.error(f'{instance} file not found')
+                    logger.error(f'[服务器] 未找到文件 {instance}')
                     continue
             await self.script_process[instance].start()
 

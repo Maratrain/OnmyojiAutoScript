@@ -20,7 +20,7 @@ class PaintImage(QQuickPaintedItem):
 
     def paint(self, painter: QPainter):
         if self._image.isNull():
-            logger.error("image is null")
+            logger.error("[GUI] 图片为空")
             return
         painter.drawImage(self.boundingRect(), self._image)
 
@@ -37,16 +37,16 @@ class PaintImage(QQuickPaintedItem):
     @Slot(str)
     def set_local(self, image_name: str):
         if not image_name.startswith("file:///"):
-            logger.error("image path must start with file:///")
+            logger.error("[GUI] 图片路径必须以 file:/// 开头")
             return None
         image_name = image_name.lstrip("file:///")
 
 
         if self._image.load(image_name):
-            logger.info("load image success")
+            logger.info("[GUI] 图片加载成功")
             self.update()
         else:
-            logger.error("load image failed")
+            logger.error("[GUI] 图片加载失败")
             return None
 
     image = Property(QImage, fget=image, fset=set_image, notify=logger.info)
@@ -62,13 +62,13 @@ class PaintImage(QQuickPaintedItem):
         if not roi:
             return
         if not isinstance(roi, str):
-            logger.error("roi must be str")
+            logger.error("[GUI] roi 必须为字符串")
         if not file:
             return
         if not isinstance(file, str):
-            logger.error("file must be str")
+            logger.error("[GUI] file 必须为字符串")
             return
         x, y, width, height = map(int, roi.split(','))
         roi_image = self._image.copy(x, y, width, height)
         roi_image.save(file)
-        logger.info(f"save target image {file}success")
+        logger.info(f"[GUI] 目标图片已保存 {file}")

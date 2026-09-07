@@ -39,7 +39,7 @@ def write_file(file, data):
 def docker_requirements_generate(requirements_in='requirements.txt'):
     requirements = read_file(requirements_in)
 
-    logger.info(f'Generate requirements for Docker image')
+    logger.info(f'[Docker] 正在生成 Docker 镜像的 requirements')
     lock = {}
     new = {}
     logger.info(requirements)

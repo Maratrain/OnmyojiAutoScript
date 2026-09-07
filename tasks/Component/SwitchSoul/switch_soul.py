@@ -30,7 +30,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             try:
                 target = switch_parser(target)
             except ValueError:
-                logger.error('Switch soul config error')
+                logger.error('[切换御魂] 御魂切换配置错误')
                 return
         self.click_preset()
         self.switch_souls(target)
@@ -54,7 +54,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
                 break
             if self.appear_then_click(self.I_SOUL_PRESET, interval=2):
                 continue
-        logger.info('Click preset in switch soul')
+        logger.info('[切换御魂] 在御魂界面点击预设')
 
     def switch_soul_one(self, group: int, team: int) -> None:
         """
@@ -131,10 +131,10 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
                         break
                 continue
             if not self.appear_then_click(target_team, interval=3):
-                logger.warning(f'Click team {team} failed in group {group}')
+                logger.warning(f'[切换御魂] 分组 {group} 中点击队伍 {team} 失败')
         # 兜底若还出现确认按钮则点击
         self.ui_click_until_disappear(self.I_SOU_SWITCH_SURE)
-        logger.info(f'Switch soul_one group {group} team {team}')
+        logger.info(f'[切换御魂] 切换御魂分组 {group} 队伍 {team}')
 
     def switch_souls(self, target: tuple or list[tuple]) -> None:
         """
@@ -160,7 +160,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
                 break
             if self.appear_then_click(self.I_RECORD_SOUL_BACK, interval=3.5):
                 continue
-        logger.info('Exit shikigami records')
+        logger.info('[切换御魂] 退出式神录')
 
     def run_switch_soul_by_name(self, groupName, teamName):
         """
@@ -176,7 +176,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         保证在式神录的界面
         :return:
         """
-        logger.hr('Switch soul by name')
+        logger.hr('按名称切换御魂')
         # 滑动至分组最上层
         last_group_text = ''
         while 1:
@@ -188,7 +188,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             self.swipe(self.S_SS_GROUP_SWIPE_UP, 2)
             sleep(2.5)
             last_group_text = now_group_text
-        logger.info('Swipe to top of group')
+        logger.info('[切换御魂] 滑动到分组列表顶部')
 
         # 判断有无目标分组
         while 1:
@@ -203,7 +203,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
                 break
             self.swipe(self.S_SS_GROUP_SWIPE_DOWN)
             sleep(1.5)
-        logger.info('Swipe down to find target group')
+        logger.info('[切换御魂] 向下滑动查找目标分组')
 
         # 选中分组
         while 1:
@@ -211,7 +211,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             self.O_SS_GROUP_NAME.keyword = groupName
             if self.ocr_appear_click(self.O_SS_GROUP_NAME):
                 break
-        logger.info(f'Select group {groupName}')
+        logger.info(f'[切换御魂] 选择分组 {groupName}')
 
         # 滑动至阵容最上层
         last_team_text = ''
@@ -225,7 +225,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             self.swipe(self.S_SS_TEAM_SWIPE_DOWN, 1.5)
             sleep(2)
             last_team_text = now_team_text
-        logger.info('Swipe to top of team')
+        logger.info('[切换御魂] 滑动到队伍列表顶部')
 
         # 判断当前分组有无目标阵容
         while 1:
@@ -239,10 +239,10 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             if result and len(result) > 0:
                 break
             self.swipe(self.S_SS_TEAM_SWIPE_UP, 0.3)
-        logger.info('Swipe up to find target team')
+        logger.info('[切换御魂] 向上滑动查找目标队伍')
 
         # 选中分组
-        logger.info(f'Select team {teamName}')
+        logger.info(f'[切换御魂] 选择队伍 {teamName}')
         # 切换御魂
         cnt_click: int = 0
         self.O_SS_TEAM_NAME.keyword = teamName
@@ -255,7 +255,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             if self.ocr_appear_click_by_rule(self.O_SS_TEAM_NAME, self.I_SOU_CLICK_PRESENT, interval=1.5):
                 cnt_click += 1
                 continue
-        logger.info(f'Switch soul_one group {groupName} team {teamName}')
+        logger.info(f'[切换御魂] 切换御魂分组 {groupName} 队伍 {teamName}')
 
     def ocr_appear_click_by_rule(self,
                                  target: RuleOcr,

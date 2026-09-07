@@ -12,7 +12,7 @@ class SwitchOnmyoji(BaseTask, SwitchOnmyojiAssets):
         切换阴阳师, 要求已经进入阴阳术界面, 最后会留在阴阳术界面
         :param onmyoji: 阴阳师
         """
-        logger.hr('Switch onmyoji', 2)
+        logger.hr('切换阴阳师', 2)
         hero = [Onmyoji.YORIMITSU, Onmyoji.MICHINAGA]
         if onmyoji in hero:
             self.ui_click(self.I_ONMYOJI_CHECK, self.I_HERO_CHECK, interval=0.8)
@@ -20,7 +20,7 @@ class SwitchOnmyoji(BaseTask, SwitchOnmyojiAssets):
         else:
             self.ui_click(self.I_HERO_CHECK, self.I_ONMYOJI_CHECK, interval=0.8)
             self.switch_role(onmyoji, self._get_onmyoji_battle_dict(), self.I_ONMYOJI_CHECK)
-        logger.info(f'Switch onmyoji: {onmyoji.name}[{onmyoji.value}]')
+        logger.info(f'[切换阴阳师] 切换阴阳师: {onmyoji.name}[{onmyoji.value}]')
 
     def switch_role(self, role: Onmyoji, battle_dict: dict, check_img: RuleImage):
         """

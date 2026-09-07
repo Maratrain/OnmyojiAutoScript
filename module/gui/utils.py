@@ -33,7 +33,7 @@ def check_admin():
     如果不是管理员权限则使用管理员权限重启
     """
     if not is_admin():
-        logger.info('非管理员身份运行，已尝试以管理员身份运行')
+        logger.info('[GUI] 非管理员身份运行，已尝试以管理员身份运行')
         time.sleep(5)
         # Hide the command window
         # win = win32gui.GetForegroundWindow()

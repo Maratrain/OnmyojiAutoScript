@@ -80,7 +80,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
         elif rule == CardType.FISH:
             return ImageGrid([self.I_CARDS_FISH_6, self.I_CARDS_FISH_5])
         else:
-            logger.error('Unknown utilize rule')
+            logger.error('[结界挂卡] 未知的卡片使用规则')
             raise ValueError('Unknown utilize rule')
 
     def run_activation(self, _config: ActivationConfig) -> bool:
@@ -92,7 +92,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
         """
         self.goto_page(page_guild_card)
         # 太诡异了 为什么有这么长的动画, 那么长的动画先休息一会
-        logger.hr('Start activation')
+        logger.hr('开始挂卡')
         time.sleep(0.5)
         while 1:
             self.screenshot()
@@ -106,22 +106,22 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     continue
                 if self.appear(self.I_A_DEMOUNT):
                     # 现在在动画里面
-                    logger.info('Now in the animation')
-                    logger.info('Now there is no card')
+                    logger.info('[结界挂卡] 当前处于动画中')
+                    logger.info('[结界挂卡] 当前没有卡')
                     continue
             # 如果这张卡生效着，在使用中
             if card_status and card_effect:
-                logger.info('Card is using')
+                logger.info('[结界挂卡] 卡片生效中')
                 interval = self.ocr_time()
                 self.set_next_run("KekkaiActivation", target=interval+datetime.now())
                 return False
             # 如果已经选中这张卡了， 那就激活这张卡
             if card_status and not card_effect:
-                logger.info('Card is selected but not using')
+                logger.info('[结界挂卡] 卡片已选中但未生效')
                 while 1:
                     self.screenshot()
                     if self.appear(self.I_A_INVITE, threshold=0.8):
-                        logger.info('Card is activated')
+                        logger.info('[结界挂卡] 卡片已激活')
                         break
                     if self.appear_then_click(self.I_UI_CONFIRM, interval=0.6):
                         continue
@@ -132,7 +132,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                 return True
             # 如果是什么都没有，那就是可以开始挂卡了
             if not card_status and not card_effect:
-                logger.info('Card is not selected also not using')
+                logger.info('[结界挂卡] 卡片未选中且未生效')
                 self.screening_card(_config.card_type)
 
     def check_card_status(self, screenshot=False) -> bool:
@@ -157,7 +157,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
             return True
         elif self.appear(self.I_A_ACTIVATE_YELLOW):
             return False
-        logger.info('Unknown card effect')
+        logger.info('[结界挂卡] 未知的卡片效果状态')
         while 1:
             self.screenshot()
             if self.appear(self.I_A_INVITE, threshold=0.7):
@@ -172,11 +172,11 @@ class ScriptTask(KU, KekkaiActivationAssets):
             self.screenshot()
         delta = self.O_CARD_ALL_TIME.ocr_duration(self.device.image)
         if not isinstance(delta, timedelta):
-            logger.warning('OCR error')
+            logger.warning('[结界挂卡] OCR 识别失败')
             return None
         if delta == timedelta(0):
-            logger.error('The remaining time detected for this card is 0')
-            logger.error('This may be due to the fact that the card has not yet been collected')
+            logger.error('[结界挂卡] 识别到该卡剩余时间为 0')
+            logger.error('[结界挂卡] 可能是卡片尚未收取')
             raise GameStuckError
         return delta
 
@@ -193,7 +193,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
             card_class = CardClass.FISH
             target_class = self.I_A_CARD_FISH
         else:
-            logger.warning('Unknown card rule')
+            logger.warning('[结界挂卡] 未知的卡片规则')
             self.push_notify(content='Unknown card rule')
             return
 
@@ -207,14 +207,14 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     break
             if self.click(self.C_A_SELECT_CARD_LIST, interval=2.5):
                 continue
-        logger.info('Appear card class: {}'.format(card_class))
+        logger.info('[结界挂卡] 出现卡片类别: {}'.format(card_class))
         while 1:
             self.screenshot()
             if not self.appear(target_class):
                 break
             if self.appear_then_click(target_class, interval=1):
                 continue
-        logger.info('Selected card class: {}'.format(card_class))
+        logger.info('[结界挂卡] 已选择卡片类别: {}'.format(card_class))
 
         # 找最优卡
         while 1:
@@ -244,7 +244,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
             min_card_num = self.config.kekkai_activation.activation_config.min_fish_num
             check_card = "体力"
         else:
-            logger.error('Unknown utilize rule')
+            logger.error('[结界挂卡] 未知的卡片使用规则')
             raise ValueError('Unknown utilize rule')
 
         ocr_count = 0
@@ -292,7 +292,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                 safe_pos_y = random.randint(580, 600)
                 p1 = (safe_pos_x, safe_pos_y)
                 p2 = (safe_pos_x, safe_pos_y - 410)
-                logger.info('Swipe %s -> %s, %sS ' % (point2str(*p1), point2str(*p2), duration))
+                logger.info('[结界挂卡] 滑动 %s -> %s，用时 %sS' % (point2str(*p1), point2str(*p2), duration))
                 self.device.swipe_adb(p1, p2, duration=duration)
                 time.sleep(1)
                 continue

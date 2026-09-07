@@ -53,7 +53,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                 self._task_config.eternity_sea_config.user_status != UserStatus.MEMBER :
             return BattleAction.CONTINUE
         battle_config = self._task_config.general_battle_config
-        logger.info("Switch member preset at continuous round 2")
+        logger.info("[永生之海] 连续第2轮时切换队员预设阵容")
         self.switch_preset_team(battle_config.preset_enable, battle_config.preset_group, battle_config.preset_team)
         self._member_stage_preset_switched = True
         return BattleAction.CONTINUE
@@ -74,7 +74,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             case UserStatus.LEADER: success = self.run_leader()
             case UserStatus.MEMBER: success = self.run_member()
             case UserStatus.ALONE: success = self.run_alone()
-            case _: logger.error('Unknown user status')
+            case _: logger.error('[永生之海] 未知的用户身份')
         self.goto_page(page_main)
         if success:
             self.set_next_run(self.task_name, finish=True, success=True)
@@ -83,7 +83,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         raise TaskEnd(self.task_name)
 
     def run_leader(self):
-        logger.info('Start run leader')
+        logger.info('[永生之海] 开始队长流程')
         self.goto_page(page_soul_zones)
         self._enter_eternity_sea()
         layer = self._task_config.eternity_sea_config.layer
@@ -91,7 +91,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         self.check_lock(self._task_config.general_battle_config.lock_team_enable, self.I_NEWETERNITYSEA_LOCK,
                         self.I_ETERNITYSEA_UNLOCK)
         # 创建队伍
-        logger.info('Create team')
+        logger.info('创建队伍')
         while 1:
             self.screenshot()
             if self.appear(self.I_CHECK_TEAM):
@@ -109,15 +109,15 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         while 1:
             self.screenshot()
             if self.current_count >= self._task_config.eternity_sea_config.limit_count:
-                logger.info("EternitySea count limit out")
+                logger.info("[永生之海] 已达到次数上限")
                 break
             if datetime.now() - self.start_time >= self._limit_time:
-                logger.info("EternitySea time limit out")
+                logger.info("[永生之海] 已达到时间上限")
                 break
             # 如果没有进入房间那就不需要后面的邀请
             if not self.is_in_room():
                 if self.is_room_dead():
-                    logger.warning('eternity_sea task failed')
+                    logger.warning('[永生之海] 任务失败')
                     success = False
                     break
                 continue
@@ -130,13 +130,13 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                     )
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this eternity_sea task')
+                    logger.warning('[永生之海] 邀请失败，退出本次永生之海任务')
                     success = False
                     break
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self._task_config.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this eternity_sea task')
+                    logger.warning('[永生之海] 邀请失败，退出本次永生之海任务')
                     success = False
                     break
                 else:
@@ -150,16 +150,16 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         return success
 
     def run_member(self):
-        logger.info('Start run member')
+        logger.info('[永生之海] 开始队员流程')
         # 进入战斗流程
         self.device.stuck_record_add('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
             if self.current_count >= self._task_config.eternity_sea_config.limit_count:
-                logger.info("EternitySea count limit out")
+                logger.info("[永生之海] 已达到次数上限")
                 break
             if datetime.now() - self.start_time >= self._limit_time:
-                logger.info("EternitySea time limit out")
+                logger.info("[永生之海] 已达到时间上限")
                 break
             if self.check_then_accept():
                 continue
@@ -183,21 +183,21 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         return True
 
     def run_alone(self) -> bool:
-        logger.info("Start run alone")
+        logger.info("[永生之海] 开始单人流程")
         self.goto_page(page_soul_zones)
         self._enter_eternity_sea()
         if self._task_config.general_battle_config.lock_team_enable == False:
-            logger.critical(f"Only supports lock team mode")
+            logger.critical(f"[永生之海] 仅支持锁定队伍模式")
             raise RequestHumanTakeover
         while 1:
             self.screenshot()
             if not self.appear(self.I_ETERNITY_SEA_FIRE):
                 continue
             if self.current_count >= self._task_config.eternity_sea_config.limit_count:
-                logger.info("EternitySea count limit out")
+                logger.info("[永生之海] 已达到次数上限")
                 break
             if datetime.now() - self.start_time >= self._limit_time:
-                logger.info("EternitySea time limit out")
+                logger.info("[永生之海] 已达到时间上限")
                 break
             # 点击挑战
             while 1:
@@ -223,7 +223,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         return False
 
     def _enter_eternity_sea(self) -> bool:
-        logger.info("Enter eternity_sea")
+        logger.info("[永生之海] 进入永生之海")
         while True:
             self.screenshot()
             if self.appear(self.I_FORM_TEAM, interval=1):

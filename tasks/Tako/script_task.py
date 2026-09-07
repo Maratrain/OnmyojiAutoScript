@@ -64,12 +64,12 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
             if not self.is_in_room():
                 continue
             if wait_timer.reached():
-                logger.warning('Wait for too long, exit')
+                logger.warning('[石距] 等待时间过长，退出')
                 self.exit_room()
                 break
             if not self.appear(self.I_ADD_1):
                 # 有人进来了，可以进行挑战
-                logger.info('There is someone in the room and start the challenge')
+                logger.info('[石距] 房间内有人，开始挑战')
                 self.click_fire()
                 self.run_general_battle()
                 break

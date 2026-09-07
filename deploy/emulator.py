@@ -136,31 +136,31 @@ class VirtualBoxEmulator:
             adb (str): Absolute path to adb.exe
         """
         for ori, bak in zip(self.adb_binary, self.adb_backup):
-            logger.info(f'Replacing {ori}')
+            logger.info(f'[安装] 正在替换 {ori}')
             if os.path.exists(ori):
                 if filecmp.cmp(adb, ori, shallow=True):
-                    logger.info(f'{adb} is same as {ori}, skip')
+                    logger.info(f'[安装] {adb} 与 {ori} 相同，跳过')
                 else:
-                    logger.info(f'{ori} -----> {bak}')
+                    logger.info(f'[安装] {ori} -----> {bak}')
                     shutil.move(ori, bak)
-                    logger.info(f'{adb} -----> {ori}')
+                    logger.info(f'[安装] {adb} -----> {ori}')
                     shutil.copy(adb, ori)
             else:
-                logger.info(f'{ori} not exists, skip')
+                logger.info(f'[安装] {ori} 不存在，跳过')
 
     def adb_recover(self):
         """ Revert adb replacement """
         for ori in self.adb_binary:
-            logger.info(f'Recovering {ori}')
+            logger.info(f'[安装] 正在恢复 {ori}')
             bak = f'{ori}.bak'
             if os.path.exists(bak):
-                logger.info(f'Delete {ori}')
+                logger.info(f'[安装] 正在删除 {ori}')
                 if os.path.exists(ori):
                     os.remove(ori)
-                logger.info(f'{bak} -----> {ori}')
+                logger.info(f'[安装] {bak} -----> {ori}')
                 shutil.move(bak, ori)
             else:
-                logger.info(f'Not exists {bak}, skip')
+                logger.info(f'[安装] {bak} 不存在，跳过')
 
 
 # NoxPlayer 夜神模拟器
@@ -256,7 +256,7 @@ class EmulatorConnect:
             process.kill()
             stdout, stderr = process.communicate()
             ret_code = 1
-            logger.info(f'TimeoutExpired, stdout={stdout}, stderr={stderr}')
+            logger.info(f'[安装] TimeoutExpired, stdout={stdout}, stderr={stderr}')
         if output:
             return stdout
         else:
@@ -276,7 +276,7 @@ class EmulatorConnect:
             except FileNotFoundError:
                 continue
             if len(serial):
-                logger.info(f'Emulator {emulator.name} found, instances: {serial}')
+                logger.info(f'[安装] 检测到模拟器 {emulator.name}，实例: {serial}')
 
         return emulators
 
@@ -294,7 +294,7 @@ class EmulatorConnect:
             if status == 'device':
                 devices.append(serial)
 
-        logger.info(f'Devices: {devices}')
+        logger.info(f'[安装] 设备列表: {devices}')
         return devices
 
     def adb_kill(self):
@@ -302,7 +302,7 @@ class EmulatorConnect:
         # self._execute([self.adb_binary, 'kill-server'])
 
         # Just kill it, because some adb don't obey.
-        logger.info('Kill all known ADB')
+        logger.info('[安装] 正在结束所有已知 ADB 进程')
         for exe in [
             # Most emulator use this
             'adb.exe',
@@ -315,11 +315,11 @@ class EmulatorConnect:
         ]:
             ret_code = self._execute(['taskkill', '/f', '/im', exe], output=False)
             if ret_code == 0:
-                logger.info(f'Task {exe} killed')
+                logger.info(f'[安装] 进程 {exe} 已结束')
             elif ret_code == 128:
-                logger.info(f'Task {exe} not found')
+                logger.info(f'[安装] 未找到进程 {exe}')
             else:
-                logger.info(f'Error occurred when killing task {exe}, return code {ret_code}')
+                logger.info(f'[安装] 结束进程 {exe} 时出错，返回码 {ret_code}')
 
     @cached_property
     def serial(self):

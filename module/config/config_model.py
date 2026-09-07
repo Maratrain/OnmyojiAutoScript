@@ -182,7 +182,7 @@ class ConfigModel(ConfigBase):
         :return:
         """
         super().__setattr__(key, value)
-        logger.info("auto save config")
+        logger.info("[配置] 自动保存配置")
         self.save()
 
     @staticmethod
@@ -215,7 +215,7 @@ class ConfigModel(ConfigBase):
         task = convert_to_underscore(task)
         task_gui = getattr(self, task, None)
         if task_gui is None:
-            logger.warning(f'{task} is no inexistence')
+            logger.warning(f'[配置] 任务 {task} 不存在')
             return ''
 
         schema2 = task_gui.schema()
@@ -239,7 +239,7 @@ class ConfigModel(ConfigBase):
         task_name = convert_to_underscore(task)
         task = getattr(self, task_name, None)
         if task is None:
-            logger.warning(f'{task_name} is no inexistence')
+            logger.warning(f'[配置] 任务 {task_name} 不存在')
             return ''
         return task.json()
 
@@ -308,7 +308,7 @@ class ConfigModel(ConfigBase):
         task = convert_to_underscore(task)
         task = getattr(self, task, None)
         if task is None:
-            logger.warning(f'{task} is no inexistence')
+            logger.warning(f'[配置] 任务 {task} 不存在')
             return {}
 
         def extract_groups(sch):
@@ -408,7 +408,7 @@ class ConfigModel(ConfigBase):
         argument_object = getattr(group_object, argument, None)
 
         if argument_object is None:
-            logger.error(f'Set arg {task}.{group}.{argument}.{value} failed')
+            logger.error(f'[配置] 设置参数 {task}.{group}.{argument}.{value} 失败')
             return False
 
         # XXX temp implementation to enable oasx control the datetime configuration globally rather than a single task
@@ -420,7 +420,7 @@ class ConfigModel(ConfigBase):
         # 设置参数
         try:
             setattr(group_object, argument, value)
-            logger.info(f'Set arg {self.config_name}.{task}.{group}.{argument}.{value}')
+            logger.info(f'[配置] 设置参数 {self.config_name}.{task}.{group}.{argument}.{value}')
             self.save()  # 我是没有想到什么方法可以使得属性改变自动保存的
             return True
         except ValidationError as e:
@@ -432,7 +432,7 @@ class ConfigModel(ConfigBase):
         try:
             setattr(self, model_task_name, source_task)
             self.save()
-            logger.info(f'Copy task {model_task_name} success')
+            logger.info(f'[配置] 复制任务 {model_task_name} 成功')
             return True
         except ValidationError as e:
             logger.error(e)
@@ -450,7 +450,7 @@ class ConfigModel(ConfigBase):
         try:
             setattr(task_object, model_group_name, source_group_obj)
             self.save()
-            logger.info(f'Copy task group {model_task_name}.{model_group_name} success')
+            logger.info(f'[配置] 复制任务组 {model_task_name}.{model_group_name} 成功')
             return True
         except ValidationError as e:
             logger.error(e)
@@ -472,7 +472,7 @@ class ConfigModel(ConfigBase):
                     d[k] = dt.strftime("%Y-%m-%d %H:%M:%S")
 
     def reset_datetime_for_all_enabled_tasks(self, task_datetime: datetime):
-        logger.warn(f"trying to reset datetime of all tasks to: {task_datetime}")
+        logger.warn(f"正在尝试将所有任务的时间重置为: {task_datetime}")
         # logger.info(f"current config: {self.dict()}")
         data = self.dict()
         self.replace_next_run(data, task_datetime)

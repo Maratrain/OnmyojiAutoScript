@@ -34,12 +34,12 @@ class RuleFile(QObject):
         _, ext = os.path.splitext(file)
         lock = FileLock(f"{file}.lock")
         with lock:
-            logger.info(f'read: {file}')
+            logger.info(f'[GUI] 正在读取 {file}')
             if ext == '.json':
                 with open(file, mode='r', encoding='utf-8') as f:
                     return f.read()
             else:
-                logger.error(f"not support {ext} file")
+                logger.error(f"[GUI] 不支持 {ext} 文件")
                 return ""
 
     @Slot(str, str)
@@ -57,9 +57,9 @@ class RuleFile(QObject):
         _, ext = os.path.splitext(file)
         lock = FileLock(f"{file}.lock")
         with lock:
-            logger.info(f'write: {file}')
+            logger.info(f'[GUI] 正在写入 {file}')
             if ext == '.json':
                 with atomic_write(file, overwrite=True, encoding='utf-8') as f:
                     f.write(data)
             else:
-                logger.error(f"not support {ext} file")
+                logger.error(f"[GUI] 不支持 {ext} 文件")

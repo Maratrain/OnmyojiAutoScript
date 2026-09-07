@@ -23,7 +23,7 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         for skill_rule in skill_rule_list:
             if not self.appear(skill_rule):
                 continue
-            logger.info(f'Recognize skill: {skill_rule.name}')
+            logger.info(f'[六道] 识别技能: {skill_rule.name}')
             x, y = skill_rule.front_center()
             if x < 360:
                 return self.I_SELECT_0
@@ -42,7 +42,7 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         """
         if isinstance(coin_rule, RuleOcr):
             coin_num = coin_rule.ocr(self.device.image)
-            logger.info(f'Current coin: {coin_num}')
+            logger.info(f'[六道] 当前钱币: {coin_num}')
             return coin_num
         x, y, width, height = coin_rule.roi_front
         self.O_EXTRA_COIN_NUM.roi = [x + 25, y + 47, width - 5, height - 23]
@@ -102,21 +102,21 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         :param refresh_times_rule: 刷新次数文本
         :return: 成功刷新返回True, 否则False
         """
-        logger.info('Refresh store')
+        logger.info('[六道] 刷新商店')
         text = refresh_times_rule.ocr(self.device.image)
         matches = re.search(f"剩\d+次", text)
         if not matches:
-            logger.warning('Refresh time not match, exit')
+            logger.warning('[六道] 刷新次数未匹配，退出')
             return False
         refresh_time = int(matches.group()[1])
-        logger.info(f'Refresh time: {refresh_time}')
+        logger.info(f'[六道] 剩余刷新次数: {refresh_time}')
         if refresh_time <= 0:
-            logger.warning('Refresh time is 0')
+            logger.warning('[六道] 剩余刷新次数为 0')
             return False
         if not self.appear_then_click(refresh_rule):
             return False
         self.wait_animate_stable(self.C_STORE_ANIMATE_KEEP, timeout=1.5)
-        logger.info('Refresh store done')
+        logger.info('[六道] 刷新商店完成')
         return True
 
     def buy_skill(self, skill_rule: RuleImage, skill_price: int, coin_num_rule: RuleOcr,
@@ -142,12 +142,12 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
                 continue
             buy_interval_timer.reset()
             coin_num = coin_num_rule.ocr(self.device.image)
-            logger.info(f'Current coin: {coin_num}')
+            logger.info(f'[六道] 当前钱币: {coin_num}')
             if buy_cnt >= buy_num:
-                logger.info(f'Buy {skill_rule.name} done')
+                logger.info(f'[六道] 购买 {skill_rule.name} 完成')
                 break
             if coin_num < skill_price:
-                logger.info(f'Not enough coin to buy {skill_rule.name}')
+                logger.info(f'[六道] 钱币不足，无法购买 {skill_rule.name}')
                 break
             if self.appear(skill_rule):  # 点击购买技能的左侧位置
                 x, y = skill_rule.front_center()
@@ -157,11 +157,11 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
                 buy_cnt += 1
                 continue
             if coin_num < skill_price + 100:
-                logger.info('Not enough coin to refresh and buy')
+                logger.info('[六道] 钱币不足，无法刷新并购买')
                 break
             if not self.refresh_store(fresh_rule, refresh_times_rule):
                 break
-        logger.info(f'Finish purchase {skill_rule.name} times: {buy_cnt}')
+        logger.info(f'[六道] 购买 {skill_rule.name} 结束，次数: {buy_cnt}')
         return coin_num, buy_cnt
 
     def get_remain_turns(self, remain_rule: RuleOcr) -> int:
@@ -193,11 +193,11 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         self.prepare_appear_cache(island_rule_list)
         appeared_lands = [land for land in island_rule_list if self.appear(land)]
         if len(appeared_lands) == 0:
-            logger.info('No land recognized, retry')
+            logger.info('[六道] 未识别到岛屿，重试')
             return
         filtered_islands = self._filter_island(appeared_lands)
         if len(filtered_islands) == 0:
-            logger.info('No remain island can choose, retry')
+            logger.info('[六道] 没有可选择的岛屿，重试')
             return
         target_land = filtered_islands[0]  # 取第一个岛屿
         self.appear_then_click(target_land, interval=0.8)

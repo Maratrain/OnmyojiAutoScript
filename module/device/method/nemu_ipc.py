@@ -124,12 +124,12 @@ class CaptureNemuIpc(CaptureStd):
     def check_stdout(self):
         if not self.stdout:
             return
-        logger.info(f'NemuIpc stdout: {self.stdout}')
+        logger.info(f'[NemuIpc] stdout: {self.stdout}')
 
     def check_stderr(self):
         if not self.stderr:
             return
-        logger.error(f'NemuIpc stderr: {self.stderr}')
+        logger.error(f'[NemuIpc] stderr: {self.stderr}')
 
         # Calling an old MuMu12 player
         # Tested on 3.4.0
@@ -175,7 +175,7 @@ def retry(func):
                 break
             # Function call timeout
             except asyncio.TimeoutError:
-                logger.warning(f'Func {func.__name__}() call timeout, retrying: {_}')
+                logger.warning(f'[NemuIpc] 函数 {func.__name__}() 调用超时，重试中: {_}')
 
                 def init():
                     self.reconnect()
@@ -192,7 +192,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -227,7 +227,7 @@ class NemuIpcImpl:
                 break
             except OSError as e:
                 logger.error(e)
-                logger.error(f'ipc_dll={ipc_dll} exists, but cannot be loaded')
+                logger.error(f'[NemuIpc] ipc_dll={ipc_dll} 存在，但无法加载')
                 continue
         if self.lib is None:
             # not found
@@ -236,7 +236,7 @@ class NemuIpcImpl:
                 f'None of the following path exists: {list_dll}')
         # success
         logger.info(
-            f'NemuIpcImpl init, '
+            f'[NemuIpc] 初始化 NemuIpcImpl, '
             f'nemu_folder={nemu_folder}, '
             f'ipc_dll={ipc_dll}, '
             f'instance_id={instance_id}, '
@@ -329,7 +329,7 @@ class NemuIpcImpl:
                 err = True
         # Get to actual error message printed in std
         if err:
-            logger.warning(f'Failed to call {func.__name__}, result={result}')
+            logger.warning(f'[NemuIpc] 调用 {func.__name__} 失败, result={result}')
             with CaptureNemuIpc():
                 result = self._ev.run_until_complete(self.ev_run_async(func, *args, **kwargs))
 
@@ -470,13 +470,13 @@ class NemuIpc():
                     ).__enter__()
                 except (NemuIpcIncompatible, NemuIpcError) as e:
                     logger.error(e)
-                    logger.error('Emulator info incorrect')
+                    logger.error('[NemuIpc] 模拟器信息不正确')
 
         # Search emulator instance
         # with E:\ProgramFiles\MuMuPlayer-12.0\shell\MuMuPlayer.exe
         # installation path is E:\ProgramFiles\MuMuPlayer-12.0
         if self.emulator_instance is None:
-            logger.error('Unable to use NemuIpc because emulator instance not found')
+            logger.error('[NemuIpc] 未找到模拟器实例，无法使用 NemuIpc')
             raise RequestHumanTakeover
         try:
             return NemuIpcImpl(
@@ -486,7 +486,7 @@ class NemuIpc():
             ).__enter__()
         except (NemuIpcIncompatible, NemuIpcError) as e:
             logger.error(e)
-            logger.error('Unable to initialize NemuIpc')
+            logger.error('[NemuIpc] 无法初始化 NemuIpc')
             raise RequestHumanTakeover
 
     def nemu_ipc_available(self) -> bool:
@@ -504,7 +504,7 @@ class NemuIpc():
         if has_cached_property(self, 'nemu_ipc'):
             self.nemu_ipc.disconnect()
         del_cached_property(self, 'nemu_ipc')
-        logger.info('nemu_ipc released')
+        logger.info('[NemuIpc] 已释放 nemu_ipc')
 
     def screenshot_nemu_ipc(self):
         image = self.nemu_ipc.screenshot()

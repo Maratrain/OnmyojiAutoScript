@@ -55,12 +55,12 @@ def show_track(sync_image, sync_lock, stop_event):
     # global glob_image
     while True:
         if stop_event.is_set():
-            logger.info('OAS Track Debugger stopped')
+            logger.info('[百鬼夜行] OAS Track Debugger 已停止')
             cv2.destroyAllWindows()
             break
         sync_lock.acquire()
         if Debugger.sync_image is None:
-            logger.info('OAS Track Debugger not started')
+            logger.info('[百鬼夜行] OAS Track Debugger 未启动')
             time.sleep(1)
             sync_lock.release()
             continue
@@ -89,12 +89,12 @@ class Debugger:
         self.continuous_learning = continuous_learning
         self.hya_save_result = hya_save_result
         if continuous_learning:
-            logger.info('Continuous Learning Mode Enabled')
+            logger.info('[百鬼夜行] 持续学习模式已启用')
             save_time = datetime.now().strftime('%Y%m%dT%H')
             self.hya_save_folder: Path = Path(f'./log/hya/{save_time}')
             self.hya_save_folder.mkdir(parents=True, exist_ok=True)
         if hya_save_result:
-            logger.info('Hyakkiyakou Save Result Mode Enabled')
+            logger.info('[百鬼夜行] 百鬼夜行结果保存模式已启用')
             save_time = datetime.now().strftime('%Y%m%dT%H')
             self.hya_save_result_folder: Path = Path(f'./log/hyakkiyakou/{save_time}')
             self.hya_save_result_folder.mkdir(parents=True, exist_ok=True)
@@ -111,7 +111,7 @@ class Debugger:
         return sp + ssr + g
 
     def _reset_thread_env(self):
-        logger.info('Reset Debugger Thread Environment')
+        logger.info('[百鬼夜行] 重置调试器线程环境')
         Debugger.sync_image = None
         self.sync_lock = Lock()
         self.stop_event = Event()
@@ -123,7 +123,7 @@ class Debugger:
         cv2.imshow('OAS Tracker', image)
 
     def show_start(self):
-        logger.info('OAS Track Debugger show image start')
+        logger.info('[百鬼夜行] OAS Track Debugger 开始显示图像')
         Debugger.sync_image = np.zeros((720, 1280, 3), dtype=np.uint8)
         self.sync_thread.start()
 
@@ -136,7 +136,7 @@ class Debugger:
         self.sync_lock.release()
 
     def show_stop(self):
-        logger.info('OAS Track Debugger show image stop')
+        logger.info('[百鬼夜行] OAS Track Debugger 停止显示图像')
         self.stop_event.set()
         self.sync_thread.join()
 
@@ -158,7 +158,7 @@ class Debugger:
         if not self.images_cache:
             self.images_cache: dict = {}
             return
-        logger.info('OAS Track Debugger save images to train model')
+        logger.info('[百鬼夜行] OAS Track Debugger 保存图像用于训练模型')
         for image_name, image in self.images_cache.items():
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             cv2.imwrite(str(self.hya_save_folder / f'{image_name}.png'), image)

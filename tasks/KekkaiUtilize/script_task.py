@@ -80,8 +80,8 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             if not self.appear(self.I_UTILIZE_ADD):
                 remaining_time = self.O_UTILIZE_RES_TIME.ocr(self.device.image)
                 if not isinstance(remaining_time, timedelta):
-                    logger.warning('Ocr remaining time error')
-                logger.info(f'Utilize remaining time: {remaining_time}')
+                    logger.warning('[结界蹭卡] 剩余时间识别异常')
+                logger.info(f'[结界蹭卡] 寄养剩余时间: {remaining_time}')
                 # 已经蹭上卡了，设置下次蹭卡时间  # 减少30秒
                 # remaining_time = remaining_time - timedelta(seconds=30)
                 next_time = datetime.now() + remaining_time
@@ -91,7 +91,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                 self.set_next_run(task='KekkaiUtilize', target=next_time)
                 return
             if not self.goto_page(page_guild_realm_utilize):
-                logger.info('Utilize failed, exit')
+                logger.info('[结界蹭卡] 进入蹭卡界面失败，退出')
             # 开始执行寄养
             self.run_utilize(con.select_friend_list, con.shikigami_class, con.shikigami_order)
             self.goto_page(page_guild_realm_growth)
@@ -109,14 +109,14 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             return
         if self.appear(self.I_RS_LEVEL_MAX):
             # 存在满级的式神
-            logger.info('Exist max level shikigami and replace it')
+            logger.info('[结界蹭卡] 发现满级式神，正在替换')
             self.unset_shikigami_max_lv()
             self.switch_shikigami_class(shikigami_class)
             self.set_shikigami(shikigami_order=7, stop_image=self.I_RS_NO_ADD)
         else:
-            logger.info('No max level shikigami')
+            logger.info('[结界蹭卡] 没有满级式神')
         if self.detect_no_shikigami():
-            logger.warning('There are no any shikigami grow room')
+            logger.warning('[结界蹭卡] 育成坑位上没有式神')
             self.switch_shikigami_class(shikigami_class)
             self.set_shikigami(shikigami_order=7, stop_image=self.I_RS_NO_ADD)
 
@@ -207,12 +207,12 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             timer_ap.start()
             while True:
                 if timer_ap.reached():
-                    logger.warning('Extract ap box done')
+                    logger.warning('[结界蹭卡] 体力食盒收取结束')
                     break
                 self.screenshot()
                 if self.appear(self.I_UI_REWARD):
                     self.ui_click_until_smt_disappear(self.C_UI_REWARD, self.I_UI_REWARD, interval=1)
-                    logger.info('Reward box')
+                    logger.info('[结界蹭卡] 收取奖励成功')
                     break
                 if self.appear_then_click(self.I_AP_EXTRACT, interval=2):
                     continue
@@ -224,10 +224,10 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             max_tries = random.randint(2, 3)
             while True:
                 if time_exp.reached():
-                    logger.warning('Extract exp jug done')
+                    logger.warning('[结界蹭卡] 经验酒杯收取结束')
                     break
                 if max_tries <= 0:
-                    logger.info('Exp maybe already full, ocr failed, exit')
+                    logger.info('[结界蹭卡] 经验酒杯可能已满或识别失败，退出')
                     break
                 self.screenshot()
                 # 如果出现结界皮肤， 表示收取好了
@@ -242,10 +242,10 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                     # 如果达到今日领取的最大，就不领取了
                     cur, res, total = self.O_BOX_EXP.ocr(self.device.image)
                     if total <= 0:
-                        logger.warning('Exp box OCR no data, retry')
+                        logger.warning('[结界蹭卡] 经验酒杯识别无数据，重试')
                         continue
                     if cur == total:
-                        logger.info('Exp box reach max do not collect')
+                        logger.info('[结界蹭卡] 经验酒杯已达上限，不再收取')
                         break
                     self.click(self.I_EXP_EXTRACT)
                     max_tries -= 1
@@ -270,7 +270,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         self.screenshot()
         appear = self.appear(self.I_UTILIZE_EXP)
         if not appear:
-            logger.info('No utilize harvest')
+            logger.info('[结界蹭卡] 没有寄养收获')
             return False
 
         # 收获
@@ -283,7 +283,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         :param friend:
         :return:
         """
-        logger.info('Switch friend list to %s', friend)
+        logger.info('[结界蹭卡] 切换好友列表: %s', friend)
         if friend == SelectFriendList.SAME_SERVER:
             check_image = self.I_UTILIZE_FRIEND_GROUP
         else:
@@ -313,7 +313,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         elif rule == UtilizeRule.TAIKO:
             return ImageGrid([self.I_U_TAIKO_6, self.I_U_TAIKO_5])
         else:
-            logger.error('Unknown utilize rule')
+            logger.error('[结界蹭卡] 未知的蹭卡规则')
             raise ValueError('Unknown utilize rule')
 
     @cached_property
@@ -332,7 +332,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                       CardClass.FISH6, CardClass.FISH5, CardClass.TAIKO4, CardClass.FISH4, CardClass.TAIKO3,
                       CardClass.FISH3]
         else:
-            logger.error('Unknown utilize rule')
+            logger.error('[结界蹭卡] 未知的蹭卡规则')
             raise ValueError('Unknown utilize rule')
         return result
 
@@ -347,7 +347,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         :param rule:
         :return:
         """
-        logger.hr('Start utilize')
+        logger.hr('开始寄养')
         # 不管什么时候进来都要切换刷新列表(同区与跨区保持一致先切换滑动再切换)
         if friend == SelectFriendList.SAME_SERVER:
             self.switch_friend_list(SelectFriendList.SAME_SERVER)
@@ -370,23 +370,23 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         self.screenshot()
         # 进入结界
         if not self.appear(self.I_U_ENTER_REALM):
-            logger.warning('Cannot find enter realm button')
+            logger.warning('[结界蹭卡] 未找到进入结界按钮')
             # 可能是滑动的时候出错
-            logger.warning('The best reason is that the swipe is wrong')
+            logger.warning('[结界蹭卡] 可能是滑动操作出错')
             return None
         try:
             self.goto_page(page_friend_utilize)
         except GamePageUnknownError:
-            logger.warning('Appear friend realm failed')
+            logger.warning('[结界蹭卡] 进入好友结界失败')
             return None
         # 判断好友的有两个位置还是一个坑位
         stop_image = None
         self.screenshot()
         if self.appear(self.I_U_ADD_1):  # 右侧第一个有（无论左侧有没有）
-            logger.info('Right side has one')
+            logger.info('[结界蹭卡] 右侧有一个空位')
             stop_image = self.I_U_ADD_1
         elif self.appear(self.I_U_ADD_2) and not self.appear(self.I_U_ADD_1):  # 右侧第二个有 但是最左边的没有，这表示只留有一个坑位
-            logger.info('Right side has two')
+            logger.info('[结界蹭卡] 右侧有两个空位')
             stop_image = self.I_U_ADD_2
         if not stop_image:
             # 没有坑位可能是其他人的手速太快了抢占了
@@ -551,7 +551,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                         return True
 
             if self.appear(self.I_U_EMPTY_CARD):
-                logger.info('Empty card already appeared, exit explore')
+                logger.info('[结界蹭卡] 已出现空卡，结束选卡')
                 return None
             # ------ 步骤3: 滑动到下一屏 ------#
             self.perform_swipe_action()
@@ -567,7 +567,7 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         safe_pos_y = random.randint(500, 565)
         p1 = (safe_pos_x, safe_pos_y)
         p2 = (safe_pos_x, safe_pos_y - 416)
-        logger.info('Swipe %s -> %s, %sS ' % (point2str(*p1), point2str(*p2), duration))
+        logger.info('滑动 %s -> %s, 用时 %s 秒' % (point2str(*p1), point2str(*p2), duration))
         self.device.swipe_adb(p1, p2, duration=duration)
 
         # self.swipe(self.S_U_UP, duration=1, wait_up_time=1)

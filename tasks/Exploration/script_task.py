@@ -44,7 +44,7 @@ class ScriptTask(BaseExploration):
         }
 
     def run(self):
-        logger.hr('exploration')
+        logger.hr('探索')
         self.pre_process()
         self.exec_exp_page()
         self.post_process()
@@ -82,7 +82,7 @@ class ScriptTask(BaseExploration):
             if self.fire_monster_type == 'boss':
                 return
             if not self.appear(self.I_TEAM_EMOJI):
-                logger.info('Friend disappeared, quit')
+                logger.info('[探索] 好友已消失，退出')
                 self.quit_exp_main()
                 return
         if self.switch_rotate() or self.user_status == UserStatus.MEMBER:

@@ -112,7 +112,7 @@ class OcrRuntime:
             "requests_succeeded": 0,
             "requests_failed": 0,
         }
-        logger.info(f"OCR runtime initialized (workers={self._scheduler.worker_count})")
+        logger.info(f"[OCR] 运行时初始化完成 (workers={self._scheduler.worker_count})")
 
     def ping(self) -> bool:
         return True
@@ -191,7 +191,7 @@ class OcrRuntime:
             worker_name = threading.current_thread().name
             with self._lock:
                 self._loaded_workers.add(worker_name)
-            logger.info(f"OCR worker model loaded: {worker_name}")
+            logger.info(f"[OCR] 工作线程模型加载完成: {worker_name}")
         return model
 
     def _ocr_single_line(self, image: np.ndarray):
@@ -277,12 +277,12 @@ def ensure_ocr_server_started() -> bool:
     host = "0.0.0.0"
 
     if _is_port_in_use("127.0.0.1", port):
-        logger.info(f"OCR server already running on port {port}")
+        logger.info(f"[OCR] 服务已在端口 {port} 运行")
         return True
 
     global _OCR_SERVER_PROCESS
     if _OCR_SERVER_PROCESS is not None and _OCR_SERVER_PROCESS.is_alive():
-        logger.info("OCR server process already started")
+        logger.info("[OCR] 服务进程已启动")
         return True
 
     _OCR_SERVER_PROCESS = _OCR_SERVER_CONTEXT.Process(
@@ -292,12 +292,12 @@ def ensure_ocr_server_started() -> bool:
         daemon=True,
     )
     _OCR_SERVER_PROCESS.start()
-    logger.info(f"Start OCR server on {host}:{port}")
+    logger.info(f"[OCR] 正在启动 OCR 服务: {host}:{port}")
     for _ in range(50):
         if _is_port_in_use("127.0.0.1", port):
             return True
         time.sleep(0.1)
-    logger.error(f"OCR server is not ready on port {port}")
+    logger.error(f"[OCR] 服务未在端口 {port} 就绪")
     return False
 
 
@@ -311,7 +311,7 @@ def ensure_ocr_server_ready() -> bool:
     address = deploy_config.OcrClientAddress or "127.0.0.1:22268"
     try:
         get_ocr_client(address=address, refresh=True)
-        logger.info(f"OCR server ready: {address}")
+        logger.info(f"[OCR] 服务已就绪: {address}")
         return True
     except Exception as exc:
         raise ScriptError(f"OCR server connection failed: {address}") from exc
@@ -328,15 +328,15 @@ def shutdown_ocr_server(timeout: float = 2.0) -> bool:
         _OCR_SERVER_PROCESS = None
         return False
 
-    logger.info("Stopping OCR server process")
+    logger.info("[OCR] 正在停止 OCR 服务进程")
     try:
         process.terminate()
         process.join(timeout=timeout)
         if process.is_alive():
-            logger.warning("OCR server process did not exit in time, force killing")
+            logger.warning("[OCR] 服务进程未按时退出，强制结束")
             process.kill()
             process.join(timeout=1.0)
-        logger.info("OCR server process stopped")
+        logger.info("[OCR] 服务进程已停止")
         return True
     except Exception as e:
         logger.exception(e)

@@ -67,8 +67,8 @@ def retry(func):
             except AssertionError as e:
                 logger.exception(e)
                 possible_reasons(
-                    'If you are using BlueStacks or LD player or WSA, '
-                    'please enable ADB in the settings of your emulator'
+                    '如果你正在使用 BlueStacks、雷电模拟器或 WSA，'
+                    '请在模拟器设置中开启 ADB'
                 )
                 break
             # Package not installed
@@ -90,7 +90,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -173,13 +173,13 @@ class Uiautomator2(Connection):
             x, y, second = data
             if index == 0:
                 self.u2.touch.down(x, y)
-                logger.info(point2str(x, y) + ' down')
+                logger.info(point2str(x, y) + ' 按下')
             elif index - length == -1:
                 self.u2.touch.up(x, y)
-                logger.info(point2str(x, y) + ' up')
+                logger.info(point2str(x, y) + ' 抬起')
             else:
                 self.u2.touch.move(x, y)
-                logger.info(point2str(x, y) + ' move')
+                logger.info(point2str(x, y) + ' 移动')
             self.sleep(second)
 
     def drag_uiautomator2(self, p1, p2, segments=1, shake=(0, 15), point_random=(-10, -10, 10, 10),
@@ -278,8 +278,8 @@ class Uiautomator2(Connection):
         if width == 720 and height == 1280:
             return (width, height)
 
-        logger.critical(f'Resolution not supported: {width}x{height}')
-        logger.critical('Please set emulator resolution to 1280x720')
+        logger.critical(f'[设备-截图] 分辨率不支持: {width}x{height}')
+        logger.critical('请将模拟器分辨率设置为 1280x720')
         raise RequestHumanTakeover
 
     @retry

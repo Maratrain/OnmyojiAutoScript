@@ -24,13 +24,13 @@ class PipManager(DeployConfig):
         return f'"{self.python}" -m pip'
 
     def pip_install(self):
-        logger.hr('Update Dependencies', 0)
+        logger.hr('更新依赖', 0)
 
         if not self.InstallDependencies:
-            logger.info('InstallDependencies is disabled, skip')
+            logger.info('[安装] InstallDependencies 未启用，跳过')
             return
 
-        logger.hr('Check Python', 1)
+        logger.hr('检查 Python', 1)
         self.execute(f'"{self.python}" --version')
 
         arg = []
@@ -49,6 +49,6 @@ class PipManager(DeployConfig):
         # self.execute(f'"{self.pip}" install --upgrade pip{arg}')
         arg += ['--disable-pip-version-check']
 
-        logger.hr('Update Dependencies', 1)
+        logger.hr('更新依赖', 1)
         arg = ' ' + ' '.join(arg) if arg else ''
         self.execute(f'{self.pip} install -r {self.requirements_file}{arg}')

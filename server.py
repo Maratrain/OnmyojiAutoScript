@@ -76,7 +76,7 @@ def fun(ev: threading.Event):
     host = args.host or State.deploy_config.WebuiHost or "0.0.0.0"
     port = args.port or int(State.deploy_config.WebuiPort) or 22270
 
-    logger.hr("Launcher config")
+    logger.hr("启动器配置")
     logger.attr("Host", host)
     logger.attr("Port", port)
     logger.attr("Reload", ev is not None)

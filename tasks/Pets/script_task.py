@@ -31,12 +31,12 @@ class ScriptTask(OrochiScriptTask, PetsAssets):
 
     def _feed(self):
         """快速喂养"""
-        logger.hr('Feed', 3)
+        logger.hr('[小猫咪] 喂养', 3)
         self.ui_click(self.I_PET_FEAST, self.I_PET_FEED)
         number = self.O_PET_FEED_AP.ocr(self.device.image)
         if number == 0:
             # 已经投喂过了
-            logger.warning('Already feed')
+            logger.warning('[小猫咪] 已经投喂过')
             self.appear_then_click(self.I_UI_BACK_CIRCLE)
             return
         self.ui_click(self.I_PET_FEED, self.I_PET_SKIP)
@@ -44,7 +44,7 @@ class ScriptTask(OrochiScriptTask, PetsAssets):
 
     def run_orochi(self):
         """运行一次御魂十层"""
-        logger.hr('Run Orochi', 3)
+        logger.hr('[小猫咪] 运行御魂副本', 3)
         self.config.orochi.orochi_config.layer = Layer.TEN
         self.limit_count = 1
         self.limit_time = timedelta(hours=10)

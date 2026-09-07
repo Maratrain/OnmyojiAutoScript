@@ -25,17 +25,17 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
         conf = self.config.true_orochi.true_orochi_config
         if conf.current_success >= 2:
             # 超过两次就说明这周打完了没有必要再打了
-            logger.warning('This week is full')
+            logger.warning('[真蛇] 本周次数已打完')
             self.check_times(True)
             raise TaskEnd('TrueOrochi')
         self.goto_page(page_orochi)
         battle = self.check_true_orochi(True)
         if not battle:
-            logger.warning('Not find true orochi')
-            logger.warning('Try to battle orochi for ten times')
+            logger.warning('[真蛇] 未找到真蛇')
+            logger.warning('[真蛇] 尝试挑战御魂副本十层以触发真蛇')
             # 判断是否需要挑战十层触发真蛇
             if not conf.find_true_orochi:
-                logger.info('Not find_true_orochi_help')
+                logger.info('[真蛇] 未开启寻找真蛇')
                 self.check_times(False)
                 raise TaskEnd('TrueOrochi')
             battle = self.get_true_orochi()
@@ -49,7 +49,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
 
         self.goto_page(page_orochi)
         if conf.current_success < 2 and self.check_true_orochi(True):
-            logger.info('Find another true orochi entry, continue')
+            logger.info('[真蛇] 找到另一个真蛇入口，继续')
             self.run_true_orochi_battle()
             self.check_times(True)
 
@@ -59,7 +59,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
     def run_true_orochi_battle(self):
         """执行一次真蛇战斗"""
         conf = self.config.true_orochi.true_orochi_config
-        logger.hr('True Orochi Battle')
+        logger.hr('[真蛇] 真蛇战斗')
         # 御魂切换方式一
         if self.config.true_orochi.switch_soul.enable:
             self.goto_page(page_shikigami_records)
@@ -81,7 +81,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
                 current, current_success, total = self.O_TIMES.ocr(self.device.image)
                 if current_success < 0 or current_success > 2:
                     continue
-                logger.info(f'current: {current}, current_success: {current_success}, total: {total}')
+                logger.info(f'当前: {current}, 当前成功: {current_success}, 总计: {total}')
                 conf.current_success = current_success
                 self.config.save()
                 continue
@@ -99,7 +99,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
             if self.appear_then_click(self.I_ST_CREATE_ROOM, interval=1):
                 continue
         # 战斗准备
-        logger.info('Battle prepare')
+        logger.info('战斗准备')
         self.ui_click(self.I_ST_FIRE_PREPARE, self.I_BUFF)
         while 1:
             self.screenshot()
@@ -113,7 +113,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
             #     continue
         self.device.stuck_record_add('BATTLE_STATUS_S')
         self.device.click_record_clear()
-        logger.info("Start battle process")
+        logger.info("开始战斗流程")
         check_timer = Timer(280)
         check_timer.start()
         check_count = 0
@@ -140,13 +140,13 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
                 if check_count > 3:
                     raise GameStuckError
                 check_count += 1
-                logger.warning('Battle timeout')
+                logger.warning('战斗超时')
                 check_timer.reset()
                 self.device.stuck_record_clear()
                 self.device.stuck_record_add('BATTLE_STATUS_S')
             sleep(0.5)
 
-        logger.info("Battle process end")
+        logger.info("战斗流程结束")
 
     def get_true_orochi(self) -> bool:
         """获取真蛇(攻打十层10次, 发现真蛇就退出, 会更改limit_count)"""
@@ -160,10 +160,10 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
         while True:
             self.screenshot()
             if self.check_true_orochi(False):
-                logger.info('Find true orochi')
+                logger.info('[真蛇] 找到真蛇')
                 return True
             if self.limit_count >= 10:
-                logger.warning('Not find true orochi')
+                logger.warning('[真蛇] 未找到真蛇')
                 break
             self.limit_count += 1
             self.run_alone()
@@ -194,11 +194,11 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
         next_run_year, next_run_week_number, next_run_weekday = next_run.isocalendar()
         # 如果下次运行的时间是下一周，那么就重置成功次数
         if now_week_number != next_run_week_number:
-            logger.info('Reset current_success')
+            logger.info('[真蛇] 重置本周成功次数')
             self.config.true_orochi.true_orochi_config.current_success = 0
         else:
             # 如果不是下一周且战斗成功那么就加一
-            logger.info('Add current_success by 1')
+            logger.info('[真蛇] 本周成功次数加 1')
             self.config.true_orochi.true_orochi_config.current_success += 1 if battle else 0
             self.config.true_orochi.true_orochi_config.current_success = min(2, self.config.true_orochi.true_orochi_config.current_success)
         self.config.save()

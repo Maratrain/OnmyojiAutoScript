@@ -169,7 +169,7 @@ class ImageRuntime:
         )
         self._cleanup_thread.start()
         logger.info(
-            "Image runtime initialized "
+            "[图像服务] 运行时初始化完成 "
             f"(frame_ttl={self.settings.frame_cache_expire_seconds}s, "
             f"frame_max={self.settings.frame_cache_max_count}, "
             f"template_ttl={self.settings.template_cache_expire_seconds}s, "
@@ -230,7 +230,7 @@ class ImageRuntime:
             self._frames[frame_id] = entry
             self._config_frames[config_name] = frame_id
             self._cleanup_frames(now, reason="register")
-        logger.debug(f"Register frame {frame_id} config={config_name} shape={entry.shape}")
+        logger.debug(f"注册画面帧 {frame_id} config={config_name} shape={entry.shape}")
         return {
             "frame_id": frame_id,
             "config_name": config_name,
@@ -542,7 +542,7 @@ class ImageRuntime:
         with self._lock:
             self._templates[template_key] = entry
             self._cleanup_templates(now, reason="register")
-        logger.debug(f"Load template {normalized_path} fingerprint={fingerprint}")
+        logger.debug(f"加载模板 {normalized_path} fingerprint={fingerprint}")
         return entry
 
     def _resolve_image(self, frame_id: str | None, image_bytes: bytes | None) -> np.ndarray:
@@ -686,7 +686,7 @@ class ImageRuntime:
         """
         source = self._crop(image, roi_back)
         if self._template_image_invalid(template):
-            logger.error(f"Template image is invalid: {None if template is None else template.shape}")
+            logger.error(f"模板图像无效: {None if template is None else template.shape}")
             return True, 1.0, [int(v) for v in roi_back]
         if source.shape[0] < template.shape[0] or source.shape[1] < template.shape[1]:
             return False, -1.0, None
@@ -701,7 +701,7 @@ class ImageRuntime:
                 int(template.shape[1]),
                 int(template.shape[0]),
             ]
-        logger.debug(f"{log_name} template score={max_val:.5f}")
+        logger.debug(f"{log_name} 模板匹配得分={max_val:.5f}")
         return matched, float(max_val), roi_front
 
     def _multi_scale_template_match(
@@ -721,7 +721,7 @@ class ImageRuntime:
         """
         source = self._crop(image, roi_back)
         if self._template_image_invalid(template):
-            logger.error(f"Template image is invalid: {None if template is None else template.shape}")
+            logger.error(f"模板图像无效: {None if template is None else template.shape}")
             return True, 1.0, [int(v) for v in roi_back]
 
         min_scale, max_scale, step = self._get_multi_scale_range(scale_range, scale_step)
@@ -753,7 +753,7 @@ class ImageRuntime:
                 int(best_shape[0]),
                 int(best_shape[1]),
             ]
-        logger.debug(f"{log_name} multi-scale score={best_val:.5f}")
+        logger.debug(f"{log_name} 多尺度匹配得分={best_val:.5f}")
         return matched, float(best_val), roi_front
 
     @staticmethod
@@ -810,7 +810,7 @@ class ImageRuntime:
             if first.distance < 0.6 * second.distance:
                 good.append(first)
         if len(good) < 10:
-            logger.debug(f"{log_name} sift good_matches={len(good)}")
+            logger.debug(f"{log_name} SIFT 有效匹配数={len(good)}")
             return False, float(len(good)), None
 
         src_pts = np.float32([template_entry.sift_kp[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -831,7 +831,7 @@ class ImageRuntime:
             width,
             height,
         ]
-        logger.debug(f"{log_name} sift good_matches={len(good)}")
+        logger.debug(f"{log_name} SIFT 有效匹配数={len(good)}")
         return True, float(len(good)), result_roi
 
     def _get_sift(self):
@@ -851,7 +851,7 @@ class ImageRuntime:
         template = self._get_template_entry(rule["file"]).image_rgb
         source = self._crop(image, rule["roi_back"])
         if self._template_image_invalid(template):
-            logger.error(f"Template image is invalid: {None if template is None else template.shape}")
+            logger.error(f"模板图像无效: {None if template is None else template.shape}")
             return []
         if source.shape[0] < template.shape[0] or source.shape[1] < template.shape[1]:
             return []
@@ -903,7 +903,7 @@ class ImageRuntime:
         for frame_id in expired:
             self._delete_frame(frame_id)
         if expired:
-            logger.debug(f"Evict {len(expired)} expired frames ({reason})")
+            logger.debug(f"淘汰 {len(expired)} 个过期画面帧 ({reason})")
 
         overflow = len(self._frames) - self.settings.frame_cache_max_count
         if overflow > 0:
@@ -913,7 +913,7 @@ class ImageRuntime:
             )
             for entry in sorted_entries[:overflow]:
                 self._delete_frame(entry.frame_id)
-            logger.debug(f"Evict {overflow} overflow frames ({reason})")
+            logger.debug(f"淘汰 {overflow} 个超量画面帧 ({reason})")
 
     def _cleanup_templates(self, now: float, reason: str) -> None:
         """
@@ -932,7 +932,7 @@ class ImageRuntime:
             self._cache_stats["template_expired"] += 1
             self._cache_stats["template_evictions"] += 1
         if expired:
-            logger.debug(f"Evict {len(expired)} expired templates ({reason})")
+            logger.debug(f"淘汰 {len(expired)} 个过期模板 ({reason})")
 
         overflow = len(self._templates) - self.settings.template_cache_max_count
         if overflow > 0:
@@ -943,7 +943,7 @@ class ImageRuntime:
             for entry in sorted_entries[:overflow]:
                 self._templates.pop(entry.template_key, None)
                 self._cache_stats["template_evictions"] += 1
-            logger.debug(f"Evict {overflow} overflow templates ({reason})")
+            logger.debug(f"淘汰 {overflow} 个超量模板 ({reason})")
 
     def _ensure_template_sift(self, entry: TemplateEntry) -> TemplateEntry:
         """确保模板条目已经准备好 SIFT keypoints 和 descriptor。"""
@@ -955,7 +955,7 @@ class ImageRuntime:
         entry.sift_kp = kp
         entry.sift_des = des
         logger.debug(
-            f"Prepare template sift {entry.file_path} "
+            f"准备模板 SIFT {entry.file_path} "
             f"descriptor_shape={None if des is None else des.shape}"
         )
         return entry

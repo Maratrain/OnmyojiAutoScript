@@ -65,31 +65,31 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
         time.sleep(1)  # 有一个很傻逼的动画
         self.screenshot()
         if not self.appear(self.I_SE_PLACEMENT):
-            logger.warning('Unsuccessful entry. You must have entered the secret zone before.')
+            logger.warning('[秘闻副本] 进入失败，你可能已进入过秘闻副本')
             success = False
 
         # 开始
-        logger.info('Start secret zone')
+        logger.info('[秘闻副本] 开始秘闻副本')
         first_battle = True
         while 1:
             self.screenshot()
             if not success:
-                logger.warning('Secret zone failed to enter, skip')
+                logger.warning('[秘闻副本] 进入秘闻副本失败，跳过')
                 break
             if not self.appear(self.I_SE_FIRE):
                 continue
             if self.appear(self.I_SE_FINISHED_1):
-                logger.info('Secret zone finished')
+                logger.info('[秘闻副本] 秘闻副本完成')
                 break
             layer = self.find_battle()
-            logger.info(f'Current layer: {layer}')
+            logger.info(f'当前层数: {layer}')
             if not layer:
                 if self.appear(WeeklyTriflesAssets.I_WT_SE_SHARE):
-                    logger.warning('You have completed the weekly trifles, skip')
+                    logger.warning('本周杂事已完成，跳过')
                     break
                 text = self.O_SE_TOTAL_TIME.ocr_single(self.device.image)
                 if '尚未' not in text:
-                    logger.warning('You have completed the weekly trifles, skip')
+                    logger.warning('本周杂事已完成，跳过')
                     break
                 continue
             if layer >= 6:
@@ -162,27 +162,27 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
             # print(f'检测到的勾玉数量ROI: {ocr_target.roi}')
             jade_num = ocr_target.ocr(self.device.image)
             if isinstance(jade_num, str):
-                logger.warning(f'OCR failed, try again {jade_num}')
+                logger.warning(f'OCR识别失败，重试 {jade_num}')
                 return None
             elif not isinstance(jade_num, int):
-                logger.warning(f'OCR failed, try again {jade_num}')
+                logger.warning(f'OCR识别失败，重试 {jade_num}')
                 return None
             if jade_num < 7:
                 # 第一个的时候可能是没有检测到
                 gold_number = self.O_SE_GOLD.ocr(self.device.image)
                 if isinstance(gold_number, int) and (gold_number == 10000 or gold_number == 18000):
-                    logger.info(f'No find jade number, but find gold number {gold_number}')
+                    logger.info(f'未识别到勾玉数量，但识别到金币数量 {gold_number}')
                     return 1
                 return None
             elif jade_num > 70:
-                logger.warning(f'OCR failed, try again {jade_num}')
+                logger.warning(f'OCR识别失败，重试 {jade_num}')
                 return None
             # 勾玉数量 = 层数 * 7
             try:
                 lr = jade_num // 7
                 return lr
             except TypeError:
-                logger.warning(f'OCR failed, try again {jade_num}')
+                logger.warning(f'OCR识别失败，重试 {jade_num}')
                 return None
 
         if screenshot:

@@ -89,11 +89,11 @@ class StateMachine(BaseTask):
 
         # 超过运行时间
         if datetime.now() - self.start_time >= self.conf.general_climb.limit_time_v:
-            logger.info(f"Climb type {self.climb_type} time out")
+            logger.info(f'[爬塔] 爬塔类型 {self.climb_type} 时间已用完')
             raise LimitTimeOut
         # 次数达到限制
         if get_count() >= get_limit():
-            logger.info(f"Climb type {self.climb_type} count limit reached")
+            logger.info(f'[爬塔] 爬塔类型 {self.climb_type} 已达次数上限')
             raise LimitCountOut
 
     def switch_next(self):
@@ -103,11 +103,11 @@ class StateMachine(BaseTask):
         """
         self.run_idx += 1
         if self.run_idx >= len(self.conf.general_climb.run_sequence_v):
-            logger.info("All climbing activities have been completed")
+            logger.info('[爬塔] 所有爬塔活动已完成')
             return False
         # 切换爬塔类型了, 恢复所有状态
         self.current_count = 0
-        logger.hr(f"Climb switch to {self.climb_type}", 2)
+        logger.hr(f'[爬塔] 切换到 {self.climb_type}', 2)
         return True
 
 
@@ -154,17 +154,17 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
     def run(self):
         self.before_run()
         for climb_type in self.conf.general_climb.run_sequence_v:
-            logger.hr(f"Start run {self.climb_type}", 1)
+            logger.hr(f'[爬塔] 开始运行 {self.climb_type}', 1)
             dest_page: Optional[pages.Page] = getattr(
                 pages, f"page_act_{climb_type}", None
             )
             if not dest_page:
-                logger.warning(f"{climb_type} page is not supported")
+                logger.warning(f'[爬塔] 不支持 {climb_type} 页面')
                 continue
             self.goto_page(dest_page)
             cur_battle_conf = getattr(self.conf, f"{climb_type}_battle_conf")
             if cur_battle_conf is None:
-                logger.warning(f"{climb_type} battle config is not supported")
+                logger.warning(f'[爬塔] 不支持 {climb_type} 战斗配置')
                 continue
             self.lock_team(cur_battle_conf)
             try:
@@ -206,7 +206,7 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
 
     def _run_common(self):
         if not self.check_tickets_enough():
-            logger.warning(f"No tickets left, wait for next time")
+            logger.warning('[爬塔] 门票已用完，等待下次运行')
             raise TicketsNotEnough
         self.switch_soul(self.I_BATTLE_MAIN_TO_RECORDS)
         if self.conf.general_climb.random_sleep:
@@ -226,12 +226,12 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
                 return True
             if click_times >= max_times:
                 logger.warning(
-                    f"{self.climb_type} cannot enter battle, click reach max times"
+                    f'[爬塔] {self.climb_type} 无法进入战斗，点击已达最大次数'
                 )
                 raise TicketsNotEnough
             if self.appear(self.I_UI_BACK_RED, interval=1):
                 logger.warning(
-                    f"{self.climb_type} cannot enter battle, appear red close button, maybe not enough tickets"
+                    f'[爬塔] {self.climb_type} 无法进入战斗，出现红色关闭按钮，可能门票不足'
                 )
                 raise TicketsNotEnough
             if self.appear_then_click(
@@ -241,7 +241,7 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
             if self.ocr_appear_click(self.O_FIRE, interval=1.5):
                 self.device.click_record_clear()
                 click_times += 1
-                logger.info(f"Try click fire, remain times[{max_times - click_times}]")
+                logger.info(f'[爬塔] 尝试点击战斗，剩余次数[{max_times - click_times}]')
                 continue
 
     def switch_soul(self, enter_button: RuleImage):
@@ -255,7 +255,7 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
         )
         if not enable_switch and not enable_by_name:
             return
-        logger.hr("Start switch soul", 2)
+        logger.hr('[爬塔] 开始切换御魂', 2)
         conf.validate_switch_soul()
         self.ui_click(enter_button, stop=self.I_CHECK_RECORDS, interval=1)
         if enable_by_name:
@@ -272,14 +272,14 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
         """
         enable = battle_conf.lock_team_enable
         if enable:
-            logger.info(f"Lock {self.climb_type} team")
+            logger.info(f'[爬塔] 锁定 {self.climb_type} 队伍')
             match self.climb_type:
                 case "ap" | "boss":
                     self.ui_click(self.I_AP_UNLOCK, stop=self.I_AP_LOCK, interval=1.5)
                 case _:
                     self.ui_click(self.I_UNLOCK, stop=self.I_LOCK, interval=1.5)
             return
-        logger.info(f"Unlock {self.climb_type} team")
+        logger.info(f'[爬塔] 解锁 {self.climb_type} 队伍')
         match self.climb_type:
             case "ap" | "boss":
                 self.ui_click(self.I_AP_LOCK, stop=self.I_AP_UNLOCK, interval=1.5)
@@ -291,7 +291,7 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
         判断当前爬塔门票是否足够
         :return: True 可以运行 or False
         """
-        logger.hr(f"Check {self.climb_type} tickets")
+        logger.hr(f'[爬塔] 检查 {self.climb_type} 门票')
         self.screenshot()
         remain_times = 0
         if self.climb_type == "pass":

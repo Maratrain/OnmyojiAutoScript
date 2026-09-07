@@ -104,7 +104,7 @@ class ConfigBase(BaseModel):
             try:
                 default_value = self.model_fields[val_error_key].default
                 kwargs[val_error_key] = self.model_fields[val_error_key].default
-                logger.warning(f'Field {val_error_key} is out of range, using default value {default_value}')
+                logger.warning(f'配置项 {val_error_key} 超出范围，使用默认值 {default_value}')
                 logger.warning(repr(exc))
                 logger.warning(str(kwargs))
                 super().__init__(*args, **kwargs)

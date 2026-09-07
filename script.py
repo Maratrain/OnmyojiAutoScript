@@ -43,7 +43,7 @@ _log_switch_lock = threading.Lock()#线程锁
 
 class Script:
     def __init__(self, config_name: str ='oas') -> None:
-        logger.hr('Start', level=0)
+        logger.hr('启动', level=0)
         self.server = None
         self.state_queue: Queue = None
         self._emulator_down = False
@@ -69,7 +69,7 @@ class Script:
             config = Config(config_name=self.config_name)
             return config
         except RequestHumanTakeover:
-            logger.critical('Request human takeover')
+            logger.critical('[脚本] 请求人工接管')
             exit(1)
         except Exception as e:
             logger.exception(e)
@@ -82,7 +82,7 @@ class Script:
             device = Device(config=self.config)
             return device
         except RequestHumanTakeover:
-            logger.critical('Request human takeover')
+            logger.critical('[脚本] 请求人工接管')
             exit(1)
         except Exception as e:
             logger.exception(e)
@@ -117,7 +117,7 @@ class Script:
             # 用统一规则生成错误目录名, 目录格式为 <script_name>_<timestamp_ms>。
             folder_name = build_error_log_dir_name(self.config_name, int(time.time() * 1000))
             folder = f'./log/error/{folder_name}'
-            logger.warning(f'Saving error: {folder}')
+            logger.warning(f'[脚本] 正在保存错误现场: {folder}')
             os.mkdir(folder)
             for data in self.device.screenshot_deque:
                 image_time = datetime.strftime(data['time'], '%Y-%m-%d_%H-%M-%S-%f')
@@ -145,7 +145,7 @@ class Script:
             self.server.bind(f'tcp://127.0.0.1:{port}')
             return port
         except zmq.error.ZMQError:
-            logger.error(f"Ocr server cannot bind on port {port}")
+            logger.error(f"[脚本] OCR 服务无法绑定端口 {port}")
             return None
 
     def run_server(self) -> None:
@@ -200,13 +200,13 @@ class Script:
         argument_object = getattr(group_object, argument, None)
 
         if argument_object is None:
-            logger.error(f'Set arg {task}.{group}.{argument}.{value} failed')
+            logger.error(f'[脚本] 设置参数 {task}.{group}.{argument}.{value} 失败')
             return False
 
         try:
             setattr(group_object, argument, value)
             argument_object = getattr(group_object, argument, None)
-            logger.info(f'Set arg {task}.{group}.{argument}.{argument_object}')
+            logger.info(f'[脚本] 设置参数 {task}.{group}.{argument}.{argument_object}')
             self.config.save()  # 我是没有想到什么方法可以使得属性改变自动保存的
             return True
         except ValidationError as e:
@@ -369,10 +369,10 @@ class Script:
                 wait_until = min(wait_until, self.config.waiting_task[0].next_run)
             decision = self.runtime.handle_wait_during_idle(wait_until)
             if decision == ScriptRuntimeDecision.RESCHEDULE:
-                logger.info('Idle wait requested scheduler refresh, reload config and reschedule')
+                logger.info('[脚本] 空闲等待请求刷新调度器，重新加载配置并重新调度')
                 del_cached_property(self, "config")
             elif decision == ScriptRuntimeDecision.FAILED:
-                logger.warning('Idle wait preparation failed, reload config and retry scheduling')
+                logger.warning('[脚本] 空闲等待准备失败，重新加载配置并重试调度')
                 del_cached_property(self, "config")
 
     def exception_handler(self, e: Exception, command: str) -> None:
@@ -411,7 +411,7 @@ class Script:
         status = self.last_task_runtime_outcome.get('status')
         if status == 'server_update_delayed':
             wait_until = self.last_task_runtime_outcome.get('wait_until')
-            logger.info(f'{command} runtime outcome: server_update_delayed (wait_until={wait_until})')
+            logger.info(f'[脚本] {command} 运行结果: server_update_delayed (wait_until={wait_until})')
             if isinstance(wait_until, datetime):
                 self.runtime.server_update_wait_until = wait_until
                 self.runtime.server_update_wait_log_until = None
@@ -419,9 +419,9 @@ class Script:
         if command != 'Restart':
             return
         if status == 'recovered':
-            logger.info('Restart runtime outcome: recovered')
+            logger.info('[脚本] Restart 运行结果: recovered')
             return
-        logger.info(f'Restart runtime outcome: {status}')
+        logger.info(f'[脚本] Restart 运行结果: {status}')
 
     def _delay_tasks_for_server_update(self, task: str, reason: str) -> bool:
         if not is_server_update_window():
@@ -437,14 +437,14 @@ class Script:
         :return:
         """
         if command == 'start' or command == 'goto_main':
-            logger.error(f'Invalid command `{command}`')
+            logger.error(f'[脚本] 无效命令 `{command}`')
 
         self._reset_task_runtime_outcome()
         try:
             self.device.screenshot()
             module_name = 'script_task'
             module_path = str(Path.cwd() / 'tasks' / command / (module_name + '.py'))
-            logger.info(f'module_path: {module_path}, module_name: {module_name}')
+            logger.info(f'[脚本] 模块路径: {module_path}, 模块名: {module_name}')
             task_module = load_module(module_name, module_path)
             task_module.ScriptTask(config=self.config, device=self.device).run()
         except Exception as e:
@@ -459,7 +459,7 @@ class Script:
         with _log_switch_lock:
             logger.set_file_logger(self.config_name, do_cleanup=True)
         start_day = date.today()
-        logger.info(f'Start scheduler loop: {self.config_name}')
+        logger.info(f'[脚本] 启动调度循环: {self.config_name}')
         self.config.model.running_task = ''
         self.anti_ban_guard.reset()
 
@@ -485,7 +485,7 @@ class Script:
                 task = self.get_next_task()
                 # Skip first restart
                 if self.is_first_task and task == 'Restart':
-                    logger.info('Skip task `Restart` at scheduler start')
+                    logger.info('[脚本] 调度启动时跳过任务 `Restart`')
                     self.config.task_delay(task='Restart', success=True, server=True)
                     del_cached_property(self, 'config')
                     continue
@@ -497,16 +497,16 @@ class Script:
                 continue
 
             if decision == ScriptRuntimeDecision.RESCHEDULE:
-                logger.info(f'Runtime preparation for `{task}` requested reschedule, reload config and retry scheduling')
+                logger.info(f'[脚本] `{task}` 运行准备请求重新调度，重新加载配置并重试调度')
                 del_cached_property(self, 'config')
                 continue
             if decision == ScriptRuntimeDecision.FAILED:
-                logger.warning(f'Runtime preparation for `{task}` failed, reload config and retry scheduling')
+                logger.warning(f'[脚本] `{task}` 运行准备失败，重新加载配置并重试调度')
                 del_cached_property(self, 'config')
                 continue
 
             # Run
-            logger.info(f'Scheduler: Start task `{task}`')
+            logger.info(f'[脚本] 调度: 开始任务 `{task}`')
             self.device.stuck_record_clear()
             self.device.click_record_clear()
             logger.hr(task, level=0)
@@ -514,7 +514,7 @@ class Script:
             _task_start = datetime.now()
             success = self.run(inflection.camelize(task))
             self.config.model.running_task = ''
-            logger.info(f'Scheduler: End task `{task}`')
+            logger.info(f'[脚本] 调度: 任务 `{task}` 执行结束')
             self.is_first_task = False
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())
 
@@ -525,12 +525,12 @@ class Script:
             # deep_set(self.failure_record, keys=task, value=failed)
             self.failure_record[task] = failed
             if failed >= 3:
-                logger.critical(f"Task `{task}` failed 3 or more times.")
-                logger.critical("Possible reason #1: You haven't used it correctly. "
-                                "Please read the help text of the options.")
-                logger.critical("Possible reason #2: There is a problem with this task. "
-                                "Please contact developers or try to fix it yourself.")
-                logger.critical('Request human takeover')
+                logger.critical(f"[脚本] 任务 `{task}` 失败 3 次或以上")
+                logger.critical("[脚本] 可能原因一: 未正确使用该任务，"
+                                "请阅读选项的帮助文本")
+                logger.critical("[脚本] 可能原因二: 该任务本身可能存在问题，"
+                                "请联系开发者或自行尝试修复")
+                logger.critical('[脚本] 请求人工接管')
                 # 添加失败三次的推送通知
                 self.config.notifier.push(
                     title=f'{I18n.trans_zh_cn(task)}{task}',
@@ -576,8 +576,8 @@ class Script:
             logger.error(e)
             self.save_error_log()
             self.exception_handler(e=e, command=command)
-            logger.warning(f'Game stuck, {self.device.package} will be restarted in 10 seconds')
-            logger.warning('If you are playing by hand, please stop Alas')
+            logger.warning(f'[脚本] 游戏卡住，{self.device.package} 将在 10 秒后重启')
+            logger.warning('[脚本] 如果正在手动游玩，请先停止 Oas')
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}',
                                       content=f"<{self.config_name}> GameStuckError or GameTooManyClickError")
             self.config.task_call('Restart')
@@ -588,21 +588,21 @@ class Script:
             logger.warning(e)
             self.save_error_log()
             self.exception_handler(e=e, command=command)
-            logger.warning('An error has occurred in Azur Lane game client, Alas is unable to handle')
-            logger.warning(f'Restarting {self.device.package} to fix it')
+            logger.warning('[脚本] 游戏客户端发生错误，Oas 无法处理')
+            logger.warning(f'[脚本] 正在重启 {self.device.package} 以修复')
             self.config.task_call('Restart')
             self.device.sleep(10)
             return False
 
         if isinstance(e, GamePageUnknownError):
-            logger.info('Game server may be under maintenance or network may be broken, check server status now')
+            logger.info('[脚本] 游戏服务器可能正在维护或网络已断开，正在检查服务器状态')
             if command == 'GotoMain' and self._delay_tasks_for_server_update(
                     task=command,
                     reason='failed to goto main during morning server update window',
             ):
-                logger.info('GotoMain failed during server update window, delayed pending tasks and reschedule')
+                logger.info('[脚本] 服务器更新窗口内 GotoMain 失败，已延迟待执行任务并重新调度')
                 return False
-            logger.critical('Game page unknown')
+            logger.critical('[脚本] 未知游戏页面')
             self.save_error_log()
             self.exception_handler(e=e, command=command)
             self.config.notifier.push(
@@ -616,7 +616,7 @@ class Script:
         if isinstance(e, ScriptError):
             logger.critical(e)
             self.exception_handler(e=e, command=command)
-            logger.critical('This is likely to be a mistake of developers, but sometimes just random issues')
+            logger.critical('[脚本] 这可能是开发者的失误，但有时只是偶发问题')
             self.config.notifier.push(
                 title=f'{I18n.trans_zh_cn(command)}{command}',
                 content=f"<{self.config_name}> ScriptError",
@@ -626,7 +626,7 @@ class Script:
         if isinstance(e, RequestHumanTakeover):
             logger.critical(e)
             self.exception_handler(e=e, command=command)
-            logger.critical('Request human takeover')
+            logger.critical('[脚本] 请求人工接管')
             self.config.notifier.push(
                 title=f'{I18n.trans_zh_cn(command)}{command}',
                 content=f"<{self.config_name}> RequestHumanTakeover",

@@ -66,14 +66,14 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             case UserStatus.MEMBER: success = self.run_member()
             case UserStatus.ALONE: self.run_alone()
             case UserStatus.WILD: success = self.run_wild()
-            case _: logger.error('Unknown user status')
+            case _: logger.error('[御魂] 未知的用户身份')
 
         # 御魂结束后检测是否出现真蛇
         if config.orochi_config.check_true_orochi_enable:
             self.goto_page(page_orochi)
             self.screenshot()
             if self.appear(self.I_FIND_TS):
-                logger.info('Find true orochi after orochi battle, set TrueOrochi task to run now')
+                logger.info('[御魂] 御魂战斗后检测到真蛇，立即调度真蛇任务')
                 self.set_next_run(task='TrueOrochi', success=False, finish=False, server=False, target=datetime.now())
         self.goto_page(page_main)
         # 记得关掉
@@ -115,7 +115,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return False
 
     def run_leader(self):
-        logger.info('Start run leader')
+        logger.info('[御魂] 开始队长流程')
         self.goto_page(page_orochi)
         layer = self.config.orochi.orochi_config.layer
         self.check_layer(layer)
@@ -123,7 +123,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         self.config.orochi.general_battle_config.lock_team_enable = True
         self.check_lock(self.config.orochi.general_battle_config.lock_team_enable, self.I_OROCHI_LOCK, self.I_OROCHI_UNLOCK)
         # 创建队伍
-        logger.info('Create team')
+        logger.info('[御魂] 创建队伍')
         while 1:
             self.screenshot()
             if self.appear(self.I_CHECK_TEAM):
@@ -142,16 +142,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.screenshot()
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('Orochi count limit out')
+                    logger.info('[御魂] 已达挑战次数上限')
                     break
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('Orochi time limit out')
+                    logger.info('[御魂] 已达运行时间上限')
                     break
             # 如果没有进入房间那就不需要后面的邀请
             if not self.is_in_room():
                 if self.is_room_dead():
-                    logger.warning('Orochi task failed')
+                    logger.warning('[御魂] 御魂任务失败')
                     success = False
                     break
                 continue
@@ -164,13 +164,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     )
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this orochi task')
+                    logger.warning('[御魂] 邀请失败，退出本次御魂任务')
                     success = False
                     break
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self.config.orochi.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this orochi task')
+                    logger.warning('[御魂] 邀请失败，退出本次御魂任务')
                     success = False
                     break
                 else:
@@ -192,7 +192,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_member(self):
-        logger.info('Start run member')
+        logger.info('[御魂] 开始队员流程')
         # 进入战斗流程
         self.device.stuck_record_add('BATTLE_STATUS_S')
         while 1:
@@ -202,10 +202,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_RANDOM_RIGHT, interval=1):
                 continue
             if self.current_count >= self.limit_count:
-                logger.info('Orochi count limit out')
+                logger.info('[御魂] 已达挑战次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Orochi time limit out')
+                logger.info('[御魂] 已达运行时间上限')
                 break
 
             if self.check_then_accept():
@@ -241,7 +241,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_alone(self):
-        logger.info('Start run alone')
+        logger.info('[御魂] 开始单人流程')
         self.goto_page(page_orochi)
         layer = self.config.orochi.orochi_config.layer
         self.check_layer(layer)
@@ -260,10 +260,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if not is_in_orochi():
                 continue
             if self.current_count >= self.limit_count:
-                logger.info('Orochi count limit out')
+                logger.info('[御魂] 已达挑战次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Orochi time limit out')
+                logger.info('[御魂] 已达运行时间上限')
                 break
             # 点击挑战
             while True:
@@ -278,7 +278,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     break
 
     def run_wild(self):
-        logger.info('Start run wild')
+        logger.info('[御魂] 开始野队流程')
 
         # 已经在战斗中不必初始化，保证已经组队开始战斗的情况下可以自动执行后续任务
         if not self.is_in_battle(True):
@@ -287,7 +287,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.check_layer(layer)
             self.check_lock(self.config.orochi.general_battle_config.lock_team_enable, self.I_OROCHI_LOCK, self.I_OROCHI_UNLOCK)
             # 创建队伍
-            logger.info('Create team')
+            logger.info('[御魂] 创建队伍')
             while 1:
                 self.screenshot()
                 if self.appear(self.I_CHECK_TEAM):
@@ -313,23 +313,23 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('Orochi count limit out')
+                    logger.info('[御魂] 已达挑战次数上限')
                     break
 
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('Orochi time limit out')
+                    logger.info('[御魂] 已达运行时间上限')
                     break
 
             if not self.is_in_room():
                 if self.is_room_dead():
-                    logger.warning('Orochi task failed')
+                    logger.warning('[御魂] 御魂任务失败')
                     success = False
                     break
                 continue
 
             # 点击挑战
-            logger.info('Wait for starting')
+            logger.info('[御魂] 等待开始挑战')
             while 1:
                 self.screenshot()
                 # 在进入战斗前必然会出现挑战界面，因此点击失败必须重复点击，防止卡在挑战界面，

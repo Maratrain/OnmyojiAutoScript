@@ -91,7 +91,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             3. 馆主战斗过程中,寮友打败馆主,弹出框体,可点击空白区域取消该框体.
             综上,点击左上角退出按钮区域
         """
-        logger.info("try to quit battle...")
+        logger.info("[道馆] 尝试退出战斗")
         while True:
             self.screenshot()
             if self.appear(self.I_RYOU_DOKAN_CENTER_TOP):
@@ -117,7 +117,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
         self.before_run()
         self.conf = self.config.model.dokan
         if self.conf.dokan_config.monday_to_thursday and datetime.now().weekday() >= 4:
-            logger.warning("weekend, exit")
+            logger.warning("[道馆] 周末不开放，退出")
             self.next_run(True)
             raise TaskEnd
         # 初始化相关动态参数,从配置文件读取相关记录,如果没有当天的记录则设置为默认值
@@ -171,7 +171,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
         ])
         self.device.stuck_record_clear()
         if self.appear(self.I_RYOU_DOKAN_GATHERING):  # 正在集结
-            logger.debug(f"Dokan is gathering...")
+            logger.debug(f"[道馆] 正在集结")
             self.switch_priority()  # 选择优先级
             self.switch_soul_in_dokan('member')  # 切换馆员御魂
             self.device.click_record_clear()
@@ -182,7 +182,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             if self.dokan_owner_battle:  # 馆主战
                 count = self.conf.attack_count_config.attack_dokan_master_count()
                 if (count - (1 if self.first_master_killed else 0)) > 0:
-                    logger.info("Start owner battle")
+                    logger.info("[道馆] 开始馆主战")
                     self.switch_soul_in_dokan('owner')
                     if self.click_until_in_battle():
                         self.run_general_battle(self.conf.dokan_owner_battle_conf, battle_key='dokan_owner')
@@ -208,11 +208,11 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                     self.ui_click_until_disappear(self.I_RYOU_DOKAN_FAILED_VOTE_BATTLE_AGAIN)
             else:
                 if self.appear(self.I_RYOU_DOKAN_FAILED_VOTE_KEEP_BOUNTY):
-                    logger.info("Dokan challenge failed: vote for keep the awards")
+                    logger.info("[道馆] 道馆挑战失败：投票保留赏金")
                     self.ui_click_until_disappear(self.I_RYOU_DOKAN_FAILED_VOTE_KEEP_BOUNTY)
             return
         if self.appear(self.I_RYOU_DOKAN_TODAY_ATTACK_COUNT) or self.appear(self.I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_DONE):
-            logger.info("Dokan challenge finished, exit Dokan")
+            logger.info("[道馆] 道馆挑战完成，退出道馆")
             self.update_remain_attack_count()  # 更新配置
             raise DokanFinishedError
 
@@ -300,13 +300,13 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             restore_roi()
             self.screenshot()
             bounty_list = self.find_all_element(self.I_RIGHTPAD_POINT_BOUNTY, (0, 0, 0, 50))
-            logger.info(f'find elements list:{bounty_list}')
+            logger.info(f'[道馆] 查找到的道馆列表: {bounty_list}')
             # 默认最小分数
             min_score = 10
             idx_selected = -1
             for idx, item in enumerate(bounty_list):
                 self.device.click_record_clear()
-                logger.info(f"------start no.{idx} =={item}-----------")
+                logger.info(f"[道馆] ------开始处理第{idx}项 =={item}-----------")
                 # 点击使挑战按钮消失的区域(C_DOKAN_CANCEL_SELECT_DOKAN), 点击可能点击到其他寮,
                 # 因此需要在此处多点几次,直到挑战按钮消失,
                 # 又因为出现挑战按钮动画时长较长,因此需要耗时
@@ -320,7 +320,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                 bounty = self.O_DOKAN_RIGHTPAD_BOUNTY.ocr(self.device.image)
                 tmp = re.search(r'(\d+)', bounty)
                 if not tmp:
-                    logger.warning(f"can't find bounty,item = {item},ocr bounty={bounty}")
+                    logger.warning(f"[道馆] 未识别到赏金，道馆项: {item}，识别赏金: {bounty}")
                     continue
                 bounty = float(tmp.group())
                 # 扩大搜索区域,防止找不到
@@ -328,13 +328,13 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                 # Note: 道馆不可挑战时(被别的寮打了),8秒后跳过
                 if not self.ui_click_until_appear_or_timeout(self.I_RIGHTPAD_POINT_BOUNTY, self.I_CENTER_CHALLENGE,
                                                              interval=1.5, timeout=8):
-                    logger.info(f"can't find challenge button,idx={idx} item={item}")
+                    logger.info(f"[道馆] 未找到挑战按钮，序号={idx}，道馆项={item}")
                     # 道馆不可挑战,挑战按钮不会弹出 ,直接进行下一个
                     continue
                 # 获取防守人数
                 self.screenshot()
                 if not self.appear(self.I_CENTER_POINT_PEOPLE_NUMBER):
-                    logger.warning(f"can't find point people number image, item={item}")
+                    logger.warning(f"[道馆] 未找到防守人数识别图，道馆项={item}")
                     continue
                 self.O_DOKAN_CENTER_PEOPLE_NUMBER.roi = position_offset(
                     self.I_CENTER_POINT_PEOPLE_NUMBER.roi_front,
@@ -342,28 +342,28 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                 p_num = self.O_DOKAN_CENTER_PEOPLE_NUMBER.detect_text(self.device.image)
                 tmp = re.search(r"(\d+)", p_num)
                 if not tmp:
-                    logger.warning(f"can't find people number in ocr result,item={item}, p_num={p_num}")
+                    logger.warning(f"[道馆] 识别结果中未找到防守人数，道馆项={item}，人数={p_num}")
                     continue
                 p_num = float(tmp.group())
-                logger.info(f"bounty:{bounty},people_num:{p_num},score:{bounty / p_num}")
+                logger.info(f"[道馆] 赏金: {bounty}，人数: {p_num}，系数: {bounty / p_num}")
                 item_score = bounty / p_num
                 if item_score < min_score:
                     min_score = item_score
                     idx_selected = idx
                 # 大于系数 或者 系数过小(文字识别错误导致)
                 if item_score > score or item_score < 1.5:
-                    logger.info("click to making challenge disappear")
+                    logger.info("[道馆] 点击使挑战按钮消失")
                     continue
                 if p_num < self.config.dokan.dokan_config.min_people_num:
-                    logger.info("people num too small")
+                    logger.info("[道馆] 防守人数过少")
                     continue
                 if bounty < self.config.dokan.dokan_config.min_bounty:
-                    logger.info("bounty too small")
+                    logger.info("[道馆] 赏金过低")
                     continue
                 # 馆主不是修习等级的
                 if not self.appear(self.I_CENTER_GUANZHU_XIUXI):
                     continue
-                logger.info(f"find_dokan: bounty:{bounty},people_num:{p_num},score:{bounty / p_num}")
+                logger.info(f"[道馆] find_dokan: 赏金: {bounty}，人数: {p_num}，系数: {bounty / p_num}")
                 return True
             # 在所有列表中都没有符合的,且忽略系数限制,那么就选择最低分数的那个,点击显示挑战按钮
             if ignore_score:
@@ -380,7 +380,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             for i in range(3):
                 sleep(3)
                 if find_challengeable():
-                    logger.info("find challengeable dokan")
+                    logger.info("[道馆] 找到可挑战的道馆")
                     self.ui_click(self.I_CENTER_CHALLENGE, self.I_CHALLENGE_ENSURE, interval=1)
                     self.ui_click_until_disappear(self.I_CHALLENGE_ENSURE, interval=1)
                     # 更新可挑战次数
@@ -392,14 +392,14 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                 self.swipe(self.S_DOKAN_LIST_UP)
             # 恢复初始位置信息,防止下次使用出错
             restore_roi()
-            logger.info("=========refresh dokan list=========")
+            logger.info("=========刷新道馆列表=========")
             self.ui_click(self.C_DOKAN_REFRESH, self.I_REFRESH_ENSURE, interval=1)
             self.ui_click_until_disappear(self.I_REFRESH_ENSURE, interval=1)
-            logger.info("Refresh Done")
+            logger.info("[道馆] 刷新完成")
             num_fresh += 1
         # 刷新次数用完,仍未找到符合条件的道馆,选择当前列表(约4个)中系数最低的
         if find_challengeable(ignore_score=True):
-            logger.warning("can't find challengeable dokan,select random one")
+            logger.warning("[道馆] 未找到可挑战的道馆，随机选择一个")
             self.ui_click(self.I_CENTER_CHALLENGE, self.I_CHALLENGE_ENSURE, interval=1)
             self.ui_click_until_disappear(self.I_CHALLENGE_ENSURE, interval=1)
             # 更新可挑战次数
@@ -415,7 +415,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             self.screenshot()
             if self.appear(self.I_RYOU_DOKAN_DOKAN_INFO_CLOSE):
                 self.ui_click_until_disappear(self.I_RYOU_DOKAN_DOKAN_INFO_CLOSE)
-                logger.info("Create Dokan Success")
+                logger.info("[道馆] 建立道馆成功")
                 break
             if self.appear(self.I_RYOU_DOKAN_CREATE_DOKAN_ENSURE):
                 self.ui_click_until_appear_or_timeout(self.I_RYOU_DOKAN_CREATE_DOKAN_ENSURE,
@@ -462,10 +462,10 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
         match = re.search(r'\d+', cd_text)
         remain_seconds = int(match.group()) if match else None
         if not remain_seconds:
-            logger.info(f'No remain seconds, exit cheering, cd_text[{cd_text}]')
+            logger.info(f'[道馆] 未识别到剩余秒数，退出应援，冷却文本: [{cd_text}]')
             return
         cheering_timer = Timer(remain_seconds).start()
-        logger.info(f"start cheering, remain seconds:{remain_seconds}s")
+        logger.info(f"[道馆] 开始应援，剩余秒数: {remain_seconds}s")
         while not cheering_timer.reached():
             self.screenshot()
             # 出现观战标志点击观战
@@ -480,9 +480,9 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             # 没有找到前往(全军覆没or没人上)则随机点击其他位置关闭弹窗
             self.click(pages.random_click(), interval=5)
         else:
-            logger.warning('Enter battle to cheer failed')
+            logger.warning('[道馆] 进入观战应援失败')
             return
-        logger.info('Enter battle to cheer')
+        logger.info('[道馆] 进入观战应援')
         cheer_cnt = 0
         self.device.stuck_record_clear()
         self.device.stuck_record_add('PAUSE')
@@ -490,7 +490,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             self.screenshot()
             battle_end_page = self.detect_page_in(pages.page_battle_result, pages.page_reward, include_global=False)
             if battle_end_page is not None:  # 战斗结束则退出战斗交给上层处理
-                logger.info(f'Cheer finish, count[{cheer_cnt}]')
+                logger.info(f'[道馆] 应援结束，次数: [{cheer_cnt}]')
                 self.exit_battle(True)
                 self.device.stuck_record_clear()
                 return
@@ -500,7 +500,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             # 亮色助威
             if self.appear_then_click(self.I_RYOU_DOKAN_CHEERING, interval=2):
                 cheer_cnt += 1
-                logger.attr(cheer_cnt, f'cheer, count time[{cheering_timer.current():.1f}s]')
+                logger.attr(cheer_cnt, f'应援，已计时[{cheering_timer.current():.1f}s]')
                 self.device.stuck_record_clear()
                 self.device.click_record_clear()
                 self.device.stuck_record_add('PAUSE')
@@ -518,16 +518,16 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
         count = -1
         if self.appear(self.I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ZERO) or self.appear(
                 self.I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_DONE):
-            logger.info("I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ZERO/DONE found")
+            logger.info("[道馆] 识别到 I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ZERO/DONE")
             count = 0
         elif self.appear(self.I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ONE):
-            logger.info("I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ONE found")
+            logger.info("[道馆] 识别到 I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_ONE")
             count = 1
         elif self.appear(self.I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_TWO):
-            logger.info("I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_TWO found")
+            logger.info("[道馆] 识别到 I_RYOU_DOKAN_REMAIN_ATTACK_COUNT_TWO")
             count = 2
         else:
-            logger.info("dont find REMAIN_ATTACK_COUNT PIC")
+            logger.info("[道馆] 未找到剩余挑战次数图片")
             count = -1
         self.config.dokan.attack_count_config.set_attack_count(count, self.config.save)
         return count
@@ -569,7 +569,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
         switch_soul_done = getattr(self, f'switch_{switch_type}_soul_done', False)
         if switch_soul_done:
             return
-        logger.hr('Start switch soul', 2)
+        logger.hr('开始切换御魂', 2)
         switch_soul = getattr(self.config.dokan, f'dokan_{switch_type}_switch_soul', None)
         switch_soul_by_name = getattr(self.config.dokan, f'dokan_{switch_type}_switch_soul_by_name', None)
         if switch_soul is not None and switch_soul.enable:
@@ -582,7 +582,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                                          switch_soul_dict[switch_type]['group_team_name'][1])
             self.goto_page(pages.page_dokan)
         else:
-            logger.info('Skip switch soul')
+            logger.info('[道馆] 跳过切换御魂')
         setattr(self, f'switch_{switch_type}_soul_done', True)
 
     def next_run(self, skip_today=False, is_dokan_activated=False):

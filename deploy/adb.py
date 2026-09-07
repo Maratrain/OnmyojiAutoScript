@@ -9,12 +9,12 @@ from deploy.utils import *
 
 def show_fix_tip(module):
     logger.info(f"""
-    To fix this:
-    1. Open console.bat
-    2. Execute the following commands:
+    [安装] 修复方法:
+    1. 打开 console.bat
+    2. 执行以下命令:
         pip uninstall -y {module}
         pip install --no-cache-dir {module}
-    3. Re-open Alas.exe
+    3. 重新打开 Oas.exe
     """)
 
 
@@ -24,18 +24,18 @@ class AdbManager(DeployConfig):
         return self.filepath('AdbExecutable')
 
     def adb_install(self):
-        logger.hr('Start ADB service', 0)
+        logger.hr('启动 ADB 服务', 0)
 
         emulator = EmulatorConnect(adb=self.adb)
         if self.ReplaceAdb:
-            logger.hr('Replace ADB', 1)
+            logger.hr('替换 ADB', 1)
             emulator.adb_replace()
         elif self.AutoConnect:
-            logger.hr('ADB Connect', 1)
+            logger.hr('ADB 连接', 1)
             emulator.brute_force_connect()
 
         if self.InstallUiautomator2:
-            logger.hr('Uiautomator2 Init', 1)
+            logger.hr('初始化 Uiautomator2', 1)
             try:
                 import adbutils
                 from uiautomator2 import init
@@ -66,9 +66,9 @@ class AdbManager(DeployConfig):
                         initer.install()
                         break
                     except AssertionError:
-                        logger.info(f'AssertionError when installing uiautomator2 on device {device.serial}')
-                        logger.info('If you are using BlueStacks or LD player or WSA, '
-                                    'please enable ADB in the settings of your emulator')
+                        logger.info(f'[安装] 在设备 {device.serial} 上安装 uiautomator2 时出现 AssertionError')
+                        logger.info('[安装] 如果你使用 BlueStacks、雷电模拟器或 WSA，'
+                                    '请在模拟器设置中启用 ADB')
                         exit(1)
                     except ConnectionError:
                         if _ == 1:

@@ -63,14 +63,14 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                     continue
                 if wait_timer.reached():
                     # 超过时间依然挑战
-                    logger.warning('Wait for too long and start the challenge')
+                    logger.warning('[经验妖怪] 等待时间过长，开始挑战')
                     self.click_fire()
                     count += 1
                     self.run_general_battle()
                     break
                 if not self.appear(self.I_ADD_5_1):
                     # 有人进来了，可以进行挑战
-                    logger.info('There is someone in the room and start the challenge')
+                    logger.info('[经验妖怪] 房间内有人，开始挑战')
                     self.click_fire()
                     count += 1
                     self.run_general_battle()

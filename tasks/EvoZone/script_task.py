@@ -69,7 +69,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             case UserStatus.WILD:
                 self.run_wild()
             case _:
-                logger.error('Unknown user status')
+                logger.error('[觉醒副本] 未知的用户身份')
 
         self.goto_page(page_main)
         # 记得关掉
@@ -85,7 +85,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         raise TaskEnd
 
     def evozone_enter(self) -> bool:
-        logger.info('Enter evozone')
+        logger.info('[觉醒副本] 进入觉醒副本')
         kirintype = self.I_LIGHTNING_KIRIN
         match self.config.evo_zone.evo_zone_config.kirin_type:
             case KirinType.FIREKIRIN:
@@ -116,17 +116,17 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return False
 
     def run_leader(self):
-        logger.info('Start run leader')
+        logger.info('[觉醒副本] 开始队长流程')
         self.goto_page(page_awake_zones)
         self.evozone_enter()
         layer = self.config.evo_zone.evo_zone_config.layer
-        logger.info("test0")
+        logger.info("测试0")
         self.check_layer(layer)
-        logger.info("test1")
+        logger.info("测试1")
         self.check_lock(self.config.evo_zone.general_battle_config.lock_team_enable, self.I_EVOZONE_LOCK, self.I_EVOZONE_UNLOCK)
-        logger.info("test2")
+        logger.info("测试2")
         # 创建队伍
-        logger.info('Create team')
+        logger.info('[觉醒副本] 创建队伍')
         while 1:
             self.screenshot()
             if self.appear(self.I_CHECK_TEAM):
@@ -145,11 +145,11 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.screenshot()
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('EvoZone count limit out')
+                    logger.info('[觉醒副本] 次数已达上限')
                     break
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('EvoZone time limit out')
+                    logger.info('[觉醒副本] 时间已用完')
                     break
             # 如果没有进入房间那就不需要后面的邀请
             if not self.is_in_room():
@@ -159,7 +159,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 if self.appear(self.I_MATCHING) or self.appear(self.I_CHECK_EXPLORATION):
                     sleep(0.5)
                     if self.appear(self.I_MATCHING) or self.appear(self.I_CHECK_EXPLORATION):
-                        logger.warning('EvoZone task failed')
+                        logger.warning('[觉醒副本] 觉醒副本任务失败')
                         success = False
                         break
                 continue
@@ -172,13 +172,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     )
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this EvoZone task')
+                    logger.warning('[觉醒副本] 邀请失败，退出本次觉醒副本任务')
                     success = False
                     break
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self.config.evo_zone.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this evozone task')
+                    logger.warning('[觉醒副本] 邀请失败，退出本次觉醒副本任务')
                     success = False
                     break
                 else:
@@ -200,16 +200,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_member(self):
-        logger.info('Start run member')
+        logger.info('[觉醒副本] 开始队员流程')
         # 进入战斗流程
         self.device.stuck_record_add('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
             if self.current_count >= self.limit_count:
-                logger.info('EvoZone count limit out')
+                logger.info('[觉醒副本] 次数已达上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('EvoZone time limit out')
+                logger.info('[觉醒副本] 时间已用完')
                 break
             if self.check_then_accept():
                 continue
@@ -242,7 +242,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_alone(self):
-        logger.info('Start run alone')
+        logger.info('[觉醒副本] 开始单人流程')
         self.goto_page(page_awake_zones)
         self.evozone_enter()
         layer = self.config.evo_zone.evo_zone_config.layer
@@ -259,10 +259,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if not is_in_evozone():
                 continue
             if self.current_count >= self.limit_count:
-                logger.info('EvoZone count limit out')
+                logger.info('[觉醒副本] 次数已达上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('EvoZone time limit out')
+                logger.info('[觉醒副本] 时间已用完')
                 break
             # 点击挑战
             while 1:
@@ -278,7 +278,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     break
 
     def run_wild(self):
-        logger.error('Wild mode is not implemented')
+        logger.error('[觉醒副本] 暂未实现野队模式')
         pass
 
 

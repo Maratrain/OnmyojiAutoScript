@@ -44,18 +44,18 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
                 break
             if self.appear_then_click(wechat, interval=2.5):
                 continue
-        logger.info('Click share')
+        logger.info('[每周琐事] 点击分享')
         get_timer = Timer(7)
         get_timer.start()
         while 1:
             self.screenshot()
             if self.ui_reward_appear_click():
-                logger.info('Get reward')
+                logger.info('[每周琐事] 获得奖励')
                 return True
             if self.appear_then_click(self.I_WT_QR_CODE, self.C_WT_WECHAT, interval=4.8):
                 continue
             if get_timer.reached():
-                logger.warning('Share timeout. The reward may have been obtained')
+                logger.warning('[每周琐事] 分享等待超时，奖励可能已获得')
                 return False
 
     def _share_collect(self):
@@ -63,27 +63,27 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         图鉴分享
         :return:
         """
-        logger.hr('Share collect')
+        logger.hr('图鉴分享')
         self.goto_page(page_shikigami_share)
         # 点击分享
         appeared = self.ui_click_until_appear_or_timeout(self.I_WT_COLLECT_WECHAT, self.I_WT_QR_CODE, 1.2, 5)
         if not appeared:
-            logger.info('Not appear qr code, maybe already shared, skip')
+            logger.info('[每周琐事] 未出现二维码，可能已分享过，跳过')
             return
-        logger.info('Click share')
+        logger.info('[每周琐事] 点击分享')
         get_timer = Timer(3)
         get_timer.start()
         while 1:
             self.screenshot()
 
             if self.ui_reward_appear_click():
-                logger.info('Get reward')
+                logger.info('[每周琐事] 获得奖励')
                 break
 
             if self.appear_then_click(self.I_WT_QR_CODE, self.C_WT_WECHAT, interval=0.8):
                 continue
             if get_timer.reached():
-                logger.warning('Share timeout. The reward may have been obtained')
+                logger.warning('[每周琐事] 分享等待超时，奖励可能已获得')
                 break
         self.goto_page(page_main)
 
@@ -92,7 +92,7 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         地鬼分享
         :return:
         """
-        logger.hr('Share area boss')
+        logger.hr('地鬼分享')
         self.goto_page(page_area_boss)
 
         # 一路进去
@@ -114,7 +114,7 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         time.sleep(1)
         self.screenshot()
         if not self.appear(self.I_WT_AB_JADE):
-            logger.warning('This week has been obtained')
+            logger.warning('[每周琐事] 本周奖励已领取')
             obtained = True
         if not obtained:
             # 点击分享
@@ -126,7 +126,7 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         秘闻分享
         :return:
         """
-        logger.hr('Share secret')
+        logger.hr('秘闻分享')
         self.goto_page(page_secret_zones)
         # 一路进去
         valid = False
@@ -145,16 +145,16 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
                 self.wait_until_stable(self.I_WT_SE_SHARE, skip_first_screenshot=True)
                 if self.appear(self.I_WT_SE_SHARE):
                     continue
-                logger.warning('This week has not been obtained')
+                logger.warning('[每周琐事] 本周尚未领取')
                 self.goto_page(page_main)
                 return
-        logger.info('Enter secret')
+        logger.info('[每周琐事] 进入秘闻')
         # 判断是否已经领取
         self.screenshot()
         obtained = False
         if not self.appear(self.I_WT_SE_JADE):
             obtained = True
-            logger.warning('This week has been obtained')
+            logger.warning('[每周琐事] 本周奖励已领取')
         # 点击分享
         if not obtained:
             self.click_share(self.I_WT_SE_WECHAT)
@@ -175,19 +175,19 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
                 if self.appear_then_click(self.I_BM_CONFIRM, interval=1):
                     continue
                 self.click(random_click(ltrb=(False, False, True, False)), interval=1.5)
-            logger.info('Exit broken amulet')
+            logger.info('[每周琐事] 退出破碎符咒')
 
-        logger.hr('Broken amulet')
+        logger.hr('破碎符咒')
         self.goto_page(page_summon)
         self.screenshot()
         real_num = self.O_BA_AMOUNT_1.ocr(self.device.image)
         if real_num <= 0:
-            logger.warning('No broken amulet')
+            logger.warning('[每周琐事] 没有破碎符咒')
             return
-        logger.info(f'Broken amulet: {real_num}')
+        logger.info(f'[每周琐事] 破碎符咒数量: {real_num}')
         count = 0
         self.wait_until_appear(self.I_BM_ENTER)
-        logger.info('Enter broken amulet')
+        logger.info('[每周琐事] 进入破碎符咒')
         while count < dest_num:
             self.screenshot()
             real_num = self.O_BA_AMOUNT_1.ocr(self.device.image)
@@ -206,7 +206,7 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
                     if self.appear(self.I_BM_AGAIN, interval=0.8):
                         break
                 else:
-                    logger.warning(f'Wait for again timeout:Count[{count}], Remain[{real_num}]')
+                    logger.warning(f'[每周琐事] 等待再次召唤超时: 次数[{count}]，剩余[{real_num}]')
                     exit_amulet()
                     return
             else:
@@ -218,17 +218,17 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
             self.I_BMT_CHECK.match(self.device.image, frame_id=self.device.image_frame_id)
             x_check, y_check, width_check, height_check = self.I_BMT_CHECK.roi_front
             selected_10 = min(abs(x_10 - x_check), abs(x_50 - x_check)) == abs(x_10 - x_check)
-            logger.info(f'Current selected {"10" if selected_10 else "50"} amulet')
+            logger.info(f'[每周琐事] 当前选择 {"10" if selected_10 else "50"} 次召唤')
             count += 10 if selected_10 else 50
-            logger.info(f'Broken amulet:Count[{count}], Remain[{real_num}]')
+            logger.info(f'[每周琐事] 破碎符咒: 次数[{count}]，剩余[{real_num}]')
             # 一次50票不超过限制且当前选择的是10票则切换50票
             if count + 50 < dest_num and selected_10:
-                logger.hr('Switch to 50 amulet')
+                logger.hr('切换为 50 次召唤')
                 self.device.click(x=x_50 - width_check // 2, y=y_check + height_check // 2, control_name='Click_50')
                 self.device.click_record_clear()
             # 一次50票会超过限制且当前选择的是50票则切换10票
             if count + 50 >= dest_num and not selected_10:
-                logger.hr('Switch to 10 amulet')
+                logger.hr('切换为 10 次召唤')
                 self.device.click(x=x_10 - width_check // 2, y=y_check + height_check // 2, control_name='Click_10')
                 self.device.click_record_clear()
         # 正常结束且还有票, 则执行一次退出

@@ -25,7 +25,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
 
     def run(self) -> None:
         def cd_exit(cd: timedelta=False):
-            logger.warning(f'Nian in CD {cd}')
+            logger.warning(f'年兽冷却中 {cd}')
             if cd is False:
                 self.set_next_run(task='Nian', success=False, finish=True)
                 raise TaskEnd('Nian')
@@ -65,7 +65,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
                 cd_count += 1
                 continue
         # 匹配个8分钟，要是八分钟还没人拿没啥了
-        logger.info('Waiting for match')
+        logger.info('等待匹配')
         click_timer = Timer(240)
         check_timer = Timer(480)
         click_timer.start()
@@ -75,7 +75,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
             self.screenshot()
             # 如果被秒开进入战斗, 被秒开不支持开启buff
             if self.check_take_over_battle(False, config=self.battle_config):
-                logger.info('Nian take over battle')
+                logger.info('接管年兽战斗')
                 break
             # 如果进入房间
             elif self.is_in_room():
@@ -101,8 +101,8 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
                     break
             # 如果时间到了
             if click_timer and click_timer.reached():
-                logger.warning('It has waited for 240s , but the battle has not started.')
-                logger.warning('It will be waited for 240s and try again.')
+                logger.warning('已等待240秒，战斗仍未开始')
+                logger.warning('将再等待240秒后重试')
                 self.screenshot()
                 self.click(self.C_CLIC_SAFE)
                 click_timer = None
@@ -111,7 +111,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
                 continue
 
             if check_timer.reached():
-                logger.warning('Nian match timeout')
+                logger.warning('匹配年兽超时')
                 while 1:
                     self.screenshot()
                     if not self.appear(self.I_N_WAITING):
@@ -122,7 +122,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
                         continue
                     if self.appear_then_click(self.I_N_WAITING, interval=1):
                         continue
-                logger.info('Nian match timeout, exit')
+                logger.info('匹配年兽超时，退出')
                 break
             # 如果还在匹配中
             if self.appear(self.I_N_WAITING):
@@ -145,7 +145,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, GeneralRoom, GeneralInvite, 
         # 可以判断是在冷却了
         result = self.O_N_CD.ocr(self.device.image)
         if not isinstance(result, str):
-            logger.error(f'OCR error {result}')
+            logger.error(f'OCR识别错误 {result}')
             return False
         try:
             result = re.search(r'(\d+)时(\d+)分后可', result)

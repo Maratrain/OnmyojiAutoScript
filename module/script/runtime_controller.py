@@ -81,8 +81,8 @@ class ScriptRuntimeController:
             return
         if datetime.now() >= self.server_update_wait_until:
             logger.info(
-                'Server update wait window ended at '
-                f'{self._format_datetime(self.server_update_wait_until)}, resume normal recovery'
+                '[脚本控制] 停服等待窗口已于 '
+                f'{self._format_datetime(self.server_update_wait_until)} 结束，恢复正常恢复流程'
             )
             self.server_update_wait_until = None
             self.server_update_wait_log_until = None
@@ -110,13 +110,13 @@ class ScriptRuntimeController:
 
         if self.server_update_wait_log_until != wait_until:
             logger.info(
-                'Server update wait window active until '
-                f'{self._format_datetime(wait_until)}, suspend runtime actions until then'
+                '[脚本控制] 停服等待窗口持续至 '
+                f'{self._format_datetime(wait_until)}，在此之前暂停运行时操作'
             )
             self.server_update_wait_log_until = wait_until
 
         if not self.script.wait_until(wait_until):
-            logger.info(f'Server update wait during {context} was interrupted by config reload, reschedule scheduler')
+            logger.info(f'[脚本控制] 停服等待在 {context} 期间被配置重载中断，重新调度')
             return ScriptRuntimeDecision.RESCHEDULE
 
         self._clear_server_update_wait_if_expired()
@@ -138,8 +138,8 @@ class ScriptRuntimeController:
             self.server_update_wait_until = wait_until
             self.server_update_wait_log_until = None
         logger.info(
-            f'{source} delayed by server update, '
-            f'reschedule scheduler and wait until {self._format_datetime(self.server_update_wait_until)}'
+            f'[脚本控制] {source} 因停服延迟，'
+            f'重新调度并等待至 {self._format_datetime(self.server_update_wait_until)}'
         )
         return ScriptRuntimeDecision.RESCHEDULE
 
@@ -183,11 +183,11 @@ class ScriptRuntimeController:
         try:
             online = self._build_platform_probe().probe_target_instance_online()
         except Exception as e:
-            logger.info(f'Probe target emulator failed: {e}')
+            logger.info(f'[脚本控制] 探测目标模拟器失败：{e}')
             return
 
         if online is False:
-            logger.info('Target emulator is already offline, keep waiting without starting it')
+            logger.info('[脚本控制] 目标模拟器已处于关闭状态，保持等待不拉起')
             self.emulator_down = True
 
     def _ensure_emulator_running(self, reason: str | None = None) -> None:
@@ -220,10 +220,10 @@ class ScriptRuntimeController:
         """
         logger.info(reason)
         if not self.script.run('Restart'):
-            logger.warning('Restart task failed during runtime recovery')
+            logger.warning('[脚本控制] 运行时恢复期间 Restart 任务失败')
             return ScriptRuntimeDecision.FAILED
 
-        decision = self._consume_server_update_delay_outcome('Restart recovery')
+        decision = self._consume_server_update_delay_outcome('Restart 恢复')
         if decision is not None:
             return decision
 
@@ -231,10 +231,10 @@ class ScriptRuntimeController:
         self.server_update_wait_log_until = None
 
         if not self.device.app_is_running():
-            logger.warning('Game is still not running after Restart recovery')
+            logger.warning('[脚本控制] Restart 恢复后游戏仍未运行')
             return ScriptRuntimeDecision.FAILED
 
-        logger.info('Restart recovery completed, reschedule before continuing')
+        logger.info('[脚本控制] Restart 恢复完成，重新调度后继续')
         return ScriptRuntimeDecision.RESCHEDULE
 
     def _ensure_game_running(
@@ -257,19 +257,19 @@ class ScriptRuntimeController:
             if wait_decision is not ScriptRuntimeDecision.READY:
                 return wait_decision
 
-        self._ensure_emulator_running('Wake emulator before ensuring game state')
+        self._ensure_emulator_running('任务前拉起模拟器，确保游戏状态')
 
         if not self.device.app_is_running():
-            return self._run_restart_recovery('Game is not running, recover it via Restart')
+            return self._run_restart_recovery('游戏未运行，通过 Restart 恢复')
 
         if require_main:
-            logger.info('Ensure game stays at main page during wait')
+            logger.info('[脚本控制] 等待期间确保游戏停留在主界面')
             if self.script.run('GotoMain'):
                 return ScriptRuntimeDecision.READY
             decision = self._consume_server_update_delay_outcome('GotoMain preparation')
             if decision is not None:
                 return decision
-            logger.warning('GotoMain failed while preparing idle state')
+            logger.warning('[脚本控制] 空闲准备期间 GotoMain 失败')
             return ScriptRuntimeDecision.FAILED
 
         return ScriptRuntimeDecision.READY
@@ -278,13 +278,13 @@ class ScriptRuntimeController:
         """
         确保模拟器已启动，但游戏处于关闭状态。
         """
-        self._ensure_emulator_running('Wake emulator before ensuring close_game state')
+        self._ensure_emulator_running('close_game 前拉起模拟器，确保游戏状态')
         if self.device.app_is_running():
-            logger.info('Ensure game is closed during wait')
+            logger.info('[脚本控制] 等待期间确保游戏已关闭')
             self.device.app_stop()
             return ScriptRuntimeDecision.READY
 
-        logger.info('Game is already closed during wait')
+        logger.info('[脚本控制] 等待期间游戏已处于关闭状态')
         return ScriptRuntimeDecision.READY
 
     def _prepare_idle_goto_main(self) -> ScriptRuntimeDecision:
@@ -293,7 +293,7 @@ class ScriptRuntimeController:
         停服窗口内改为关闭游戏，避免停留在停服弹窗。
         """
         if self._is_server_update_wait_active():
-            logger.info('Server update active, close game instead of going to main')
+            logger.info('[脚本控制] 停服期间生效，关闭游戏而不前往主界面')
             return self._ensure_game_closed()
         return self._ensure_game_running(require_main=True, allow_server_update_skip=True)
 
@@ -326,7 +326,7 @@ class ScriptRuntimeController:
         if wait_decision is not ScriptRuntimeDecision.READY:
             return wait_decision
 
-        self._ensure_emulator_running('Wake emulator before running task')
+        self._ensure_emulator_running('任务运行前拉起模拟器')
 
         try:
             running = self.device.app_is_running()
@@ -334,11 +334,11 @@ class ScriptRuntimeController:
             # adb 重试 3 次都连不上 → "无法确认游戏是否在前台"。
             # 翻译为 GameNotRunningError,沿调用栈上抛,
             # 由 Script._handle_task_exception 统一走 Restart 恢复分支。
-            raise GameNotRunningError(f'Failed to query app state before task `{task}` (likely adb disconnected): {e}') \
+            raise GameNotRunningError(f'任务 `{task}` 运行前查询应用状态失败（可能是 ADB 掉线）: {e}') \
                 from e
 
         if not running:
-            return self._run_restart_recovery(f'Game is not running before task `{task}`, recover it via Restart')
+            return self._run_restart_recovery(f'任务 `{task}` 运行前游戏未运行，通过 Restart 恢复')
 
         return ScriptRuntimeDecision.READY
 
@@ -367,13 +367,13 @@ class ScriptRuntimeController:
             now = datetime.now()
             wake_time = next_run - startup_lead if startup_lead > timedelta(0) else next_run
             if wake_time > now:
-                logger.info(f'Wait before wake emulator: {wake_time.strftime("%Y-%m-%d %H:%M:%S")}')
+                logger.info(f'[脚本控制] 等待预热模拟器: {wake_time.strftime("%Y-%m-%d %H:%M:%S")}')
                 if not self.script.wait_until(wake_time):
-                    logger.info('Idle wait was interrupted before emulator preheat, reschedule scheduler')
+                    logger.info('[脚本控制] 空闲等待在模拟器预热前被中断，重新调度')
                     return ScriptRuntimeDecision.RESCHEDULE
                 continue
 
-            logger.info('Wake emulator before next task')
+            logger.info('[脚本控制] 在下个任务前预热模拟器')
             self._ensure_emulator_running()
             if on_wake is not None:
                 decision = on_wake()
@@ -383,7 +383,7 @@ class ScriptRuntimeController:
 
         if datetime.now() < next_run:
             if not self.script.wait_until(next_run):
-                logger.info('Idle wait was interrupted after emulator preheat, reschedule scheduler')
+                logger.info('[脚本控制] 空闲等待在模拟器预热后被中断，重新调度')
                 return ScriptRuntimeDecision.RESCHEDULE
         return ScriptRuntimeDecision.READY
 
@@ -401,14 +401,14 @@ class ScriptRuntimeController:
         close_game_limit = self._time_to_timedelta(close_game_limit_time)
 
         if close_game_limit <= timedelta(0):
-            logger.info('Close game during wait immediately (close_game_limit_time <= 0)')
+            logger.info('[脚本控制] 等待期间立即关闭游戏（close_game_limit_time <= 0）')
             return True
 
         if next_run > datetime.now() + close_game_limit:
-            logger.info('Close game during wait (next task exceeds close_game_limit_time)')
+            logger.info('[脚本控制] 等待期间关闭游戏（下个任务超出 close_game_limit_time）')
             return True
 
-        logger.info('Keep game running during short wait (next task within close_game_limit_time)')
+        logger.info('[脚本控制] 短时等待期间保持游戏运行（下个任务在 close_game_limit_time 内）')
         return False
 
     def _wait_close_game(self, next_run: datetime) -> ScriptRuntimeDecision:
@@ -427,7 +427,7 @@ class ScriptRuntimeController:
                 return decision
             self.device.release_during_wait()
             if not self.script.wait_until(next_run):
-                logger.info('Idle close_game wait was interrupted by config reload, reschedule scheduler')
+                logger.info('[脚本控制] 关闭游戏的空闲等待被配置重载中断，重新调度')
                 return ScriptRuntimeDecision.RESCHEDULE
             return ScriptRuntimeDecision.READY
 
@@ -436,7 +436,7 @@ class ScriptRuntimeController:
             return decision
         self.device.release_during_wait()
         if not self.script.wait_until(next_run):
-            logger.info('Idle short wait was interrupted by config reload, reschedule scheduler')
+            logger.info('[脚本控制] 保持游戏运行的短时空闲等待被配置重载中断，重新调度')
             return ScriptRuntimeDecision.RESCHEDULE
         return ScriptRuntimeDecision.READY
 
@@ -455,7 +455,7 @@ class ScriptRuntimeController:
             return decision
         self.device.release_during_wait()
         if not self.script.wait_until(next_run):
-            logger.info('Idle goto_main wait was interrupted by config reload, reschedule scheduler')
+            logger.info('[脚本控制] 前往主界面的空闲等待被配置重载中断，重新调度')
             return ScriptRuntimeDecision.RESCHEDULE
         return ScriptRuntimeDecision.READY
 
@@ -514,11 +514,11 @@ class ScriptRuntimeController:
         close_emulator_limit = self._time_to_timedelta(close_emulator_limit_time)
 
         if self.emulator_down:
-            logger.info('Emulator is down, keep close_emulator strategy and wait with preheat')
+            logger.info('[脚本控制] 模拟器已关闭，保持 close_emulator 策略并带预热等待')
             return self._wait_until_with_emulator_preheat(next_run, on_wake=on_wake)
 
         if close_emulator_limit > timedelta(0) and next_run > datetime.now() + close_emulator_limit:
-            logger.info('Close emulator during wait')
+            logger.info('[脚本控制] 等待期间关闭模拟器')
             self.device.emulator_stop()
             self.emulator_down = True
             return self._wait_until_with_emulator_preheat(next_run, on_wake=on_wake)
@@ -536,13 +536,13 @@ class ScriptRuntimeController:
             ScriptRuntimeDecision: 当前等待分支的处理结果。
         """
         if self.emulator_down:
-            logger.info('Stay_there during wait (emulator is down, with preheat)')
+            logger.info('[脚本控制] 等待期间执行 stay_there（模拟器已关闭，带预热）')
             return self._wait_until_with_emulator_preheat(next_run)
 
-        logger.info('Stay_there (no action) during wait')
+        logger.info('[脚本控制] 等待期间执行 stay_there（无操作）')
         self.device.release_during_wait()
         if not self.script.wait_until(next_run):
-            logger.info('Idle stay_there wait was interrupted by config reload, reschedule scheduler')
+            logger.info('[脚本控制] stay_there 空闲等待被配置重载中断，重新调度')
             return ScriptRuntimeDecision.RESCHEDULE
         return ScriptRuntimeDecision.READY
 
@@ -565,6 +565,6 @@ class ScriptRuntimeController:
         }
         func = strategy_map.get(method)
         if func is None:
-            logger.warning(f'Invalid Optimization_WhenTaskQueueEmpty: {method}, fallback to stay_there')
+            logger.warning(f'[脚本控制] 非法的 Optimization_WhenTaskQueueEmpty: {method}，回退到 stay_there')
             func = self._wait_stay_there
         return func(next_run)

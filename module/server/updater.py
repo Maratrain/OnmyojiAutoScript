@@ -48,10 +48,10 @@ class Updater(DeployConfig, GitManager, PipManager):
                 timeout=timeout,
             )
         except subprocess.TimeoutExpired:
-            logger.warning(f"Git command timeout after {timeout}s: {command}")
+            logger.warning(f"[更新器] Git 命令执行超时（{timeout}s）: {command}")
             return None
         except OSError as e:
-            logger.warning(f"Git command failed: {command}, error: {e}")
+            logger.warning(f"[更新器] Git 命令执行失败: {command}, 错误: {e}")
             return None
 
     def execute_output(self, command, timeout=DEFAULT_GIT_TIMEOUT) -> str:
@@ -59,7 +59,7 @@ class Updater(DeployConfig, GitManager, PipManager):
         if result is None:
             return ""
         if result.returncode:
-            logger.warning(f"Git command failed: {command}, stderr: {result.stderr.strip()}")
+            logger.warning(f"[更新器] Git 命令执行失败: {command}, stderr: {result.stderr.strip()}")
             return ""
         return result.stdout
 
@@ -105,9 +105,9 @@ class Updater(DeployConfig, GitManager, PipManager):
             if result is not None and result.returncode == 0:
                 return True
             if result is not None:
-                logger.warning(f"Git fetch failed: {result.stderr.strip()}")
+                logger.warning(f"[更新器] Git fetch 失败: {result.stderr.strip()}")
 
-        logger.warning("Git fetch failed")
+        logger.warning("[更新器] Git fetch 失败")
         return False
 
     def revision_distance(self, left: str, right: str) -> tuple[int, int] | None:
@@ -121,7 +121,7 @@ class Updater(DeployConfig, GitManager, PipManager):
             ahead, behind = log.split()
             return int(ahead), int(behind)
         except ValueError:
-            logger.warning(f"Unexpected git rev-list output: {log.strip()}")
+            logger.warning(f"[更新器] git rev-list 输出异常: {log.strip()}")
             return None
 
     def get_update_info(self) -> dict:
@@ -137,8 +137,8 @@ class Updater(DeployConfig, GitManager, PipManager):
                 ahead, behind = distance
                 is_update = not ahead and bool(behind)
                 if ahead:
-                    logger.info("Local branch has commits not in upstream, skip update")
-                logger.info("New update available" if is_update else "No update")
+                    logger.info("[更新器] 本地分支存在上游没有的提交，跳过更新")
+                logger.info("[更新器] 发现新版本" if is_update else "[更新器] 暂无更新")
 
         commits = self.get_commit(remote_revision, n=15)
         latest_commit = commits[0] if commits and isinstance(commits, list) else commits
@@ -158,7 +158,7 @@ class Updater(DeployConfig, GitManager, PipManager):
             ):
                 break
         else:
-            logger.warning("Git fetch failed")
+            logger.warning("[更新器] Git fetch 失败")
             return False
 
 

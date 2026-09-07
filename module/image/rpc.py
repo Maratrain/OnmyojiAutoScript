@@ -113,12 +113,12 @@ def ensure_image_server_started() -> bool:
     host = "0.0.0.0"
 
     if _is_port_in_use("127.0.0.1", port):
-        logger.info(f"Image server already running on port {port}")
+        logger.info(f"[图像服务] 服务已在端口 {port} 运行")
         return True
 
     global _IMAGE_SERVER_PROCESS
     if _IMAGE_SERVER_PROCESS is not None and _IMAGE_SERVER_PROCESS.is_alive():
-        logger.info("Image server process already started")
+        logger.info("[图像服务] 服务进程已启动")
         return True
 
     _IMAGE_SERVER_PROCESS = _IMAGE_SERVER_CONTEXT.Process(
@@ -128,12 +128,12 @@ def ensure_image_server_started() -> bool:
         daemon=True,
     )
     _IMAGE_SERVER_PROCESS.start()
-    logger.info(f"Start image server on {host}:{port}")
+    logger.info(f"[图像服务] 正在启动图像服务: {host}:{port}")
     for _ in range(50):
         if _is_port_in_use("127.0.0.1", port):
             return True
         time.sleep(0.1)
-    logger.error(f"Image server is not ready on port {port}")
+    logger.error(f"[图像服务] 服务未在端口 {port} 就绪")
     return False
 
 
@@ -154,7 +154,7 @@ def ensure_image_server_ready() -> bool:
     address = deploy_config.ImageClientAddress or "127.0.0.1:22269"
     try:
         get_image_client(address=address, refresh=True)
-        logger.info(f"Image server ready: {address}")
+        logger.info(f"[图像服务] 服务已就绪: {address}")
         return True
     except Exception as exc:
         raise ScriptError(f"Image server connection failed: {address}") from exc
@@ -180,15 +180,15 @@ def shutdown_image_server(timeout: float = 2.0) -> bool:
         _IMAGE_SERVER_PROCESS = None
         return False
 
-    logger.info("Stopping image server process")
+    logger.info("[图像服务] 正在停止图像服务进程")
     try:
         process.terminate()
         process.join(timeout=timeout)
         if process.is_alive():
-            logger.warning("Image server process did not exit in time, force killing")
+            logger.warning("[图像服务] 服务进程未按时退出，强制结束")
             process.kill()
             process.join(timeout=1.0)
-        logger.info("Image server process stopped")
+        logger.info("[图像服务] 服务进程已停止")
         return True
     except Exception as exc:
         logger.exception(exc)

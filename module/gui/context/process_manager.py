@@ -40,10 +40,10 @@ def is_port_in_use(ip, port) -> bool:
     try:
         s.connect((ip, port))
         s.shutdown(2)
-        logger.info(f'Port {port} is in use')
+        logger.info(f'[GUI] 端口 {port} 已被占用')
         return True
     except:
-        logger.info(f'Port {port} is not in use')
+        logger.info(f'[GUI] 端口 {port} 未被占用')
         return False
 
 
@@ -112,17 +112,17 @@ class ProcessManager(QObject):
             self.log_thread[config].start()
 
             # 下面是启动 zerorpc 客户端
-            logger.info(f'Create script {config} on port {port}')
+            logger.info(f'[GUI] 创建脚本 {config}，端口 {port}')
             try:
                 self.clients[config] = zerorpc.Client()
                 self.clients[config].connect(f'tcp://127.0.0.1:{self.ports[config]}')
             except:
-                logger.exception(f'Connect to script {config} error')
+                logger.exception(f'连接脚本 {config} 失败')
                 raise
             self.processes[config].start()
-            logger.info(f'Add script {config}')
+            logger.info(f'[GUI] 已添加脚本 {config}')
         else:
-            logger.info(f'Script {config} is already running')
+            logger.info(f'[GUI] 脚本 {config} 已在运行')
 
     def remove(self, config: str) -> None:
         """
@@ -135,10 +135,10 @@ class ProcessManager(QObject):
             del self.processes[config]
             del self.ports[config]
             del self.clients[config]
-            logger.info(f'Remove script {config}')
-            logger.info(f'Port {config} is released')
+            logger.info(f'[GUI] 已移除脚本 {config}')
+            logger.info(f'[GUI] 端口 {config} 已释放')
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
 
     @Slot(str)
     def restart(self, config: str) -> None:
@@ -149,28 +149,28 @@ class ProcessManager(QObject):
         """
         if config in self.processes:
             if not self.processes[config].is_alive():  # 如果进程已经死亡，那么就重新启动
-                logger.info(f'{config} process is dead, restart it')
+                logger.info(f'[GUI] {config} 进程已停止，正在重启')
 
 
             self.processes[config].terminate()  # 强制结束进程
             if self.ports[config] is None:
-                logger.error(f'{config} port {config} is None')
+                logger.error(f'[GUI] {config} 端口 {config} 为 None')
             if self.clients[config] is None:
-                logger.error(f'{config} client {config} is None')
+                logger.error(f'[GUI] {config} 客户端 {config} 为 None')
             if self.log_queue[config] is None:
-                logger.info(f'{config} log_queue {config} is None')
+                logger.info(f'[GUI] {config} 日志队列 {config} 为 None')
                 self.log_queue[config] = self.manager.Queue()
             if self.log_thread[config] is None or self.log_thread[config].is_alive() is False:
-                logger.info(f'{config} log_thread {config} is None')
+                logger.info(f'[GUI] {config} 日志线程 {config} 为 None')
 
             self.processes[config] = ScriptProcess(config=config,
                                                    port=self.ports[config],
                                                    log_queue=self.log_queue[config],
                                                    update_queue=self.update_queue)
             self.processes[config].start()
-            logger.info(f'Restart script {config}')
+            logger.info(f'[GUI] 已重启脚本 {config}')
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
 
     def stop_all(self) -> None:
         """
@@ -179,7 +179,7 @@ class ProcessManager(QObject):
         """
         for config in self.processes:
             self.processes[config].stop()
-        logger.info(f'Stop all script')
+        logger.info(f'[GUI] 已停止全部脚本')
 
     def restart_all(self) -> None:
         """
@@ -188,7 +188,7 @@ class ProcessManager(QObject):
         """
         for config in self.processes:
             self.processes[config].restart()
-        logger.info(f'Restart all script')
+        logger.info(f'[GUI] 已重启全部脚本')
 
     def get_client(self, config: str) -> zerorpc.Client:
         """
@@ -199,7 +199,7 @@ class ProcessManager(QObject):
         if config in self.clients:
             return self.clients[config]
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return None
 
     @Slot(result="QString")
@@ -236,10 +236,10 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui get args of {config} {task}')
+            logger.info(f'[GUI] GUI 获取参数 {config} {task}')
             return self.check_script(config).gui_args(task)
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return None
 
     @Slot(str, str, result="QString")
@@ -251,10 +251,10 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui get value of {config} {task}')
+            logger.info(f'[GUI] GUI 获取配置值 {config} {task}')
             return self.check_script(config).gui_task(task)
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return None
 
     @Slot(str, str, str, str, str, result="bool")
@@ -269,13 +269,13 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui set value of {config} {task}')
+            logger.info(f'[GUI] GUI 设置配置值 {config} {task}')
             if self.check_script(config).gui_set_task(task, group, arg, value):
                 return True
             else:
                 return False
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return False
 
     @Slot(str, str, str, str, bool, result="bool")
@@ -290,13 +290,13 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui set value of {config} {task}')
+            logger.info(f'[GUI] GUI 设置配置值 {config} {task}')
             if self.check_script(config).gui_set_task(task, group, arg, value):
                 return True
             else:
                 return False
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return False
 
     @Slot(str, str, str, str, float, result="bool")
@@ -311,13 +311,13 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui set value of {config} {task}')
+            logger.info(f'[GUI] GUI 设置配置值 {config} {task}')
             if self.check_script(config).gui_set_task(task, group, arg, value):
                 return True
             else:
                 return False
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return False
 
     @Slot(str, result="QImage")
@@ -327,7 +327,7 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.clients:
-            logger.info(f'Gui get mirror image of {config}')
+            logger.info(f'[GUI] GUI 获取 {config} 实时画面')
             # 接收流对象
             stream = self.clients[config].gui_mirror_image()
             # 创建 BytesIO 对象来存储图像数据
@@ -346,7 +346,7 @@ class ProcessManager(QObject):
 
 
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return None
 
 
@@ -354,10 +354,10 @@ class ProcessManager(QObject):
     @Slot(str, result="QString")
     def gui_task_list(self, config: str) -> str:
         if config in self.clients:
-            logger.info(f'Gui get {config} task list')
+            logger.info(f'[GUI] GUI 获取 {config} 任务列表')
             return self.check_script(config).gui_task_list()
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
             return None
 
 
@@ -391,8 +391,8 @@ class ProcessManager(QObject):
         """
         q = self.log_queue[config_name] if config_name in self.log_queue else None
         if q is None:
-            logger.error(f'Process manager has no config {config_name}')
-            logger.info(f'Script {config_name} is not running')
+            logger.error(f'[GUI] 进程管理器未找到配置 {config_name}')
+            logger.info(f'[GUI] 脚本 {config_name} 未在运行')
             return
 
         while self.log_thread[config_name].is_alive():
@@ -406,7 +406,7 @@ class ProcessManager(QObject):
             except Empty:
                 continue
             except Exception as e:
-                logger.error(f'Log thread of {config_name} error: {e}')
+                logger.error(f'[GUI] {config_name} 日志线程异常：{e}')
                 break
 
     def start_update_tasks(self) -> None:
@@ -415,7 +415,7 @@ class ProcessManager(QObject):
         :return:
         """
         if self.update_queue is not None and self.update_thread is not None:
-            logger.error(f'Update thread has already started')
+            logger.error(f'[GUI] 更新线程已在运行')
 
         self.update_queue = self.manager.Queue()
         self.update_thread = Thread(target=self.update_thread_func, daemon=True)
@@ -427,7 +427,7 @@ class ProcessManager(QObject):
         从self.update_queue中获取信息，然后解析, 推送到gui
         :return:
         """
-        logger.info(f'Update thread start')
+        logger.info(f'[GUI] 更新线程启动')
         while self.update_thread.is_alive():
             try:
                 update = self.update_queue.get(timeout=1)
@@ -436,7 +436,7 @@ class ProcessManager(QObject):
                 if not isinstance(update, dict):
                     continue
 
-                logger.info(f'Update thread get')
+                logger.info(f'[GUI] 更新线程收到更新')
                 for key, value in update.items():
                     if "task" and "pending" and "waiting" in value:
                         self.sig_update_task.emit(key, json.dumps(value["task"]))
@@ -446,7 +446,7 @@ class ProcessManager(QObject):
             except Empty:
                 continue
             except Exception as e:
-                logger.error(f'Update thread error: {e}')
+                logger.error(f'[GUI] 更新线程异常：{e}')
                 break
 
     @Slot(str)
@@ -457,10 +457,10 @@ class ProcessManager(QObject):
         :return:
         """
         if not self.processes[config].is_alive():
-            logger.info(f'Start script {config}')
+            logger.info(f'[GUI] 正在启动脚本 {config}')
             return self.restart(config)
 
-        logger.info(f'Script {config} is already running')
+        logger.info(f'[GUI] 脚本 {config} 已在运行')
 
         self.clients[config].start_loop()
 
@@ -472,8 +472,8 @@ class ProcessManager(QObject):
         :return:
         """
         if config in self.processes:
-            logger.info(f'Stop script {config}')
+            logger.info(f'[GUI] 正在停止脚本 {config}')
             self.processes[config].stop()
         else:
-            logger.info(f'Script {config} is not running')
+            logger.info(f'[GUI] 脚本 {config} 未在运行')
 

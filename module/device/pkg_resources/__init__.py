@@ -22,7 +22,7 @@ _ = get_distribution
 try:
     sys.modules['pkg_resources'] = sys.modules['module.device.pkg_resources']
 except KeyError:
-    logger.error('Patch pkg_resources failed, patch module does not exists')
+    logger.error('[pkg_resources] 补丁失败，补丁模块不存在')
 
 
 def remove_suffix(s, suffix):

@@ -64,7 +64,7 @@ class ScriptTask(ManualClaimMixin):
         self.session = requests.Session()
         self.session.verify = False
 
-        logger.hr('AutoCheckinBigGod', level=1)
+        logger.hr('大神签到', level=1)
 
         # 手动领取模式：纯UI操作，不依赖Frida
         if self.config.auto_checkin_big_god.checkin_config.manual_claim:

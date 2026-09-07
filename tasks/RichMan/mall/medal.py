@@ -19,7 +19,7 @@ class Medal(FriendshipPoints):
         if not con:
             con = self.config.rich_man.medal_room
         if not con.enable:
-            logger.info('Medal is not enable')
+            logger.info('[大富翁-勋章] 未启用')
             return
         self._enter_medal()
 

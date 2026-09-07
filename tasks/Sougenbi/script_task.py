@@ -48,7 +48,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
                 break
             if self.appear_then_click(self.I_S_SOUGENBI, interval=1):
                 continue
-        logger.info('Click sougenbi in soul zones')
+        logger.info('[业原火] 在御魂副本界面点击业原火')
         sleep(0.5)
         image_target = None
         click_target = None
@@ -83,10 +83,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
             if not self.appear(self.I_S_CHECK_SOUGENBI):
                 continue
             if self.current_count >= con.sougenbi_config.limit_count:
-                logger.info('Sougenbi count limit out')
+                logger.info('[业原火] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Sougenbi time limit out')
+                logger.info('[业原火] 已达到时间上限')
                 break
             ticket = number_target.ocr(self.device.image)
             if ticket == 0:

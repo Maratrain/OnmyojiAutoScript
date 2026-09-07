@@ -92,7 +92,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         self.finish_task()
 
     def start_battle(self):
-        logger.hr('Click fire, start battle')
+        logger.hr('点击挑战，开始战斗')
         while True:
             self.screenshot()
             if self.is_in_battle(False):
@@ -116,7 +116,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
     def battle_wait(self, random_click_swipt_enable: bool) -> bool:
         self.device.stuck_record_add('BATTLE_STATUS_S')
         self.device.click_record_clear()
-        logger.info(f"Start battle process on {self.cur_boss_type.name if self.cur_boss_type else 'None'}")
+        logger.info(f"[超鬼王] 开始战斗流程，鬼王类型: {self.cur_boss_type.name if self.cur_boss_type else 'None'}")
         win = False
         while True:
             self.screenshot()
@@ -133,13 +133,13 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
                 self.click(ipages.random_click())
                 continue
             if self.appear(self.I_MD_SETTLING, interval=3.5):
-                logger.info('wait result')
+                logger.info('[超鬼王] 等待结算结果')
                 time.sleep(random.uniform(3, 5))
                 continue
         total_run_time = datetime.now() - self.start_time
-        logger.info(f'battle win: {win}')
-        logger.info(f'battle count: {self.total_count}/{self.limit_count}')
-        logger.info(f'time count: {total_run_time.total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
+        logger.info(f'[超鬼王] 战斗胜负: {win}')
+        logger.info(f'[超鬼王] 战斗次数: {self.total_count}/{self.limit_count}')
+        logger.info(f'[超鬼王] 已用时间: {total_run_time.total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
         return win
 
     def update_global_state(self):
@@ -151,7 +151,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         """检查并做战斗前的准备工作
         :return: True可以战斗, False不能战斗
         """
-        logger.hr('battle prepare', 2)
+        logger.hr('战斗准备', 2)
         if not self.check_fatigue():
             return False
         self.synthesis_boss_ticket()
@@ -161,7 +161,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         """合成鬼王"""
         if self.State.synthesis_done:
             return
-        logger.hr('synthesis boss ticket')
+        logger.hr('合成鬼王门票')
         self.State.synthesis_done = True
         if len(self.conf.meta_demon_config.synthesis_list_v) <= 0:
             return
@@ -184,7 +184,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         :param need_ticket: 合成当前级别鬼王需要的门票数量
         """
         if not self.appear(target_boss_ticket):
-            logger.info(f'{target_boss_ticket} not recognized, skip synthesis')
+            logger.info(f'[超鬼王] 未识别到 {target_boss_ticket}，跳过合成')
             return
         click_cnt, max_cnt = 0, random.randint(2, 3)
         while True:
@@ -201,16 +201,16 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
             if self.appear(self.I_MD_SYNTHESIS_EMPTY, interval=0.8):  # 有空位
                 empty_list = self.I_MD_SYNTHESIS_EMPTY.match_all(self.device.image, frame_id=self.device.image_frame_id)
                 if len(empty_list) < need_ticket:  # 空位数量小于需要的门票数量->门票不够则退出
-                    logger.info(f'{target_boss_ticket} ticket not enough, skip synthesis')
+                    logger.info(f'[超鬼王] {target_boss_ticket} 门票不足，跳过合成')
                     break
             if self.appear_then_click(target_boss_ticket, interval=2):  # 点击对应级别鬼王门票
                 if self.appear_then_click(self.I_MD_START_SYNTHESIS, interval=2.5):  # 点击开始合成
                     click_cnt += 1
                 continue
-        logger.info(f'{target_boss_ticket} synthesis done')
+        logger.info(f'[超鬼王] {target_boss_ticket} 合成完成')
 
     def check_fatigue(self):
-        logger.hr('Check fatigue')
+        logger.hr('检查疲劳度')
         current, remain, total = self.O_MD_FATIGUE.ocr_digit_counter(self.device.image)
         # 不喝茶且当前疲劳度已满
         if not self.conf.meta_demon_config.auto_tea and (current > total or remain < 0):
@@ -220,7 +220,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
 
     def check_and_switch_ticket(self):
         """切换鬼王门票并更新当前鬼王级别"""
-        logger.hr('Summon boss')
+        logger.hr('召唤鬼王')
         # 打开切换门票弹窗
         while True:
             self.screenshot()
@@ -230,7 +230,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
                 break
             if self.appear(self.I_MD_TICKET_EMPTY, interval=0.6):  # 任何门票都没有了
                 self.State.done = True
-                logger.info('Not have any boss ticket, exit')
+                logger.info('[超鬼王] 没有任何鬼王门票，退出')
                 return False
             if self.appear_then_click(self.I_MD_SWITCH_TICKET, interval=0.6):
                 continue
@@ -247,7 +247,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
                          self.appear(ticket_rule_image)]
         if len(can_fire_list) <= 0:
             self.State.done = True
-            logger.info('No remain boss ticket, exit')
+            logger.info('[超鬼王] 没有剩余鬼王门票，退出')
             self.ui_click_until_disappear(self.I_MD_CLOSE_POPUP, interval=0.6)
             return False
         # 根据存在的鬼王门票和配置的鬼王序列过滤出需要召唤的鬼王门票
@@ -255,7 +255,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
                           boss_type in can_fire_list]
         if len(need_fire_list) <= 0:
             self.State.done = True
-            logger.info('There is no boss that needs to be attacked, exit')
+            logger.info('[超鬼王] 没有需要进攻的鬼王，退出')
             self.ui_click_until_disappear(self.I_MD_CLOSE_POPUP, interval=0.6)
             return False
         # 第一次进来或上次一鬼王类型与这一次不同, 则需要切换御魂和预设
@@ -266,7 +266,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         self.cur_boss_type = need_fire_list[0]  # 更新当前鬼王级别
         target_ticket_rule_image = type_ticket_dict[self.cur_boss_type]
         selected = False
-        logger.info(f'Summon {self.cur_boss_type.name.lower()} boss')
+        logger.info(f'[超鬼王] 召唤 {self.cur_boss_type.name.lower()} 级鬼王')
         while True:
             self.screenshot()
             if self.appear(self.I_MD_FIRE):  # 可以挑战鬼王则退出
@@ -284,7 +284,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
 
     def check_and_switch_powerful(self) -> bool:
         """检查并切换是否开启强力"""
-        logger.hr('process power fire')
+        logger.hr('处理强力追击')
         if not self.appear(self.I_MD_FIRE):
             self.goto_page(ipages.page_meta_demon_boss)
             self.screenshot()
@@ -303,7 +303,7 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
         """切换御魂"""
         if self.State.switch_soul_done:
             return True
-        logger.hr('Switch soul')
+        logger.hr('切换御魂')
         self.State.switch_soul_done = True
         self.goto_page(ipages.page_shikigami_records)
         if self.conf.switch_soul.switch_once:  # 只切换一次则将配置的鬼王御魂全部切换
@@ -319,12 +319,12 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
             return True
         # 当前鬼王类型未知, 无法切换御魂
         if self.cur_boss_type is None:
-            logger.error(f'cur_boss_type is None')
+            logger.error(f'[超鬼王] 当前鬼王类型未知，cur_boss_type 为 None')
             self.goto_page(ipages.page_meta_demon_boss)
             return False
         switch_type, (group, team) = self.conf.switch_soul.get_switch_by_enum(self.cur_boss_type)
         if switch_type is None:
-            logger.error(f'Switch soul format is invalid on {self.cur_boss_type.name.lower()}')
+            logger.error(f'[超鬼王] {self.cur_boss_type.name.lower()} 的御魂切换配置无效')
             self.goto_page(ipages.page_meta_demon_boss)
             return False
         if switch_type == 'int':

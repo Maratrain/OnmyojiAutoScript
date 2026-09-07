@@ -87,7 +87,7 @@ class DeployConfig(ConfigModel):
         self.show_config()
 
     def show_config(self):
-        logger.hr("Show deploy config", 1)
+        logger.hr("显示部署配置", 1)
         for k, v in self.config.items():
             if k in ("Password", "SSHUser"):
                 continue
@@ -95,7 +95,7 @@ class DeployConfig(ConfigModel):
                 continue
             logger.info(f"{k}: {v}")
 
-        logger.info(f"Rest of the configs are the same as default")
+        logger.info(f"[部署] 其余配置与默认值相同")
 
     def read(self):
         self.config = poor_yaml_read(DEPLOY_TEMPLATE)
@@ -107,7 +107,7 @@ class DeployConfig(ConfigModel):
         self.config.update(poor_yaml_read(self.file))
         unknown_keys = [key for key in list(self.config.keys()) if not hasattr(self, key)]
         for key in unknown_keys:
-            logger.warning(f"Ignore deprecated deploy config key: {key}")
+            logger.warning(f"[部署] 忽略已废弃的部署配置项: {key}")
             self.config.pop(key, None)
 
         for key, value in self.config.items():
@@ -159,23 +159,23 @@ class DeployConfig(ConfigModel):
         error_code = os.system(command)
         if error_code:
             if allow_failure:
-                logger.info(f"[ allowed failure ], error_code: {error_code}")
+                logger.info(f"[部署] [允许失败] error_code: {error_code}")
                 return False
             else:
-                logger.info(f"[ failure ], error_code: {error_code}")
+                logger.info(f"[部署] [失败] error_code: {error_code}")
                 self.show_error(command)
                 raise ExecutionError
         else:
-            logger.info(f"[ success ]")
+            logger.info(f"[部署] [成功]")
             return True
 
     def show_error(self, command=None):
-        logger.hr("Update failed", 0)
+        logger.hr("更新失败", 0)
         self.show_config()
         logger.info("")
-        logger.info(f"Last command: {command}")
+        logger.info(f"[部署] 最后执行的命令: {command}")
         logger.info(
-            "Please check your deploy settings in config/deploy.yaml "
-            "and re-open Alas.exe"
+            "[部署] 请检查 config/deploy.yaml 中的部署设置，"
+            "然后重新打开 Oas.exe"
         )
-        logger.info("Take the screenshot of entire window if you need help")
+        logger.info("[部署] 如需帮助，请截取整个窗口的截图")

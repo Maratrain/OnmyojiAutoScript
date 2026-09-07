@@ -30,7 +30,7 @@ class ManualClaimMixin(PortraitUIMixin):
         """纯UI手动领取：启动app→圈子→福利中心→领奖。竖屏720x1280原生操作。
         截图走配置方法(nemu_ipc/adb/droidcast/scrcpy均返回原生竖屏)，点击走 adb input tap
         (绕开 minitouch/nemu_ipc 写死的1280x720横屏缩放)，从而与具体截图/控制方法无关。"""
-        logger.hr('AutoCheckinBigGod (Manual)', level=1)
+        logger.hr('大神签到（手动）', level=1)
 
         if not self._check_adb_connection():
             logger.error('未检测到ADB设备，请确保模拟器已启动并已连接ADB')

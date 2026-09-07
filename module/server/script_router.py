@@ -255,7 +255,7 @@ async def script_start(script_name: str):
 @script_app.get('/{script_name}/stop')
 async def script_stop(script_name: str):
     if script_name not in mm.script_process:
-        logger.warning(f'[{script_name}] script process does not exist')
+        logger.warning(f'[服务器] 脚本进程 {script_name} 不存在')
         return
     mm.script_process[script_name].stop()
     return
@@ -274,7 +274,7 @@ async def script_task(script_name: str, task: str, group: str, argument: str, ty
                 value = float(value)
             case 'boolean':
                 if isinstance(value, str):
-                    logger.warning(f'[{script_name}] script argument {argument} value is string, try to convert to bool')
+                    logger.warning(f'[服务器] 脚本 {script_name} 参数 {argument} 的值为字符串，尝试转换为 bool')
                     if value.lower() in ['true', '1']:
                         value = True
                     elif value.lower() in ['false', '0']:
@@ -383,5 +383,5 @@ async def websocket_endpoint(websocket: WebSocket, script_name: str):
         await script_process.disconnect(websocket)
     except Exception as e:
         log_ws_event(f"ws[{script_name}] error: {type(e).__name__}: {e}", level="error")
-        logger.exception(f'[{script_name}] websocket error: {e}')
+        logger.exception(f'脚本 {script_name} WebSocket 异常：{e}')
         await script_process.disconnect(websocket)

@@ -40,7 +40,7 @@ class PeacockKingdom(BasePeacockKingdom):
 
     def run(self):
         self.before_run()
-        logger.hr('Peacock Kingdom', 1)
+        logger.hr('孔雀国', 1)
         while True:
             self.screenshot()
             current_page = self.get_current_page()
@@ -55,7 +55,7 @@ class PeacockKingdom(BasePeacockKingdom):
                 handle()
             except TaskEnd:
                 break
-        logger.info('Peacock Kingdom task ended')
+        logger.info('[六道-孔雀国] 孔雀国任务结束')
                 
     def run_on_pk(self):
         """孔雀国界面"""
@@ -81,7 +81,7 @@ class PeacockKingdom(BasePeacockKingdom):
             return []
         # 出现商店&岛屿数量>2&金币不够买轰雷&剩余回合数>1, 则不选择商店, 先攒金币
         if appeared_shop and len(appeared_islands) >= 2 and self.coin_num < 300 and remain_turns > 1:
-            logger.info('Money is not enough, choose other land')
+            logger.info('[六道-孔雀国] 钱币不足，选择其他岛屿')
             appeared_islands.remove(self.I_PK_LAND_STORE)
         return appeared_islands
 
@@ -89,7 +89,7 @@ class PeacockKingdom(BasePeacockKingdom):
         """孔雀国主界面 执行策略选岛屿"""
         if self.appear(self.I_PK_BOSS_PREPARE) and \
                 self.enter_battle(self.I_PK_BOSS_FIRE, boss_unlock=self.I_PK_BOSS_UNLOCK, boss_lock=self.I_PK_BOSS_LOCK):
-            logger.info('Start boss battle')
+            logger.info('[六道-孔雀国] 开始首领战斗')
             self.run_general_battle(battle_key='boss', exit_matcher=pages.page_peacock_kingdom)
             raise TaskEnd
         # 优先级：商店 > 神秘 > 绽放之屿 > 战斗 > 混沌
@@ -104,34 +104,34 @@ class PeacockKingdom(BasePeacockKingdom):
 
     def run_on_pk_store(self):
         """宁息商店"""
-        logger.hr('shop land')
+        logger.hr('宁息之屿')
         if self.skill_roaring_thunder >= 1:
-            logger.info('Skill level is enough, skip shopping')
+            logger.info('[六道-孔雀国] 技能已满级，跳过购物')
             self.goto_page(pages.page_pk_main)
             return
         self.coin_num, buy_times = self.buy_skill(self.I_PK_STORE_SKILL_THUNDER, 300, self.O_COIN_NUM,
                                                   self.I_PK_STORE_REFRESH, self.O_PK_STORE_REFRESH_TIME, 1)
         self.skill_roaring_thunder += buy_times
-        logger.info(f'Skill level: {self.skill_roaring_thunder}')
+        logger.info(f'[六道-孔雀国] 六道轰雷等级: {self.skill_roaring_thunder}')
         self.goto_page(pages.page_pk_main)
 
     def run_on_pk_chaos(self):
         """混沌之屿 宝箱/精英"""
-        logger.hr('chaos land')
+        logger.hr('混沌之屿')
         is_box: bool = self.appear(self.I_PK_CHAOS_BOX)
         if is_box:
-            logger.info('Do not get box')
+            logger.info('[六道-孔雀国] 不领取宝箱')
             self.goto_page(pages.page_pk_main)
             return
         self.ui_click(self.C_NPC_FIRE_CENTER, self.I_PK_BATTLE_FIRE, interval=0.8)
         if self.enter_battle(self.I_PK_BATTLE_FIRE):
-            logger.info('Start elite battle')
+            logger.info('[六道-孔雀国] 开始精英战斗')
             self.run_general_battle(battle_key="elite", exit_matcher=pages.page_pk_main)
 
     def run_on_pk_battle(self):
         """鏖战之屿 普通怪"""
-        logger.hr('fire land')
+        logger.hr('鏖战之屿')
         self.ui_click(self.C_NPC_FIRE_RIGHT, self.I_PK_BATTLE_FIRE, interval=0.8)
         if self.enter_battle(self.I_PK_BATTLE_FIRE):
-            logger.info('Start normal battle')
+            logger.info('[六道-孔雀国] 开始普通战斗')
             self.run_general_battle(battle_key="normal", exit_matcher=pages.page_pk_main)

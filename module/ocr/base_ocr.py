@@ -200,7 +200,7 @@ class BaseCor:
         elif score >= self.min_score and contains_digit and self.mode in [OcrMode.DIGIT, OcrMode.DIGITCOUNTER,
                                                                           OcrMode.QUANTITY]:
             logger.warning(
-                f'[{self.name}] Score {score:.2f} is low, but result "{result}" contains a digit. Accepting it.')
+                f'[{self.name}] 置信度 {score:.2f} 较低，但结果 "{result}" 包含数字，接受该结果')
         else:
             result = ""
         # after proces

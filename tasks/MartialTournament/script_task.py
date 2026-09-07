@@ -151,7 +151,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
                 self.team_locked = False
                 self.ticket_type = 'pass_1'
                 self.goto_page(self.current_climb_page)
-                logger.hr(f'Start climb mode: {mode}', 2)
+                logger.hr(f'开始爬塔模式: {mode}', 2)
                 try:
                     while True:
                         self.screenshot()
@@ -166,10 +166,10 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
                             continue
                         handle()
                 except LimitCountOut:
-                    logger.info(f'Climb mode {mode} count limit reached, switch to next mode')
+                    logger.info(f'[武道大会] 爬塔模式 {mode} 达到次数上限，切换下一个模式')
                     continue
                 except TicketsNotEnough:
-                    logger.info(f'Climb mode {mode} tickets not enough, switch to next mode')
+                    logger.info(f'[武道大会] 爬塔模式 {mode} 门票不足，切换下一个模式')
                     continue
         except LimitTimeOut:
             pass
@@ -182,10 +182,10 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
     def update_status(self):
         """更新全局状态, 检查是否超时或达到次数限制"""
         if datetime.now() - self.start_time >= self.conf.general_climb.limit_time_v:
-            logger.info('MartialTournament time out')
+            logger.info('[武道大会] 运行时间超时')
             raise LimitTimeOut
         if self.current_count >= self.current_limit:
-            logger.info(f'MartialTournament[{self.current_mode}] count limit reached')
+            logger.info(f'[武道大会][{self.current_mode}] 达到次数上限')
             raise LimitCountOut
 
     def _run_pass(self):
@@ -193,7 +193,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         # 先检测是否有已发现的boss (I_NO_SEARCH可见), 有则直接进入
         self.screenshot()
         if self.appear(self.I_NO_SEARCH) and self.appear_then_click(self.I_SEARCH_BOSS, interval=1.5):
-            logger.info('Found existing boss, enter challenge directly')
+            logger.info('[武道大会] 发现已搜寻到的首领，直接进入挑战')
         else:
             # 没有已发现的boss, 检查门票后搜索
             if not self.check_tickets_enough():
@@ -221,7 +221,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             random_sleep(probability=0.2)
         self.current_battle_conf = self.conf.single_battle_conf if boss_type == 'single' else self.conf.group_battle_conf
         if quick_loadout_conf.enable and self.current_battle_conf.preset_enable:
-            logger.warning('Quick loadout enabled, disable legacy battle preset for this battle')
+            logger.warning('[武道大会] 一键配置已启用，本场战斗禁用旧版预设')
             self.current_battle_conf = self.current_battle_conf.model_copy(
                 update={'preset_enable': False}
             )
@@ -264,17 +264,17 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             self.screenshot()
             ap = int(self.O_BOSS_AP_COUNT.ocr(self.device.image) or 0)
             best_ap = max(best_ap, ap)
-            logger.info(f'MartialTournament boss AP OCR {attempt}/3: AP={ap}')
+            logger.info(f'[武道大会] 首领体力识别 {attempt}/3: 体力={ap}')
             if ap > self.AP_COST:
                 return True
             if attempt < 3:
                 time.sleep(0.5)
-        logger.info(f'MartialTournament boss AP insufficient: {best_ap} <= {self.AP_COST}')
+        logger.info(f'[武道大会] 首领体力不足: {best_ap} <= {self.AP_COST}')
         return False
 
     def search_boss(self, max_times: int | None = None) -> bool:
         """搜索boss, 等待挑战浮窗出现"""
-        logger.hr('Search boss', 2)
+        logger.hr('搜寻首领', 2)
         search_times = 0
         max_times = max_times or random.randint(3, 5)
         wait_timer = Timer(10).start()
@@ -282,10 +282,10 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         while True:
             self.screenshot()
             if self.appear(self.I_MT_CHALLENGE):
-                logger.info('Search boss success')
+                logger.info('[武道大会] 搜寻首领成功')
                 return True
             if wait_timer.reached():
-                logger.warning('Search boss timeout')
+                logger.warning('[武道大会] 搜寻首领超时')
                 return False
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1) or \
                     self.appear_then_click(self.I_UI_CONFIRM, interval=1):
@@ -293,8 +293,8 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             if search_times >= max_times:
                 if not click_limit_logged:
                     logger.info(
-                        f'Search boss click limit reached ({search_times}/{max_times}), '
-                        'continue waiting for challenge panel'
+                        f'[武道大会] 搜寻首领点击次数达上限 ({search_times}/{max_times})，'
+                        '继续等待挑战面板'
                     )
                     click_limit_logged = True
                 time.sleep(0.2)
@@ -303,7 +303,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             search_btn = self.I_PASS_2 if self.ticket_type == 'pass_2' else self.I_MT_SEARCH
             if self.appear_then_click(search_btn, interval=1.5):
                 search_times += 1
-                logger.info(f'Try search boss ({self.ticket_type}), remain times[{max_times - search_times}]')
+                logger.info(f'[武道大会] 尝试搜寻首领 ({self.ticket_type})，剩余次数[{max_times - search_times}]')
                 continue
         return False
 
@@ -312,24 +312,24 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         self.ensure_ticket_mode(ticket_type)
         if ticket_count > 0:
             logger.info(
-                f'MartialTournament {ticket_type}={ticket_count}, use normal search flow'
+                f'[武道大会] {ticket_type}={ticket_count}，使用正常搜寻流程'
             )
             return self.search_boss()
         return self.verify_zero_ticket(
-            f'MartialTournament {ticket_type}',
+            f'武道大会 {ticket_type}',
             lambda: self.search_boss(max_times=1),
         )
 
     def enter_battle(self) -> bool:
         """点击挑战按钮进入战斗 (挑战界面为浮窗)"""
-        logger.hr('Enter battle', 2)
+        logger.hr('进入战斗', 2)
         click_times, max_times = 0, random.randint(3, 5)
         while True:
             self.screenshot()
             if self.is_in_battle(False):
                 return True
             if click_times >= max_times:
-                logger.warning('Cannot enter battle, click reach max times')
+                logger.warning('[武道大会] 无法进入战斗，点击次数达上限')
                 raise TicketsNotEnough
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1) or \
                     self.appear_then_click(self.I_UI_CONFIRM, interval=1):
@@ -337,13 +337,13 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             if self.appear_then_click(self.I_MT_CHALLENGE, interval=1.5):
                 self.device.click_record_clear()
                 click_times += 1
-                logger.info(f'Try click challenge, remain times[{max_times - click_times}]')
+                logger.info(f'[武道大会] 尝试点击挑战，剩余次数[{max_times - click_times}]')
                 continue
         return False
 
     def enter_ap_battle(self, max_times: int | None = None) -> bool:
         """点击体力界面的挑战按钮进入战斗"""
-        logger.hr('Enter AP battle', 2)
+        logger.hr('进入体力爬塔战斗', 2)
         click_times = 0
         fallback = max_times is not None
         max_times = max_times or random.randint(3, 5)
@@ -352,7 +352,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             if self.is_in_battle(False):
                 return True
             if click_times >= max_times:
-                logger.warning('Cannot enter AP battle, click reach max times')
+                logger.warning('[武道大会] 无法进入体力爬塔战斗，点击次数达上限')
                 if fallback:
                     return False
                 raise TicketsNotEnough
@@ -362,7 +362,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             if self.appear_then_click(self.I_MT_CHALLENGE_AP, interval=1.5):
                 self.device.click_record_clear()
                 click_times += 1
-                logger.info(f'Try click AP challenge, remain times[{max_times - click_times}]')
+                logger.info(f'[武道大会] 尝试点击体力挑战，剩余次数[{max_times - click_times}]')
                 continue
         return False
 
@@ -370,9 +370,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         """检测当前浮窗中的boss类型: 'single'单体, 'group'群体"""
         self.screenshot()
         if self.appear(self.I_BOSS_1) or self.appear(self.I_BOSS_2):
-            logger.info('Detect boss type: single')
+            logger.info('[武道大会] 检测到首领类型: 单体')
             return 'single'
-        logger.info('Detect boss type: group')
+        logger.info('[武道大会] 检测到首领类型: 群体')
         return 'group'
 
     def switch_soul(self, enter_button: RuleImage, boss_type: str):
@@ -400,7 +400,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             if not enable:
                 self.last_soul_type = boss_type
                 return
-        logger.hr(f'Start switch soul ({boss_type})', 2)
+        logger.hr(f'开始切换御魂 ({boss_type})', 2)
         self.ui_click(enter_button, stop=self.I_CHECK_RECORDS, interval=1)
         if boss_type == 'single':
             if conf.enable_switch_single_by_name:
@@ -434,21 +434,21 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         """根据配置判断是否锁定阵容, 并执行锁定或解锁"""
         enable = battle_conf.lock_team_enable
         if enable:
-            logger.info('Lock team')
+            logger.info('[武道大会] 锁定阵容')
             self.ui_click(self.I_UNLOCK, stop=self.I_LOCK, interval=1.5)
             return
-        logger.info('Unlock team')
+        logger.info('[武道大会] 解锁阵容')
         self.ui_click(self.I_LOCK, stop=self.I_UNLOCK, interval=1.5)
 
     def check_tickets_enough(self) -> bool:
         """统一检查门票/体力是否足够
         pass1和pass2数量同时显示, 直接读两种券选有票的用"""
-        logger.hr('Check tickets')
+        logger.hr('检查门票')
         self.screenshot()
         # ap模式
         if self.current_mode == 'ap':
             remain_times = int(self.O_O_AP.ocr(self.device.image) or 0)
-            logger.info(f'AP remain: {remain_times}')
+            logger.info(f'[武道大会] 体力剩余: {remain_times}')
             if self.pre_tickets_map['ap'] - remain_times > 1:
                 self.pre_tickets_map['ap'] -= 1
                 return True
@@ -457,7 +457,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         # pass模式: 同时读两种券数量
         pass_1_remain = self.O_O_PASS.ocr(self.device.image)
         pass_2_remain = self.O_O_PASS2.ocr(self.device.image)
-        logger.info(f'pass_1 remain: {pass_1_remain}, pass_2 remain: {pass_2_remain}')
+        logger.info(f'[武道大会] pass_1 剩余: {pass_1_remain}, pass_2 剩余: {pass_2_remain}')
         # 容错: 差值大于1认为识别有误
         if pass_1_remain > 0 and self.pre_tickets_map['pass_1'] - pass_1_remain > 1:
             self.pre_tickets_map['pass_1'] -= 1
@@ -476,7 +476,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
         """确保首领搜寻处于指定门票模式。"""
         self.detect_ticket_type()
         if self.ticket_type != target_type:
-            logger.info(f'Switch ticket mode to {target_type}')
+            logger.info(f'[武道大会] 切换门票模式为 {target_type}')
             self.switch_ticket_mode()
 
     def switch_ticket_mode(self):
@@ -489,9 +489,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, 
             self.detect_ticket_type()
             # 只重置切换后的当前门票记录, 保留另一种门票的状态
             self.pre_tickets_map[self.ticket_type] = -1
-            logger.info(f'Switched ticket mode to: {self.ticket_type}')
+            logger.info(f'[武道大会] 已切换门票模式为: {self.ticket_type}')
         else:
-            logger.warning('I_SWITCH_MODE not found, cannot switch ticket mode')
+            logger.warning('[武道大会] 未找到 I_SWITCH_MODE，无法切换门票模式')
 
 
 if __name__ == '__main__':

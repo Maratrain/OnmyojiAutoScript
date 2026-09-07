@@ -37,7 +37,7 @@ def embed_patch_in_canvas(canvas, patch, position=(0, 0), patch_size=(300, 300))
     embed_w = x2 - x1
     embed_h = y2 - y1
     if embed_w <= 0 or embed_h <= 0:
-        logger.warning(f'Cannot embed patch in canvas: ({position})')
+        logger.warning(f'[百鬼夜行] 无法将补丁嵌入画布: ({position})')
         return canvas
     if embed_w < patch_width or embed_h < patch_height:
         _patch = patch[:embed_h, :embed_w]
@@ -153,11 +153,11 @@ class Agent:
         omega = focus.omega(z)
         if omega < self.OBSERVE_THRESHOLD:
             if self.focus is not None:
-                logger.info(f'Focus disappear')
+                logger.info(f'[百鬼夜行] 焦点目标消失')
             self.focus = None
             return
         if self.focus is None or self.focus != focus:
-            logger.info(f'Focus changed, now: {id2name(focus._class)}')
+            logger.info(f'[百鬼夜行] 焦点目标变更，当前: {id2name(focus._class)}')
             self.focus = focus
             self.focus.set_omega(omega)
         elif self.focus == focus:

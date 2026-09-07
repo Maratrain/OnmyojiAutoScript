@@ -72,7 +72,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
             try:
                 priorities = [label2id(s) for s in str_priorities.split(',')]
             except Exception as e:
-                logger.error(f'Priority error: {str_priorities}')
+                logger.error(f'[百鬼夜行] 优先级配置错误: {str_priorities}')
                 logger.error(e)
                 raise RequestHumanTakeover
         strategy: dict = {
@@ -115,16 +115,16 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
 
         while 1:
             if hya_count >= self.limit_count:
-                logger.info('Hyakkiyakou count limit out')
+                logger.info('[百鬼夜行] 次数已达上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Hyakkiyakou time limit out')
+                logger.info('[百鬼夜行] 时间已用完')
                 break
 
             self.one()
             hya_count += 1
-            logger.info(f'count: {hya_count}/{self.limit_count}')
-            logger.info(f'time: {(datetime.now() - self.start_time).total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
+            logger.info(f'[百鬼夜行] 次数: {hya_count}/{self.limit_count}')
+            logger.info(f'[百鬼夜行] 时间: {(datetime.now() - self.start_time).total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
 
         while 1:
             self.screenshot()
@@ -184,11 +184,11 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
                 best_class = _class
         if best_class != -1:
             logger.info(
-                f'Hyakki select: detect {id2name(best_class)} '
-                f'with rarity score {best_score}'
+                f'[百鬼夜行] 鬼王选择: 识别到 {id2name(best_class)} '
+                f'稀有度分数 {best_score}'
             )
         else:
-            logger.warning('Hyakki select: no valid shikigami detected on title screen')
+            logger.warning('[百鬼夜行] 鬼王选择: 标题界面未检测到有效式神')
         return best_score, best_class
 
     def _select_best_boss(self):
@@ -197,7 +197,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
         要求：当前已经在 I_HTITLE 画面。
         """
         candidates = [self.C_HSELECT_1, self.C_HSELECT_2, self.C_HSELECT_3]
-        logger.info('Start selecting boss')
+        logger.info('[百鬼夜行] 开始选择鬼王')
         best_idx = 0
         best_score = -1
         scores = []
@@ -213,7 +213,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
                 best_idx = idx
         
         #所以如果三个都识别失败了会选第一个
-        logger.info(f'Hyakki select scores: {scores}, choose index {best_idx + 1}') 
+        logger.info(f'[百鬼夜行] 鬼王选择分数: {scores}，选择第 {best_idx + 1} 个')
 
         # 记录一下，后面如果需要兜底再点一次可以用
         self._best_boss_button = candidates[best_idx]
@@ -227,7 +227,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
         self.goto_page(page_hyakkiyakou)
         self.screenshot()
         if not self.appear(self.I_HACCESS):
-            logger.error('Failed to navigate to Hyakkiyakou page after 3 retries')
+            logger.error('[百鬼夜行] 重试 3 次后仍未进入百鬼夜行页面')
             raise RequestHumanTakeover('Failed to navigate to Hyakkiyakou page')
         if self._config.hyakkiyakou_config.hya_invite_friend:
             self.invite_friend()
@@ -248,7 +248,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
                 continue
         self.device.stuck_record_add('BATTLE_STATUS_S')
         # 正式开始
-        logger.hr('Start Hyakkiyakou')
+        logger.hr('开始百鬼夜行')
         last_action = [0, 0, False, 10]
         self.hya_fs_check_timer.reset()
         if self._config.debug_config.hya_show:
@@ -281,7 +281,7 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
             if self._config.debug_config.hya_info:
                 self.debugger.show_info(tracker=self.tracker, f=self.agent.focus)
 
-        logger.info('Hyakkiyakou End')
+        logger.info('[百鬼夜行] 百鬼夜行结束')
         if self._config.debug_config.hya_show:
             self.debugger.show_stop()
         if self._config.debug_config.hya_save_result:

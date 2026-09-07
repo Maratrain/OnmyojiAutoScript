@@ -23,7 +23,7 @@ class ScriptTask(GameUi, FloatParadeAssets, TalismanPassAssets):
         self.conf = self.config.float_parade.float_parade
         self.goto_page(page_main)
         if not self.appear(self.I_FP_ACCESS):
-            logger.warn('Cannot find float parade enter button, exit')
+            logger.warn('[花车巡游] 未找到花车巡游入口按钮，退出')
             self.set_next_run(task='FloatParade', success=False, finish=True)
             raise TaskEnd
         self.goto_page(page_fp_main)
@@ -37,12 +37,12 @@ class ScriptTask(GameUi, FloatParadeAssets, TalismanPassAssets):
 
     def collect_exp(self):
         """收取花车经验"""
-        logger.hr('Collect exp', 3)
+        logger.hr('收取经验', 3)
         self.goto_page(page_fp_task)
         sleep(1.5)  # 逆天UI, 没有完成也会一闪而过I_FP_GETALL1
         self.screenshot()
         if not self.appear(self.I_FP_GETALL1):
-            logger.info('Not appear get exp button')
+            logger.info('未出现获取经验按钮')
             return
         self.ui_get_reward(self.I_FP_GETALL1)
         self.goto_page(page_fp_main)
@@ -59,11 +59,11 @@ class ScriptTask(GameUi, FloatParadeAssets, TalismanPassAssets):
         }
         self.screenshot()
         if not self.appear(self.I_FP_GETALL0):
-            logger.info('No any level reward')
+            logger.info('没有可领取的等级奖励')
             return
-        logger.info('Appear level reward')
+        logger.info('出现等级奖励')
         # self.ui_click(self.I_FP_GETALL0, self.I_TP_GET_ALL)
-        logger.info('Click level reward')
+        logger.info('点击等级奖励')
         check_timer = Timer(2)
         check_timer.start()
         while 1:
@@ -75,39 +75,39 @@ class ScriptTask(GameUi, FloatParadeAssets, TalismanPassAssets):
                 continue
 
             if self.appear(self.I_FP_GIFT_FLAG1) and self.appear_then_click(match_level[level1], interval=0.8):
-                logger.info(f'Select {level1} reward')
+                logger.info(f'选择 {level1} 档奖励')
                 if self.appear_then_click(self.I_OVERFLOW_CONFIRME, interval=0.8):
                     pass
                 check_timer.reset()
                 continue
 
             if self.appear(self.I_FP_GIFT_FLAG2) and self.appear_then_click(match_level[level2], interval=0.8):
-                logger.info(f'Select {level2} reward')
+                logger.info(f'选择 {level2} 档奖励')
                 if self.appear_then_click(self.I_OVERFLOW_CONFIRME, interval=0.8):
                     pass
                 check_timer.reset()
                 continue
 
             if self.ui_reward_appear_click(False):
-                logger.info('Get reward')
+                logger.info('获得奖励')
                 check_timer.reset()
                 continue
             if check_timer.reached():
-                logger.warning('No reward and break')
+                logger.warning('没有奖励，退出')
                 break
             if self.appear_then_click(self.I_FP_GETALL0, interval=2.1):
-                logger.info('Get all reward')
+                logger.info('领取全部奖励')
                 check_timer.reset()
                 continue
 
     def collect_placement_reward(self):
         """收取放置奖励"""
-        logger.hr('Collect placement reward', 3)
+        logger.hr('收取放置奖励', 3)
         self.goto_page(page_fp_placement)
         if self.appear(self.I_FP_PR_CANNOT_GET):
-            logger.warn('Not have placement reward, exit')
+            logger.warn('没有放置奖励，退出')
         else:
-            logger.info('Get placement reward')
+            logger.info('领取放置奖励')
             self.ui_get_reward(self.I_FP_PR_CAN_GET)
         self.goto_page(page_fp_main)
 

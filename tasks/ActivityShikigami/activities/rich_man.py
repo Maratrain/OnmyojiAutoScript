@@ -19,7 +19,7 @@ class RichManAct(BaseAct, Debugger):
         """
             更新前请先看 ./README.md
         """
-        logger.hr(f'Start run climb type PASS', 1)
+        logger.hr(f'[爬塔] 开始运行 PASS 爬塔', 1)
         self.click(self.I_TO_BATTLE_MAIN)
         switch_souled = False
         click_ticket, no_tickets = 0, random.randint(4, 6)
@@ -29,10 +29,10 @@ class RichManAct(BaseAct, Debugger):
             self.screenshot()
             self.update_status()
             if self.appear(self.I_RM_NO_TICKET, interval=2) or click_ticket > no_tickets:
-                logger.warning(f'Click ticket {click_ticket} times, no tickets left')
+                logger.warning(f'[爬塔] 点击门票 {click_ticket} 次，门票已用完')
                 break
             if click_fire > no_fire:
-                logger.warning(f'Click fire {click_fire} times, no fire left')
+                logger.warning(f'[爬塔] 点击战斗 {click_fire} 次，已无战斗')
                 break
             if self.ui_reward_appear_click():  # 获得奖励
                 continue
@@ -40,16 +40,16 @@ class RichManAct(BaseAct, Debugger):
                 continue
             if self.appear(self.I_RM_CHECK_BOSS, interval=1.5):
                 already_passed = True
-                logger.info('Already passed')
+                logger.info('[爬塔] 已通关')
             if already_passed and self.appear(self.I_RM_BOSS, interval=1.2):  # 已经通关了且出现首领则退出,否则还要打
-                logger.info('Boss passed, exit')
+                logger.info('[爬塔] 首领已通关，退出')
                 self.appear_then_click(self.I_UI_BACK_YELLOW, interval=1.2)
                 continue
             already_passed = False
             if self.appear_then_click(self.I_UI_CONFIRM, interval=2):
                 continue
             if self.appear_then_click(self.I_RM_THROW, interval=2):  # 开始扔骰子
-                logger.hr('Throw ticket', 3)
+                logger.hr('扔门票骰子', 3)
                 click_ticket = 0
                 self.device.stuck_record_clear()
                 self.device.stuck_record_add('BATTLE_STATUS_S')
@@ -58,20 +58,20 @@ class RichManAct(BaseAct, Debugger):
                     if self.ui_reward_appear_click():  # 获得奖励
                         break
                     if self.appear(self.I_RM_THROW_WIN, interval=1.5):  # 扔骰子获胜
-                        logger.info('Throw win')
+                        logger.info('[爬塔] 扔骰子获胜')
                         continue
                     if self.appear(self.I_RM_THROW_EQUAL, interval=1.5):  # 扔骰子平局
-                        logger.info('Throw equal')
+                        logger.info('[爬塔] 扔骰子平局')
                         continue
                     if self.appear_then_click(self.I_RM_THROW, interval=2):  # 开始扔骰子
-                        logger.info('Throw again')
+                        logger.info('[爬塔] 再次扔骰子')
                         self.device.stuck_record_clear()
                         self.device.stuck_record_add('BATTLE_STATUS_S')
                         continue
                 continue
             if self.appear(self.I_RM_BUY_AP) or self.appear(self.I_RM_BUY_REWARD) or \
                     self.appear(self.I_RM_BUY_TICKET):  # 开始买东西
-                logger.hr('Buy envent', 3)
+                logger.hr('购买活动', 3)
                 click_ticket = 0
                 rich_man_conf = self.config.model.activity_shikigami.rich_man
                 timeout_timer = Timer(5).start()
@@ -84,7 +84,7 @@ class RichManAct(BaseAct, Debugger):
                         timeout_timer.reset()
                         continue
                     if timeout_timer.reached():  # 如果购买超时了则说明购买有问题, 则不买了
-                        logger.warning('Buy timeout, exit buy')
+                        logger.warning('[爬塔] 购买超时，退出购买')
                         self.appear_then_click(self.I_UI_BACK_RED, interval=1.5)
                         continue
                     if not rich_man_conf.buy_ap and not rich_man_conf.buy_ticket and not rich_man_conf.buy_reward:
@@ -101,16 +101,16 @@ class RichManAct(BaseAct, Debugger):
                         continue
             if self.appear(self.I_RM_QUESTION, interval=2):  # 开始答题
                 click_ticket = 0
-                logger.hr('Start question', 3)
+                logger.hr('开始答题', 3)
                 q, a1, a2, a3 = self.detect_question_and_answers()
                 index = self.answer.answer_one(question=q, options=[a1, a2, a3])
                 if index is None:
-                    logger.error('Now question has no answer, please check')
+                    logger.error('[爬塔] 当前题目没有答案，请检查')
                     self.append_one(question=q, options=[a1, a2, a3])
                     self.config.notifier.push(title='Quiz',
                                               content=f"New question: \n{q} \n{[a1, a2, a3]}")
                     index = 1
-                logger.attr(index, 'Answer')
+                logger.attr(index, '答案')
                 self.click([self.O_RM_ANSWER_1, self.O_RM_ANSWER_2, self.O_RM_ANSWER_3][index - 1], interval=1)
                 self.device.click_record_clear()
                 continue

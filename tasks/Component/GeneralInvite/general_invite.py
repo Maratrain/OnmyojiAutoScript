@@ -53,7 +53,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :return:
         """
         if not self.ensure_enter():
-            logger.warning('Not enter invite page')
+            logger.warning('[通用邀请] 未进入组队界面')
             return False
         if is_first:
             _ = self.room_type
@@ -72,10 +72,10 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         while 1:
             self.screenshot()
             if self.timer_wait.reached():
-                logger.warning('Wait timeout')
+                logger.warning('[通用邀请] 等待超时')
                 return False
             if self.appear(self.I_MATCHING):
-                logger.warning('Timeout, now is no room')
+                logger.warning('[通用邀请] 超时，房间已不存在')
                 return False
 
             if not self.is_in_room():
@@ -92,10 +92,10 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 return True
             if self.timer_invite and self.timer_invite.reached():
                 if is_first:
-                    logger.info('Invitation is triggered every 20s')
+                    logger.info('[通用邀请] 每20秒触发一次邀请')
                     self.timer_invite.reset()
                 else:
-                    logger.info('Wait for 30s and invite again')
+                    logger.info('[通用邀请] 等待30秒后再次邀请')
                     self.timer_invite = None
                 self.invite_friends(config)
         return False
@@ -104,31 +104,31 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         fire = False  # 是否开启挑战
         # 如果这个房间最多只容纳两个人（意思是只可以邀请一个人），且已经邀请一个人了，那就开启挑战
         if self.room_type == RoomType.NORMAL_2 and not self.appear(self.I_ADD_2):
-            logger.info('Start challenge and this room can only invite one friend')
+            logger.info('[通用邀请] 开始挑战，该房间只能邀请一位好友')
             fire = True
         # 如果这个房间最多容纳三个人（意思是可以邀请两个人），且设定邀请一个就开启挑战，那就开启挑战
         elif self.room_type == RoomType.NORMAL_3 and len(config.friend_list_v) == 1 and not self.appear(self.I_ADD_1):
-            logger.info('Start challenge and user only invite one friend')
+            logger.info('[通用邀请] 开始挑战，设定只邀请一位好友')
             fire = True
         # 如果这个房间最多容纳三个人（意思是可以邀请两个人），且设定邀请两个就开启挑战，那就开启挑战
         elif self.room_type == RoomType.NORMAL_3 and len(config.friend_list_v) == 2 and not self.appear(self.I_ADD_2):
-            logger.info('Start challenge and user invite two friends')
+            logger.info('[通用邀请] 开始挑战，设定邀请两位好友')
             fire = True
         # 如果这个房间是五人的，且设定邀请一个就开启挑战，那就开启挑战
         elif self.room_type == RoomType.NORMAL_5 and len(config.friend_list_v) == 1 and not self.appear(self.I_ADD_5_1):
-            logger.info('Start challenge and user only invite one friend')
+            logger.info('[通用邀请] 开始挑战，设定只邀请一位好友')
             fire = True
         # 如果这个房间是五人的，且设定邀请两个就开启挑战，那就开启挑战
         elif self.room_type == RoomType.NORMAL_5 and len(config.friend_list_v) == 2 and not self.appear(self.I_ADD_5_2):
-            logger.info('Start challenge and user invite two friends')
+            logger.info('[通用邀请] 开始挑战，设定邀请两位好友')
             fire = True
         # 如果是永生之海
         elif self.room_type == RoomType.ETERNITY_SEA and not self.appear(self.I_ADD_SEA):
-            logger.info('Start challenge and this is lock sea')
+            logger.info('[通用邀请] 开始挑战，当前为永生之海')
             fire = True
         # 契灵之境(两人间但队友在一号位)
         elif self.room_type == RoomType.BONDLING_FAIRYLAND and not self.appear(self.I_ADD_1):
-            logger.info('Start challenge and this is bondling fairyland')
+            logger.info('[通用邀请] 开始挑战，当前为契灵之境')
             fire = True
         return fire
 
@@ -140,11 +140,11 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :param open_invite: 是否需要在本方法内打开邀请界面
         :return: 邀请是否成功
         """
-        logger.hr('Invite friends', 2)
+        logger.hr('邀请好友', 2)
         if not config.friend_list_v:
-            logger.warning('No friend to invite')
+            logger.warning('[通用邀请] 没有可邀请的好友')
             return False
-        logger.info(f'Need invite friend list: {config.friend_list_v}')
+        logger.info(f'[通用邀请] 需要邀请的好友列表: {config.friend_list_v}')
         if not self._open_invite_panel_if_needed(open_invite):
             return True
         friend_class = self._read_friend_classes()
@@ -161,7 +161,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         确认是否进入了组队界面
         :return:
         """
-        logger.info('Ensure enter invite page')
+        logger.info('[通用邀请] 确认进入组队界面')
         while 1:
             self.screenshot()
             if self.appear(self.I_ADD_2):
@@ -200,7 +200,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         """
         if not self.is_in_room():
             return True
-        logger.info('Exit room')
+        logger.info('[通用邀请] 退出房间')
         timeout_timer = Timer(5).start()
         while True:
             self.screenshot()
@@ -239,7 +239,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         """
         self.screenshot()
         room_type = self.check_room_type(image=self.device.image)
-        logger.info(f'Room type: {room_type}')
+        logger.info(f'[通用邀请] 房间类型: {room_type}')
         return room_type
 
     def check_room_type(self, image: np.array = None, pre_type: RoomType = None) -> RoomType | None:
@@ -317,11 +317,11 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         if friend_number == 2:
             if self.room_type == RoomType.NORMAL_2:
                 # 整个房间就可以两个人，还邀请两个 这个是报错的
-                logger.error('Room can only be one people, but invite two people')
+                logger.error('[通用邀请] 该房间只能邀请一人，却设定邀请两人')
                 return False
             elif self.room_type == RoomType.ETERNITY_SEA:
                 # 永生之海，只能邀请一个人
-                logger.error('Room can only be one people, but invite two people')
+                logger.error('[通用邀请] 该房间只能邀请一人，却设定邀请两人')
                 return False
             return True
         return True
@@ -360,7 +360,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 int(rec_w),
                 int(rec_h)
             )
-            logger.info(f'Exact match friend "{name}" in {rule.name} at {area}')
+            logger.info(f'[通用邀请] 精确匹配到好友 "{name}"，识别规则 {rule.name}，坐标 {area}')
             return area
         return None
 
@@ -415,13 +415,13 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 rule = self.O_FRIEND_NAME_2
                 select_area = self._find_exact_friend_area(rule, name)
             if select_area is None:
-                logger.info('Current page no exact friend')
+                logger.info('[通用邀请] 当前页面没有精确匹配的好友')
                 return False
             click_x, click_y = self._random_point_in_area(select_area)
             self.device.click(x=click_x, y=click_y, control_name=rule.name)
             if self._wait_selected_appear(pre_cnt):
                 return True
-        logger.warning(f'Find friend "{name}" but failed to select')
+        logger.warning(f'[通用邀请] 找到好友 "{name}" 但选中失败')
         return False
 
     def _get_invite_friend_list(self, config: InviteConfig) -> list[str]:
@@ -440,13 +440,13 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         """
         if not open_invite:
             return True
-        logger.info('Click add to invite friend')
+        logger.info('[通用邀请] 点击添加位邀请好友')
         no_click_timeout = Timer(5).start()
         click_timer = Timer(1)
         while True:
             self.screenshot()
             if no_click_timeout.started() and no_click_timeout.reached():
-                logger.warning('Cannot invite friend, maybe already existing')
+                logger.warning('[通用邀请] 无法邀请好友，可能好友已在房间中')
                 return False
             if self.appear(self.I_LOAD_FRIEND) or self.appear(self.I_INVITE_ENSURE):
                 return True
@@ -484,7 +484,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         for item in raw_list:
             if item is not None and item != '' and item in self.friend_class:
                 friend_class.append(self._normalize_friend_class_name(item))
-        logger.info(f'Friend class: {friend_class}')
+        logger.info(f'[通用邀请] 好友分类: {friend_class}')
         return friend_class
 
     def _switch_friend_class(self, index: int) -> None:
@@ -522,14 +522,14 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :param selected_set: 已成功选中的好友集合（原地更新）
         :return: True 表示流程可继续，False 表示失败
         """
-        logger.info('Find recent friend')
+        logger.info('[通用邀请] 查找最近好友')
         if '最近' not in friend_class:
-            logger.warning('No recent friend')
+            logger.warning('[通用邀请] 未找到最近分类')
             return False
         recent_index = friend_class.index('最近')
         self._switch_friend_class(recent_index)
         sleep(0.5)
-        logger.info('Now find friend in ”最近“')
+        logger.info('[通用邀请] 正在「最近」分类中查找好友')
         self._select_current_page_friends(friend_list, selected_set)
         return True
 
@@ -546,7 +546,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 break
             self._switch_friend_class(index)
             sleep(0.5)
-            logger.info(f'Now find friend in {friend_class[index]}')
+            logger.info(f'[通用邀请] 正在 {friend_class[index]} 分类中查找好友')
             self._select_current_page_friends(friend_list, selected_set)
 
     def _confirm_invite_and_validate(self, selected_set: set[str], friend_list: list[str], confirm_rule: RuleImage = None) -> bool:
@@ -556,14 +556,14 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :param friend_list: 目标好友名称列表
         :return: 全部选中返回 True，否则 False
         """
-        logger.info('Click invite ensure')
+        logger.info('[通用邀请] 点击邀请确认')
         if not confirm_rule:
             confirm_rule = self.I_INVITE_ENSURE
         if not self.appear(confirm_rule):
-            logger.warning('No appear invite ensure while invite friend')
+            logger.warning('[通用邀请] 邀请好友时未出现邀请确认按钮')
         self.ui_click_until_disappear(confirm_rule)
         if len(selected_set) != len(friend_list):
-            logger.warning('Cannot find friend')
+            logger.warning('[通用邀请] 未找到好友')
             return False
         return True
 
@@ -573,7 +573,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :param default_invite:  是否勾选默认
         :return:
         """
-        logger.info('Invite again')
+        logger.info('[通用邀请] 再次邀请')
         # 判断是否进入界面
         while 1:
             self.screenshot()
@@ -581,7 +581,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 break
         # 如果勾选了默认邀请
         if default_invite:
-            logger.info('Click default invite')
+            logger.info('[通用邀请] 勾选默认邀请')
             while 1:
                 self.screenshot()
                 if self.appear(self.I_I_DEFAULT):
@@ -589,7 +589,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 if self.appear_then_click(self.I_I_NO_DEFAULT, interval=1):
                     continue
         else:
-            logger.info('Click no default invite')
+            logger.info('[通用邀请] 取消默认邀请')
             while 1:
                 self.screenshot()
                 if self.appear(self.I_I_NO_DEFAULT):
@@ -598,7 +598,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                     continue
 
         # 点击确认
-        logger.info('Click invite ensure')
+        logger.info('[通用邀请] 点击邀请确认')
         while 1:
             self.screenshot()
             if not self.appear(self.I_GI_SURE):
@@ -618,7 +618,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         if default_invite:
             # 有可能是挑战失败的
             if self.appear(self.I_I_DEFAULT) or self.appear(self.I_I_NO_DEFAULT):
-                logger.info('Click default invite')
+                logger.info('[通用邀请] 勾选默认邀请')
                 while 1:
                     self.screenshot()
                     if self.is_in_room(False):
@@ -646,7 +646,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         """
         if not self.appear_accept():
             return False
-        logger.info('Click accept')
+        logger.info('[通用邀请] 点击接受邀请')
         while True:
             self.screenshot()
             if self.is_in_room():
@@ -682,25 +682,25 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         wait_second = wait_time.second + wait_time.minute * 60
         self.timer_wait = Timer(wait_second)
         self.timer_wait.start()
-        logger.info(f'Wait battle {wait_second} seconds')
+        logger.info(f'[通用邀请] 等待战斗开始，共 {wait_second} 秒')
         success = True
         while 1:
             self.screenshot()
 
             # 如果自己在探索界面或者是庭院，那就是房间已经被销毁了
             if self.appear(GameUiAssets.I_CHECK_MAIN) or self.appear(GameUiAssets.I_CHECK_EXPLORATION):
-                logger.warning('Room destroyed')
+                logger.warning('[通用邀请] 房间已解散')
                 success = False
                 break
 
             if self.timer_wait.reached():
-                logger.warning('Wait battle time out')
+                logger.warning('[通用邀请] 等待战斗超时')
                 success = False
                 break
 
             # 如果队长跑路了，自己变成了队长: 自己也要跑路
             if self.appear(self.I_FIRE) or self.appear(self.I_FIRE_SEA):
-                logger.warning('Leader run away while wait battle and become leader now')
+                logger.warning('[通用邀请] 队长跑路，自己已变为队长')
                 success = False
                 break
 
@@ -719,7 +719,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         # 3. 等待时间到没有开始（还是在房间里面）
         # 4. 房间的时间到了被迫提出房间（这个时候来到了探索界面）
         if not success:
-            logger.info('Leave room')
+            logger.info('[通用邀请] 离开房间')
             self.exit_room()
 
         return success

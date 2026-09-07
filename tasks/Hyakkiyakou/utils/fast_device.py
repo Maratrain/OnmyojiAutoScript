@@ -13,7 +13,7 @@ class FastDevice(BaseTask):
         if self.config.model.script.device.screenshot_method != ScreenshotMethod.WINDOW_BACKGROUND:
             raise
         if not hasattr(self.device, 'root_node'):
-            logger.warning('root_node unavailable, falling back to standard screenshot')
+            logger.warning('[百鬼夜行] root_node 不可用，回退到标准截图')
             self.device.screenshot()
             return self.device.image
         self.device.image = self.device.screenshot_window_background()

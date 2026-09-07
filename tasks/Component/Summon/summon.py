@@ -82,7 +82,7 @@ class Summon(BaseTask, SummonAssets):
         召唤结束后回到 召唤主界面
         :return:
         """
-        logger.info('Summon one')
+        logger.info('[召唤] 召唤一次')
         self.wait_until_appear(self.I_BLUE_TICKET)
         while True:
             ticket_info = self.O_ONE_TICKET.ocr(self.device.image)
@@ -95,10 +95,10 @@ class Summon(BaseTask, SummonAssets):
                 if match:
                     ticket_info = int(match.group())
                 else:
-                    logger.warning(f'Invalid ticket_info value: {ticket_info}, expected a numeric string')
+                    logger.warning(f'[召唤] 无效的票数识别结果: {ticket_info}，应为数字字符串')
                     ticket_info = 0  # 将无效值设置为默认值 0
             if ticket_info <= 0:
-                logger.warning('There is no any one blue ticket')
+                logger.warning('[召唤] 已没有蓝票')
                 return
             # 某些情况下滑动异常
             self.S_RANDOM_SWIPE_1.name = 'S_RANDOM_SWIPE'
@@ -131,7 +131,7 @@ class Summon(BaseTask, SummonAssets):
                     else:
                         self.summon()
                     continue
-            logger.info('Summon one success')
+            logger.info('[召唤] 召唤一次成功')
 
 
     def back_summon_main(self):

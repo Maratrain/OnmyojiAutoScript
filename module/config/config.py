@@ -54,7 +54,7 @@ class Function:
             priority = int(priority)
         self.priority: int = priority
         if not isinstance(self.priority, int):
-            logger.error(f"Invalid priority: {self.priority}")
+            logger.error(f"[配置] 非法的优先级: {self.priority}")
 
         # self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         # self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
@@ -127,7 +127,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     def notifier(self):
         notifier = Notifier(self.model.script.error.notify_config, enable=self.model.script.error.notify_enable)
         notifier.config_name = self.config_name.upper()
-        logger.info(f'Notifier: {notifier.config_name}')
+        logger.info(f'[配置] 通知器: {notifier.config_name}')
         return notifier
 
     def gui_args(self, task: str) -> str:
@@ -148,7 +148,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         try:
             return self.data[task][group][argument]
         except:
-            logger.exception(f'have no arg {task}.{group}.{argument}')
+            logger.exception(f'未找到参数 {task}.{group}.{argument}')
 
     def set_arg(self, task: str, group: str, argument: str, value) -> None:
         """
@@ -162,7 +162,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         try:
             self.data[task][group][argument] = value
         except:
-            logger.exception(f'have no arg {task}.{group}.{argument}')
+            logger.exception(f'未找到参数 {task}.{group}.{argument}')
 
     def reload(self):
         self.model = ConfigModel(config_name=self.config_name)
@@ -204,7 +204,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 for i, obj in enumerate(pending_task):
                     if obj.command == self.model.running_task:
                         pending_task.insert(0, pending_task.pop(i))
-                        logger.info(f'{self.model.running_task} is running')
+                        logger.info(f'[配置] {self.model.running_task} 正在运行')
                         break
         if waiting_task:
             # waiting_task = f.apply(waiting_task)
@@ -223,7 +223,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         self.update_scheduler()
 
         if self.pending_task:
-            logger.info(f"Pending tasks: {[f.command for f in self.pending_task]}")
+            logger.info(f"[配置] 待运行任务: {[f.command for f in self.pending_task]}")
             task = self.pending_task[0]
             self.task = task
             logger.attr("Task", task)
@@ -231,14 +231,14 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         # 哪怕是没有任务，也要返回一个任务，这样才能保证调度器正常运行
         if self.waiting_task:
-            logger.info("No task pending")
+            logger.info("[配置] 没有待运行任务")
             task = copy.deepcopy(self.waiting_task[0])
             # task.next_run = (task.next_run + self.hoarding).replace(microsecond=0)
             logger.attr("Task", task)
             return task
         else:
-            logger.critical("No task waiting or pending")
-            logger.critical("Please enable at least one task")
+            logger.critical("[配置] 没有等待或待运行的任务")
+            logger.critical("[配置] 请至少启用一个任务")
             raise RequestHumanTakeover
 
     def get_schedule_data(self) -> dict[str, dict]:
@@ -279,7 +279,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         task_enable = self.model.deep_get(self.model, keys=f'{task}.scheduler.enable')
         if force_call or task_enable:
-            logger.info(f"Task call: {task}")
+            logger.info(f"[配置] 调用任务: {task}")
             next_run = datetime.now().replace(
                 microsecond=0
             )
@@ -287,7 +287,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             self.save()
             return True
         else:
-            logger.info(f"Task call: {task} (skipped because disabled by user)")
+            logger.info(f"[配置] 调用任务: {task}（用户已禁用，跳过）")
             return False
 
     def task_delay(self, task: str, start_time: datetime = None,
@@ -309,11 +309,11 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         task = convert_to_underscore(task)
         task_object = getattr(self.model, task, None)
         if not task_object:
-            logger.warning(f'No task named {task}')
+            logger.warning(f'[配置] 未找到任务 {task}')
             return
         scheduler = getattr(task_object, 'scheduler', None)
         if not scheduler:
-            logger.warning(f'No scheduler in {task}')
+            logger.warning(f'[配置] 任务 {task} 中没有调度器配置')
             return
 
         # 任务开始时间

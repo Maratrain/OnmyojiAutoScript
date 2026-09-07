@@ -27,21 +27,21 @@ class Notifier:
             for item in yaml.safe_load_all(_config):
                 config.update(item)
         except Exception as e:
-            logger.error("Fail to load onepush config, skip sending")
+            logger.error("[通知] onepush 配置加载失败，跳过发送")
             return
         self.config = config
         try:
             # 获取provider
             self.provider_name: str = self.config.pop("provider", None)
             if self.provider_name is None:
-                logger.info("No provider specified, skip sending")
+                logger.info("[通知] 未指定 provider，跳过发送")
                 return
             # 获取notifier
             self.notifier: Provider = get_notifier(self.provider_name)
             # 获取notifier的必填参数
             self.required: list[str] = self.notifier.params["required"]
         except OnePushException:
-            logger.exception("Init notifier failed")
+            logger.exception("[通知] 通知器初始化失败")
             return
         except Exception as e:
             logger.exception(e)
@@ -57,7 +57,7 @@ class Notifier:
         for key in self.required:
             if key not in self.config:
                 logger.warning(
-                    f"Notifier {self.notifier} require param '{key}' but not provided"
+                    f"[通知] {self.notifier} 缺少必填参数 '{key}'"
                 )
 
 
@@ -81,28 +81,28 @@ class Notifier:
             resp = self.notifier.notify(**self.config)
             if isinstance(resp, Response):
                 if resp.status_code != 200:
-                    logger.warning("Push notify failed!")
-                    logger.warning(f"HTTP Code:{resp.status_code}")
+                    logger.warning("[通知] 推送通知失败")
+                    logger.warning(f"[通知] HTTP Code: {resp.status_code}")
                     return False
                 else:
                     if self.provider_name.lower() == "gocqhttp":
                         return_data: dict = resp.json()
                         if return_data["status"] == "failed":
-                            logger.warning("Push notify failed!")
+                            logger.warning("[通知] 推送通知失败")
                             logger.warning(
-                                f"Return message:{return_data['wording']}")
+                                f"[通知] 返回消息: {return_data['wording']}")
                             return False
         except SMTPResponseException:
-            logger.warning("Appear SMTPResponseException")
+            logger.warning("[通知] 出现 SMTPResponseException 异常")
             pass
         except OnePushException:
-            logger.exception("Push notify failed")
+            logger.exception("[通知] 推送通知失败")
             return False
         except Exception as e:
             logger.exception(e)
             return False
 
-        logger.info("Push notify success")
+        logger.info("[通知] 推送通知成功")
         return True
 
 

@@ -26,7 +26,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, PetsAssets, ):
         self.ui_click(self.I_UI_BACK_YELLOW, self.I_CHECK_MAIN)
         # 宠物屋测试
         self.ui_click(self.I_PET_HOUSE, self.I_PET_CLAW)
-        logger.info('Test Success')
+        logger.info('[皮肤] 测试成功')
 
 
 if __name__ == '__main__':

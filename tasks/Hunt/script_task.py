@@ -68,7 +68,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
         # 如果时间在可执行时间(麒麟日6:00、阴界日19:00)之前则设定时间为当天的自定义时间，返回False
         # 如果是在可执行时间则返回True
         if self.kirin_day:
-            logger.info('Today is the Kirin day')
+            logger.info('今天是麒麟狩猎日')
             if now.time() < time(6, 0):
                 self.custom_next_run(task='Hunt', custom_time=self.con_time.kirin_time, time_delta=0)
                 raise TaskEnd('Hunt')
@@ -79,7 +79,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
             else:
                 return True
         else:
-            logger.info('Today is the Netherworld day')
+            logger.info('今天是阴界之门狩猎日')
             if now.time() < time(17, 0):
                 self.custom_next_run(task='Hunt', custom_time=self.con_time.netherworld_time, time_delta=0)
                 raise TaskEnd('Hunt')
@@ -93,14 +93,14 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
     def plan_tomorrow_hunt(self):
         # 安排次日狩猎战，便于复用
         if self.tomorrow_kirin_day:
-            logger.info('Tomorrow is the Kirin day')
+            logger.info('明天是麒麟狩猎日')
             self.custom_next_run(task='Hunt', custom_time=self.con_time.kirin_time, time_delta=1)
         else:
-            logger.info('Tomorrow is the Netherworld day')
+            logger.info('明天是阴界之门狩猎日')
             self.custom_next_run(task='Hunt', custom_time=self.con_time.netherworld_time, time_delta=1)
 
     def kirin(self):
-        logger.hr('kirin', 2)
+        logger.hr('麒麟', 2)
         while 1:
             self.screenshot()
             if self.appear(self.I_PREPARE_HIGHLIGHT):
@@ -111,10 +111,10 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
                 continue
             if self.appear(self.I_KIRIN_END):
                 # 今日已挑战
-                logger.warning('Today have already challenged the Kirin')
+                logger.warning('今天已经挑战过麒麟')
                 self.ui_click_until_disappear(self.I_UI_BACK_YELLOW)
                 return
-        logger.info('Start battle')
+        logger.info('开始战斗')
         self.run_general_battle(
             self.config.hunt.kirin_battle_config,
             battle_key="hunt_kirin",
@@ -122,7 +122,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
         )
 
     def netherworld(self):
-        logger.hr('netherworld', 2)
+        logger.hr('阴界之门', 2)
         while 1:
             self.screenshot()
             if self.is_in_room(False):
@@ -140,10 +140,10 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
                 continue
             if self.appear(self.I_NW_DONE):
                 # 今日已挑战
-                logger.warning('Today have already challenged the Netherworld')
+                logger.warning('今天已经挑战过阴界之门')
                 self.ui_click_until_disappear(self.I_UI_BACK_RED)
                 return
-        logger.info('Start battle')
+        logger.info('开始战斗')
         self.run_general_battle(
             self.config.hunt.netherworld_battle_config,
             battle_key="hunt_netherworld",

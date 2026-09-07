@@ -56,7 +56,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             case UserStatus.MEMBER: success = self.run_member()
             case UserStatus.ALONE: self.run_alone()
             case UserStatus.WILD: self.run_wild()
-            case _: logger.error('Unknown user status')
+            case _: logger.error('[日轮之陨] 未知的用户身份')
 
         # 下一次运行时间
         if success:
@@ -67,7 +67,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         raise TaskEnd
 
     def fallen_sun_enter(self) -> bool:
-        logger.info('Enter fallen_sun')
+        logger.info('[日轮之陨] 进入日轮之陨')
         while True:
             self.screenshot()
             if self.appear(self.I_FORM_TEAM):
@@ -91,7 +91,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         :param lock:
         :return:
         """
-        logger.info('Check lock: %s', lock)
+        logger.info('检查锁定: %s', lock)
         if lock:
             while 1:
                 self.screenshot()
@@ -108,14 +108,14 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     continue
 
     def run_leader(self):
-        logger.info('Start run leader')
+        logger.info('[日轮之陨] 开始队长流程')
         self.goto_page(page_soul_zones)
         self.fallen_sun_enter()
         layer = self.config.fallen_sun.fallen_sun_config.layer
         self.check_layer(layer)
         self.check_lock(self.config.fallen_sun.general_battle_config.lock_team_enable)
         # 创建队伍
-        logger.info('Create team')
+        logger.info('创建队伍')
         while 1:
             self.screenshot()
             if self.appear(self.I_CHECK_TEAM):
@@ -144,12 +144,12 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('FallenSun count limit out')
+                    logger.info('[日轮之陨] 已达到次数上限')
                     break
 
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('FallenSun time limit out')
+                    logger.info('[日轮之陨] 已达到时间上限')
                     break
 
             # 如果没有进入房间那就不需要后面的邀请
@@ -160,7 +160,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 if self.appear(self.I_MATCHING) or self.appear(self.I_CHECK_EXPLORATION):
                     sleep(0.5)
                     if self.appear(self.I_MATCHING) or self.appear(self.I_CHECK_EXPLORATION):
-                        logger.warning('FallenSun task failed')
+                        logger.warning('[日轮之陨] 任务失败')
                         success = False
                         break
                 continue
@@ -175,14 +175,14 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     )
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this fallen_sun task')
+                    logger.warning('[日轮之陨] 邀请失败，退出本次日轮之陨任务')
                     success = False
                     break
 
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self.config.fallen_sun.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this fallen_sun task')
+                    logger.warning('[日轮之陨] 邀请失败，退出本次日轮之陨任务')
                     success = False
                     break
                 else:
@@ -208,7 +208,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_member(self):
-        logger.info('Start run member')
+        logger.info('[日轮之陨] 开始队员流程')
         # self.goto_page(page_soul_zones)
         # self.fallen_sun_enter()
         # self.check_lock(self.config.fallen_sun.general_battle_config.lock_team_enable)
@@ -223,10 +223,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 continue
 
             if self.current_count >= self.limit_count:
-                logger.info('FallenSun count limit out')
+                logger.info('[日轮之陨] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('FallenSun time limit out')
+                logger.info('[日轮之陨] 已达到时间上限')
                 break
 
             if self.check_then_accept():
@@ -266,7 +266,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return True
 
     def run_alone(self):
-        logger.info('Start run alone')
+        logger.info('[日轮之陨] 开始单人流程')
         self.goto_page(page_soul_zones)
         self.fallen_sun_enter()
         layer = self.config.fallen_sun.fallen_sun_config.layer
@@ -289,10 +289,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 continue
 
             if self.current_count >= self.limit_count:
-                logger.info('FallenSun count limit out')
+                logger.info('[日轮之陨] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('FallenSun time limit out')
+                logger.info('[日轮之陨] 已达到时间上限')
                 break
 
             # 点击挑战
@@ -313,7 +313,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         self.goto_page(page_main)
 
     def run_wild(self):
-        logger.error('Wild mode is not implemented')
+        logger.error('[日轮之陨] 暂未实现野队模式')
         pass
 
 

@@ -48,7 +48,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
         while 1:
             self.screenshot()
             if self.appear(self.I_GR_FIRE):
-                logger.info('Enter GoryouRealm')
+                logger.info('[御灵] 进入御灵')
                 break
             if self.click(match_click[goryou_class], interval=1):
                 continue
@@ -57,10 +57,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
         while True:
             self.screenshot()
             if self.current_count >= con.goryou_config.limit_count:
-                logger.info('GoryouRealm count limit out')
+                logger.info('[御灵] 已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('GoryouRealm time limit out')
+                logger.info('[御灵] 已达到时间上限')
                 break
             if not self.enter_battle():
                 break
@@ -79,7 +79,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
             if self.get_current_page() in (page_battle_prepare, page_battle):
                 return True
             if click_max_cnt <= 0:
-                logger.info('Maybe tickets not enough, exit')
+                logger.info('[御灵] 可能挑战券不足，退出')
                 break
             if self.appear_then_click(self.I_GR_FIRE, interval=2):
                 click_max_cnt -= 1

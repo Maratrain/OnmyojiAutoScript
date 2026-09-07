@@ -34,7 +34,7 @@ def cleanup_logs(log_dir: str = "./log", keep_days: int = 7):
                 if os.path.getmtime(full_path) < keep_days_ago_ts:
                     os.remove(full_path)
             except OSError as e:
-                logger.error(f"delete file '{full_path}' error: {e}")
+                logger.error(f"删除文件 '{full_path}' 失败: {e}")
         elif os.path.isdir(full_path):
             # 检查是否为 error 目录
             if name != 'error':
@@ -49,7 +49,7 @@ def cleanup_logs(log_dir: str = "./log", keep_days: int = 7):
                         # 递归删除整个目录及其内容
                         shutil.rmtree(error_dir_path)
                 except OSError as e:
-                    logger.error(f"delete dir '{error_dir_path}' error: {e}")
+                    logger.error(f"删除目录 '{error_dir_path}' 失败: {e}")
 
 
 def empty_function(*args, **kwargs):
@@ -313,7 +313,7 @@ def set_file_logger(name=pyw_name, *, do_cleanup=False):
     # ---------- 可选：清理旧文件 ----------
     if do_cleanup:
         cleanup_logs()
-        logger.info("Log cleanup finished")
+        logger.info("日志清理完成")
 
 
 # ======================================================================================================================
@@ -507,7 +507,39 @@ def error_convert(func):
     return error_wrapper
 
 
+def error_context(title, reason, impact, action, exc=None, level=logging.ERROR, with_traceback=None):
+    """输出包含原因、影响和处理建议的统一中文错误信息。
+
+    ``with_traceback`` 为 ``None`` 时，保持原有行为：传入异常对象则输出完整堆栈。
+    """
+    message = '\n'.join([
+        f'[错误] {title}',
+        f'原因：{reason}',
+        f'影响：{impact}',
+        f'建议：{action}',
+    ])
+    if exc is not None:
+        message += f'\n异常：{type(exc).__name__}: {exc}'
+    if with_traceback is None:
+        with_traceback = exc is not None
+    logger.log(level, message, exc_info=with_traceback)
+
+
+def exception_context(title, exc, impact, action, level=logging.ERROR):
+    """输出未知异常的统一中文错误信息并保留完整堆栈。"""
+    error_context(
+        title=title,
+        reason=f'程序抛出了 {type(exc).__name__}，具体原因需要结合下方堆栈定位。',
+        impact=impact,
+        action=action,
+        exc=exc,
+        level=level,
+    )
+
+
 logger.error = error_convert(logger.error)
+logger.error_context = error_context
+logger.exception_context = exception_context
 logger.hr = hr
 logger.attr = attr
 logger.attr_align = attr_align
@@ -518,4 +550,4 @@ logger.print = print
 logger.log_file: str
 
 logger.set_file_logger()
-logger.hr('Start', level=0)
+logger.hr('启动', level=0)

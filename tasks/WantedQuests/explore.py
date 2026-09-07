@@ -47,7 +47,7 @@ class WQExplore(ExplorationScriptTask, HighLight):
         return fired
 
     def explore(self, goto: RuleImage, num: int):
-        logger.info(f'Start exploring with number: {num}')
+        logger.info(f'[悬赏] 开始探索，需要战斗次数: {num}')
         self._max_cnt = num
         self._explor_cnt = 0
         while True:

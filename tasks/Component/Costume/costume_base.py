@@ -115,7 +115,7 @@ class CostumeBase:
     def check_costume_main(self, main_type: MainType):
         if main_type == MainType.COSTUME_MAIN:
             return
-        logger.info(f'Switch main costume to {main_type}')
+        logger.info(f'[皮肤] 切换庭院皮肤为 {main_type}')
         costume_assets = CostumeAssets()
         for key, value in main_costume_model[main_type].items():
             assert_value: RuleImage = getattr(costume_assets, value, None)
@@ -126,7 +126,7 @@ class CostumeBase:
     def check_costume_battle(self, battle_type: BattleType):
         if battle_type == BattleType.COSTUME_BATTLE_DEFAULT:
             return
-        logger.info(f'Switch battle theme {battle_type}')
+        logger.info(f'[皮肤] 切换战斗主题为 {battle_type}')
         costume_battle_assets = CostumeBattleAssets()
         for key, value in battle_theme_model[battle_type].items():
             assert_value: RuleImage = getattr(costume_battle_assets, value)
@@ -139,7 +139,7 @@ class CostumeBase:
     def check_costume_shikigami(self, shikigami_type: ShikigamiType):
         if shikigami_type == ShikigamiType.COSTUME_SHIKIGAMI_DEFAULT:
             return
-        logger.info(f'Switch shikigami theme {shikigami_type}')
+        logger.info(f'[皮肤] 切换幕间主题为 {shikigami_type}')
         shikigami_assets = CostumeShikigamiAssets()
         model = shikigami_costume_model.get(shikigami_type, {})
         for key, value in model.items():
@@ -153,7 +153,7 @@ class CostumeBase:
     def check_custom_courtyard_affair(self, courtyard_affair_type: CourtyardAffairType):
         if courtyard_affair_type == CourtyardAffairType.CUSTOM_COURTYARD_AFFAIR_DEFAULT:
             return
-        logger.info(f'Switch courtyard affair {courtyard_affair_type}')
+        logger.info(f'[皮肤] 切换庭院事务皮肤为 {courtyard_affair_type}')
         courtyard_affair_assets = CustomCourtyardAffairAssets()
         for key, value in courtyard_affair_model[courtyard_affair_type].items():
             assert_value: RuleImage = getattr(courtyard_affair_assets, value)

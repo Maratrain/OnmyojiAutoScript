@@ -47,7 +47,7 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
             if self.appear_then_click(select_btn, interval=1):
                 if self.appear(self.I_SKILL101):
                     self.cnt_skill101 += 1
-                    logger.info(f'Skill101 level: {self.cnt_skill101}')
+                    logger.info(f'[六道-月之海] 柔风等级: {self.cnt_skill101}')
         return BattleAction.CONTINUE
 
     def _handle_reward(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
@@ -63,7 +63,7 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
                 return BattleAction.CONTINUE
         if self.appear(self.I_COIN, interval=2):
             self.coin_num += self.get_coin_num(self.I_COIN)
-            logger.info(f'Current coin: {self.coin_num}')
+            logger.info(f'[六道-月之海] 当前钱币: {self.coin_num}')
         self.click(pages.random_click(), interval=1.2)
         if context.last_page != pages.page_reward:
             self.device.click_record_clear()

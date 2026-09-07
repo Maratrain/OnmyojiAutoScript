@@ -51,7 +51,7 @@ def read_file(file: str):
     _, ext = os.path.splitext(file)
     lock = FileLock(f"{file}.lock")
     with lock:
-        logger.debug(f'read: {file}')
+        logger.debug(f'[配置] 正在读取 {file}')
         if ext == '.yaml':
             with open(file, mode='r', encoding='utf-8') as f:
                 s = f.read()
@@ -66,7 +66,7 @@ def read_file(file: str):
                 s = f.read()
                 return json.loads(s)
         else:
-            logger.warning(f'Unsupported config file extension: {ext}')
+            logger.warning(f'[配置] 不支持的配置文件后缀: {ext}')
             return {}
 
 def write_file(file: str, data):
@@ -84,7 +84,7 @@ def write_file(file: str, data):
     _, ext = os.path.splitext(file)
     lock = FileLock(f"{file}.lock")
     with lock:
-        logger.debug(f'write: {file}')
+        logger.debug(f'[配置] 正在写入 {file}')
         if ext == '.yaml':
             with atomic_write(file, overwrite=True, encoding='utf-8', newline='') as f:
                 if isinstance(data, list):
@@ -98,7 +98,7 @@ def write_file(file: str, data):
                 s = json.dumps(data, indent=2, ensure_ascii=False, sort_keys=False, default=str)
                 f.write(s)
         else:
-            logger.warning(f'Unsupported config file extension: {ext}')
+            logger.warning(f'[配置] 不支持的配置文件后缀: {ext}')
 
 
 def deep_iter(data, depth=0, current_depth=1):

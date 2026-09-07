@@ -37,7 +37,7 @@ class Full(BaseCor):
             return 0, 0, 0, 0
 
         index_list = self.filter(boxed_results, keyword)
-        logger.info(f"OCR [{self.name}] detected in {index_list}")
+        logger.info(f"[OCR] [{self.name}] 检测命中: {index_list}")
         # 如果一个都没有匹配到
         if not index_list:
             return 0, 0, 0, 0
@@ -56,7 +56,7 @@ class Full(BaseCor):
             box = boxed_results[index_list[0]].box
             self.area = box[0, 0]+self.roi[0], box[0, 1]+self.roi[1], box[1, 0] - box[0, 0], box[2, 1] - box[0, 1]
 
-        logger.info(f"OCR [{self.name}] detected in {self.area}")
+        logger.info(f"[OCR] [{self.name}] 检测命中区域: {self.area}")
         return self.area
 
 class Single(BaseCor):
@@ -80,7 +80,7 @@ class Single(BaseCor):
             # 如果没有识别到，这个时候考虑到可能是竖方向的文本, 使用detect_and_ocr来进行识别
             result = self.detect_and_ocr(image)
             if not result:
-                logger.info(f"[{self.name}]: No text detected in ROI")
+                logger.info(f"[OCR] [{self.name}]: ROI 内未识别到文本")
                 return ""
             if result[0].ocr_text != "" and result[0].score > self.score:
                 return result[0].ocr_text
@@ -110,7 +110,7 @@ class Digit(Single):
         prev = result
         result = int(result) if result else 0
         if str(result) != prev:
-            logger.warning(f'OCR {self.name}: Result "{prev}" is revised to "{result}"')
+            logger.warning(f'[OCR] {self.name}: 结果 "{prev}" 已修正为 "{result}"')
 
         return result
 
@@ -153,10 +153,10 @@ class DigitCounter(Single):
             # 不知道为什么加了这一句，妈的
             # current = min(current, total)
             if current > total:
-                logger.warning(f'[{cls.name}]: Current {current} is greater than total {total}')
+                logger.warning(f'[{cls.name}]: 当前值 {current} 大于总数 {total}')
             return current, total - current, total
         else:
-            logger.warning(f'Unexpected ocr result: {result}')
+            logger.warning(f'[OCR] 异常的识别结果: {result}')
             return 0, 0, 0
 
 
@@ -193,7 +193,7 @@ class Duration(Single):
             result = [int(s) for s in result.groups()]
             return timedelta(hours=result[0], minutes=result[1], seconds=result[2])
         else:
-            logger.warning(f'Invalid duration: {string}')
+            logger.warning(f'[OCR] 无效的时长: {string}')
             return timedelta(hours=0, minutes=0, seconds=0)
 
     def ocr_duration(self, image) -> timedelta:
@@ -234,7 +234,7 @@ class Quantity(BaseCor):
         try:
             result = int(result)
         except ValueError:
-            logger.warning(f'[{self.name}]: Invalid quantity: {result}')
+            logger.warning(f'[{self.name}]: 无效的数量: {result}')
             result = 0
         return result
 
@@ -246,7 +246,7 @@ class Quantity(BaseCor):
         """
         boxed_results = self.detect_and_ocr(image)
         if not boxed_results:
-            logger.warning(f'[{self.name}]: No text detected')
+            logger.warning(f'[{self.name}]: 未识别到文本')
             return 0
 
         box = boxed_results[0].box

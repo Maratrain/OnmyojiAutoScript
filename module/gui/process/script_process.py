@@ -47,7 +47,7 @@ class ScriptProcess(Process):
             script.init_server(self.port)
             script.run_server()
         except:
-            logger.exception(f'run script {self.config} error')
+            logger.exception(f'运行脚本 {self.config} 失败')
             raise
 
     def stop(self) -> None:
@@ -58,7 +58,7 @@ class ScriptProcess(Process):
         """
         self.terminate()
         self.join()
-        logger.info(f'stop script {self.config}')
+        logger.info(f'[GUI] 已停止脚本 {self.config}')
 
     # def restart(self) -> None:
     #     """
@@ -78,7 +78,7 @@ class ScriptProcess(Process):
             set_file_logger(name=self.config)
             set_func_logger(self.log_queue.put)
         except:
-            logger.exception(f'start log error')
+            logger.exception(f'启动日志失败')
             raise
 
 
@@ -89,5 +89,5 @@ class ScriptProcess(Process):
         """
         msg = {self.config: data}
         self.update_queue.put(msg)
-        logger.info(f'Update tasks {self.config}')
+        logger.info(f'[GUI] 已更新任务 {self.config}')
 

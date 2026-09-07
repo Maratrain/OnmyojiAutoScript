@@ -94,14 +94,14 @@ class Translator(QObject):
         """
         if language == "简体中文":
             if not self.translator.load(self.path_zh_CN):
-                logger.error("load language 简体中文 failed!")
+                logger.error("[GUI] 加载语言 简体中文 失败")
             QGuiApplication.installTranslator(self.translator)
             self._engine.retranslate()
             return
 
         if language == "English":
             if not self.translator.load(self.path_en_US):
-                logger.error("load language English failed!")
+                logger.error("[GUI] 加载语言 English 失败")
             QGuiApplication.installTranslator(self.translator)
             self._engine.retranslate()
             return

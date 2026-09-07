@@ -32,10 +32,10 @@ class ScriptTask(GameUi, SwitchSoul):
         cnt = 0
         while True:
             if cnt >= _config.six_realms_gate.limit_count:
-                logger.info('Run out of count, exit')
+                logger.info('[六道] 次数已用完，退出')
                 break
             if datetime.now() - self.start_time >= _config.six_realms_gate.limit_time_v:
-                logger.info('Run out of time, exit')
+                logger.info('[六道] 时间已用完，退出')
                 break
             match _config.six_realms_gate.six_realms_type:
                 case SixRealmsType.MOON_SEA:

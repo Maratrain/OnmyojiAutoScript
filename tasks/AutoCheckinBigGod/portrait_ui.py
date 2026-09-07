@@ -66,7 +66,7 @@ class PortraitUIMixin(BaseTask):
         component = self._resolve_main_activity(package)
         if component:
             try:
-                logger.info(f'am start {component}...')
+                logger.info(f'正在执行 am start {component}...')
                 self._adb_shell(['am', 'start', '-n', component])
             except Exception as e:
                 logger.warning(f'am start 失败: {e}, 回退 monkey')

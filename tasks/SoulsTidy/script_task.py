@@ -48,7 +48,7 @@ class ScriptTask(GameUi, SoulsTidyAssets):
                 continue
         # 御魂超过上限的提示
         self.ocr_appear_click(self.O_ST_OVERFLOW)
-        logger.info('Enter souls page')
+        logger.info('进入御魂界面')
 
     def greed_maneki(self):
         """
@@ -57,10 +57,10 @@ class ScriptTask(GameUi, SoulsTidyAssets):
         """
         # 先是贪吃鬼
         if self.config.souls_tidy.simple_tidy.enable_greed:
-            logger.hr('Greed Ghost')
+            logger.hr('贪吃鬼')
             self.ui_click(self.I_ST_GREED, self.I_ST_GREED_HABIT)
             self.ui_click(self.I_ST_GREED_HABIT, self.I_ST_FEED_NOW)
-            logger.info('Feed greed ghost')
+            logger.info('喂养贪吃鬼')
             feed_count = 0
             while 1:
                 self.screenshot()
@@ -74,7 +74,7 @@ class ScriptTask(GameUi, SoulsTidyAssets):
                 if self.appear_then_click(self.I_ST_FEED_NOW, interval=3.5):
                     feed_count += 1
                     continue
-            logger.info('Feed greed ghost done')
+            logger.info('喂养贪吃鬼完成')
         # 关闭贪吃鬼, 进入奉纳
         while 1:
             self.screenshot()
@@ -94,7 +94,7 @@ class ScriptTask(GameUi, SoulsTidyAssets):
             if self.appear_then_click(self.I_ST_BONGNA, interval=1, threshold=0.6):
                 continue
         if self.config.souls_tidy.simple_tidy.enable_maneki:
-            logger.hr('Enter bongna')
+            logger.hr('进入奉纳')
             # 确保已弃置界面
             while True:
                 self.screenshot()
@@ -110,26 +110,26 @@ class ScriptTask(GameUi, SoulsTidyAssets):
             while True:
                 found = self.find_discard_souls()
                 if not found:
-                    logger.info('No discardable soul found, exit')
+                    logger.info('未找到可弃置的御魂，退出')
                     break
                 self.click(self.L_ONE, interval=2.5)
                 self.screenshot()
                 gold_amount = self.O_ST_GOLD.ocr(self.device.image)
                 if not isinstance(gold_amount, int) or gold_amount == 0:
-                    logger.warning('Gold amount not int or 0, skip')
+                    logger.warning('金币数量不是整数或为0，跳过')
                     continue
                 # 点击奉纳收取奖励
                 if not self.appear(self.I_ST_DONATE):
-                    logger.warning('Donate button not appear, skip')
+                    logger.warning('未出现奉纳按钮，跳过')
                     continue
                 self.donate_and_collect_reward()
-                logger.info('Donate one')
+                logger.info('奉纳一次')
 
-        logger.info('Bongna done')
+        logger.info('奉纳完成')
 
     def pre_confirm(self):
         """前置确认：确保是按照等级来排序的"""
-        logger.info('Sort by level')
+        logger.info('按等级排序')
         while 1:
             self.screenshot()
             # 防止因为好友消息导致误点击到好友聊天界面
@@ -163,16 +163,16 @@ class ScriptTask(GameUi, SoulsTidyAssets):
             else:
                 continue
             if self.appear(self.I_ST_SOUL_STACK) or self.appear(self.I_ST_SOUL_STACK_1):
-                logger.info('Find stacked discard souls')
+                logger.info('找到叠放的可弃置御魂')
                 return True
             if self.appear(self.I_ST_LEVEL_0):
-                logger.info('Find level 0 discard souls')
+                logger.info('找到0级可弃置御魂')
                 return True
             first_soul_level = self.O_ST_FIRST_LEVEL.ocr(self.device.image)
             if not first_soul_level or first_soul_level.strip() == '':
                 continue
             if first_soul_level.strip() in ['+0', '古']:
-                logger.info('Find level 0 discard souls')
+                logger.info('找到0级可弃置御魂')
                 return True
         return False
 
@@ -187,17 +187,17 @@ class ScriptTask(GameUi, SoulsTidyAssets):
                 continue
             # 出现神赐, 就点击然后消失，
             if self.appear(self.I_ST_GOD_PRESENT):
-                logger.info('God present appear')
+                logger.info('出现神赐')
                 self.click(self.C_ST_GOD_PRSENT, interval=2)
                 continue
             if self.appear(self.I_ST_LUCK):
                 # 出现吉运
-                logger.info('luck appear')
+                logger.info('出现吉运')
                 self.click(self.C_ST_SOUL_OFFERING_REWARD, interval=2)
                 continue
             if self.appear(self.I_ST_SMALL_LUCK):
                 # 出现小吉运
-                logger.info('small luck appear')
+                logger.info('出现小吉运')
                 self.click(self.C_ST_SOUL_OFFERING_REWARD, interval=2)
                 continue
             if self.appear_then_click(self.I_ST_DONATE, interval=5.5):

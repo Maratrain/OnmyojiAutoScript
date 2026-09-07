@@ -167,7 +167,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         """
         startupinfo = cls.build_startupinfo(show_window=show_window)
         command = cls.normalize_command(command)
-        logger.info(f'Execute: {command}')
+        logger.info(f'[设备-平台] 执行命令: {command}')
         return subprocess.Popen(
             command,
             close_fds=True,
@@ -190,7 +190,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         for proc in psutil.process_iter():
             cmdline = DataProcessInfo(proc=proc, pid=proc.pid).cmdline
             if re.search(regex, cmdline):
-                logger.info(f'Kill emulator: {cmdline}')
+                logger.info(f'[设备-平台] 结束模拟器进程: {cmdline}')
                 proc.kill()
                 count += 1
 
@@ -216,7 +216,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             try:
                 port = int(env)
             except ValueError:
-                logger.warning(f'Invalid environ variable ANDROID_ADB_SERVER_PORT={env}, using default port')
+                logger.warning(f'[设备-平台] 环境变量 ANDROID_ADB_SERVER_PORT={env} 无效，使用默认端口')
 
         devices = {}
         try:
@@ -231,14 +231,14 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                         continue
                     devices[parts[0]] = parts[1]
         except Exception as e:
-            logger.info(f'Probe adb devices failed: {e}')
+            logger.info(f'[设备-平台] 探测 ADB 设备失败: {e}')
 
         return devices
 
     def refresh_target_instance(self, reason: str = ''):
         instance = self.refresh_emulator_instance(reason=reason)
         if instance is None:
-            logger.error('[emu-instance] target instance not found')
+            logger.error('[模拟器实例] 未找到目标实例')
         return instance
 
     def probe_target_instance_online(self) -> bool | None:
@@ -255,7 +255,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
 
         instance = self.emulator_instance
         if instance is None:
-            logger.warning('Probe target emulator failed: target instance not found')
+            logger.warning('[设备-平台] 探测目标模拟器失败: 未找到目标实例')
             return None
 
         devices = self.list_adb_device_status()
@@ -275,15 +275,15 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         try:
             devices = self.list_device().select(serial=instance.serial)
         except Exception as e:
-            logger.warning(f'{log_prefix} online check failed: serial={instance.serial}, error={e}')
+            logger.warning(f'{log_prefix} 在线检查失败: serial={instance.serial}, error={e}')
             return False
 
         if not devices:
-            logger.info(f'{log_prefix} serial not in adb: serial={instance.serial}')
+            logger.info(f'{log_prefix} serial 不在 ADB 设备列表: serial={instance.serial}')
             return False
 
         device: AdbDeviceWithStatus = devices.first_or_none()
-        logger.info(f'{log_prefix} adb status: serial={instance.serial}, status={device.status}')
+        logger.info(f'{log_prefix} ADB 状态: serial={instance.serial}, status={device.status}')
         return device.status == 'device'
 
     def _get_handler(self, instance: EmulatorInstance):
@@ -339,7 +339,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         state.interval.wait()
         state.interval.reset()
         if state.timeout.reached():
-            logger.warning('Emulator start timeout')
+            logger.warning('[设备-平台] 等待模拟器启动超时')
             return False
         return True
 
@@ -364,7 +364,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             state,
             'hidden_window',
             'info',
-            f'[emu-start] hide instance window: serial={state.serial}, name={target_window_name}'
+            f'[模拟器启动] 隐藏模拟器窗口: serial={state.serial}, name={target_window_name}'
         )
         state.window_hidden = True
 
@@ -389,7 +389,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             state.new_window = 0
             return
 
-        logger.info(f'New window showing up: {state.new_window}, focus back')
+        logger.info(f'[设备-平台] 新窗口弹出: {state.new_window}，恢复原焦点')
         set_focus_window(state.current_window)
 
     def _try_connect_emulator_adb(self, serial: str) -> bool:
@@ -419,7 +419,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         Returns:
             bool: 设备可继续后续检查时返回 True，否则返回 False。
         """
-        logger.info(f'Try to connect emulator, remain[{state.timeout.remain():.1f}s]')
+        logger.info(f'[设备-平台] 尝试连接模拟器，剩余[{state.timeout.remain():.1f}s]')
         try:
             devices = self.list_device().select(serial=state.serial)
             if not devices:
@@ -432,14 +432,14 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 self._try_connect_emulator_adb(state.serial)
                 return False
 
-            self._log_emulator_watch_once(state, 'online', 'info', f'Emulator online: {device}')
+            self._log_emulator_watch_once(state, 'online', 'info', f'模拟器已在线: {device}')
             return True
         except Exception as e:
             self._log_emulator_watch_once(
                 state,
                 'adb_transient',
                 'warning',
-                f'[emu-start] transient adb error, keep waiting: serial={state.serial}, error={e}'
+                f'[模拟器启动] ADB 暂时性错误，继续等待: serial={state.serial}, error={e}'
             )
             return False
 
@@ -459,7 +459,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             logger.info(e)
             return False
 
-        self._log_emulator_watch_once(state, 'ping', 'info', f'Command ping: {pong}')
+        self._log_emulator_watch_once(state, 'ping', 'info', f'命令 ping: {pong}')
         return True
 
     def _ensure_emulator_package_ready(self, state: EmulatorStartWatchState) -> bool:
@@ -476,7 +476,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         if not packages:
             return False
 
-        self._log_emulator_watch_once(state, 'package', 'info', f'Found azurlane packages: {packages}')
+        self._log_emulator_watch_once(state, 'package', 'info', f'找到游戏包名: {packages}')
         return True
 
     def _is_emulator_window_ready(self, state: EmulatorStartWatchState) -> bool:
@@ -512,16 +512,16 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         """
         emulator_window_minimize = self.config.script.device.emulator_window_minimize
         if emulator_window_minimize:
-            logger.info(f'Minimize new emulator window: {emulator_window_minimize}')
+            logger.info(f'[设备-平台] 最小化新模拟器窗口: {emulator_window_minimize}')
         if self.config.script.device.run_background_only:
-            logger.info(f'run background only: {self.config.script.device.run_background_only}')
+            logger.info(f'[设备-平台] 仅后台运行: {self.config.script.device.run_background_only}')
             if not state.window_hidden:
                 target_window_name = self.config.script.device.handle
                 self._log_emulator_watch_once(
                     state,
                     'background_window_not_found',
                     'warning',
-                    f'[emu-start] background window not found before startup completed: '
+                    f'[模拟器启动] 启动完成前未找到后台窗口: '
                     f'name={target_window_name!r}'
                 )
             return
@@ -529,7 +529,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             return
 
         sleep_time = 3
-        logger.info(f'Waiting {sleep_time} seconds before minimizing window')
+        logger.info(f'[设备-平台] 等待 {sleep_time} 秒后最小化窗口')
         Timer(sleep_time).wait()
         target_window_name = self.config.script.device.handle
         minimize_by_name(target_window_name)
@@ -584,7 +584,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         if instance is None:
             instance = self.emulator_instance
         if instance is None:
-            logger.error(f'Emulator function {func.__name__}() failed because no target instance was found')
+            logger.error(f'[设备-平台] 模拟器操作 {func.__name__}() 失败：未找到目标实例')
             return False
         try:
             result = func(instance)
@@ -593,13 +593,13 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             msg = str(e)
             # OSError: [WinError 740] 请求的操作需要提升。
             if 'WinError 740' in msg:
-                logger.error('To start/stop MumuAppPlayer, ALAS needs to be run as administrator')
+                logger.error('启动/停止 MumuAppPlayer 需要以管理员身份运行程序')
         except EmulatorUnknown as e:
             logger.error(e)
         except Exception as e:
             logger.exception(e)
 
-        logger.error(f'Emulator function {func.__name__}() failed')
+        logger.error(f'[设备-平台] 模拟器操作 {func.__name__}() 失败')
         return False
 
     def emulator_start_watch(self, instance: EmulatorInstance = None):
@@ -608,14 +608,14 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             bool: True if startup completed
                 False if timeout, unexpected stop, adb preemptive
         """
-        logger.hr('Emulator start', level=2)
+        logger.hr('启动模拟器', level=2)
         if instance is None:
             instance = self.emulator_instance
         if instance is None:
-            logger.error('[emu-start] watch failed: target instance not found')
+            logger.error('[模拟器启动] 监视失败: 未找到目标实例')
             return False
         state = self._build_emulator_watch_state(instance)
-        logger.info(f'Current window: {state.current_window}')
+        logger.info(f'[设备-平台] 当前窗口: {state.current_window}')
         while 1:
             if not self._wait_emulator_watch_tick(state):
                 return False
@@ -632,89 +632,89 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 break
 
         self._finalize_emulator_window(state)
-        logger.info('Emulator start completed')
+        logger.info('[设备-平台] 模拟器启动完成')
         return True
 
     def emulator_start(self):
-        logger.hr('Emulator start', level=1)
+        logger.hr('启动模拟器', level=1)
         max_attempts = 3
         for i in range(max_attempts):
             attempt = i + 1
-            logger.info(f'[emu-start] lock wait: attempt={attempt}/{max_attempts}')
+            logger.info(f'[模拟器启动] 等待锁: attempt={attempt}/{max_attempts}')
             with self.emulator_lifecycle_lock():
-                logger.info(f'[emu-start] lock acquired: attempt={attempt}/{max_attempts}')
-                instance = self.refresh_target_instance(reason=f'pre-start refresh attempt={attempt}')
+                logger.info(f'[模拟器启动] 已获取锁: attempt={attempt}/{max_attempts}')
+                instance = self.refresh_target_instance(reason=f'启动前刷新 attempt={attempt}')
                 if instance is None:
-                    logger.info('[emu-start] lock release: target instance not found')
+                    logger.info('[模拟器启动] 释放锁: 未找到目标实例')
                     return False
 
                 if self.is_instance_online(instance):
-                    logger.info(f'[emu-start] already online: serial={instance.serial}')
-                    logger.info('[emu-start] lock release: already online')
+                    logger.info(f'[模拟器启动] 已在线: serial={instance.serial}')
+                    logger.info('[模拟器启动] 释放锁: 已在线')
                     return True
 
                 if attempt > 1:
                     logger.warning(
-                        f'[emu-start] retry with stop: serial={instance.serial}, '
+                        f'[模拟器启动] 重试前先停止: serial={instance.serial}, '
                         f'attempt={attempt}/{max_attempts}'
                     )
                     if not self._emulator_function_wrapper(self._emulator_stop, instance):
-                        logger.info('[emu-start] lock release: stop failed')
+                        logger.info('[模拟器启动] 释放锁: 停止失败')
                         return False
-                    instance = self.refresh_target_instance(reason=f'post-stop refresh attempt={attempt}')
+                    instance = self.refresh_target_instance(reason=f'停止后刷新 attempt={attempt}')
                     if instance is None:
-                        logger.info('[emu-start] lock release: target missing after stop')
+                        logger.info('[模拟器启动] 释放锁: 停止后未找到目标实例')
                         return False
 
                 logger.info(
-                    f'[emu-start] start target: serial={instance.serial}, name={instance.name or "<default>"}, '
+                    f'[模拟器启动] 启动目标: serial={instance.serial}, name={instance.name or "<default>"}, '
                     f'type={instance.type}, attempt={attempt}/{max_attempts}'
                 )
                 if not self._emulator_function_wrapper(self._emulator_start, instance):
                     logger.warning(
-                        f'[emu-start] start command failed: serial={instance.serial}, '
+                        f'[模拟器启动] 启动命令失败: serial={instance.serial}, '
                         f'attempt={attempt}/{max_attempts}'
                     )
-                    logger.info('[emu-start] lock release: start failed')
+                    logger.info('[模拟器启动] 释放锁: 启动失败')
                     if attempt >= max_attempts:
                         logger.warning(
-                            f'[emu-start] final attempt failed, skip recovery stop: serial={instance.serial}'
+                            f'[模拟器启动] 最后一次尝试失败，跳过恢复性停止: serial={instance.serial}'
                         )
                         break
                     continue
                 logger.info(
-                    f'[emu-start] start submitted: serial={instance.serial}, '
+                    f'[模拟器启动] 启动命令已提交: serial={instance.serial}, '
                     f'attempt={attempt}/{max_attempts}'
                 )
-                logger.info('[emu-start] lock release: start submitted')
+                logger.info('[模拟器启动] 释放锁: 启动命令已提交')
 
             if self.emulator_start_watch(instance):
                 return True
             if attempt >= max_attempts:
                 logger.warning(
-                    f'[emu-start] final attempt failed, skip recovery stop: serial={instance.serial}'
+                    f'[模拟器启动] 最后一次尝试失败，跳过恢复性停止: serial={instance.serial}'
                 )
                 break
-            logger.attr(max_attempts - attempt, 'Failed to connect or start, try again')
+            logger.attr(max_attempts - attempt, '连接或启动失败，再次尝试')
 
-        logger.error(f'Failed to start emulator after {max_attempts} attempts')
+        logger.error(f'[设备-平台] 模拟器启动失败 {max_attempts} 次')
         return False
 
     def emulator_stop(self):
-        logger.hr('Emulator stop', level=1)
-        logger.info('[emu-stop] lock wait')
+        logger.hr('停止模拟器', level=1)
+        logger.info('[模拟器停止] 等待锁')
         with self.emulator_lifecycle_lock():
-            logger.info('[emu-stop] lock acquired')
-            instance = self.refresh_target_instance(reason='pre-stop refresh')
+            logger.info('[模拟器停止] 已获取锁')
+            instance = self.refresh_target_instance(reason='停止前刷新')
             if instance is None:
-                logger.info('[emu-stop] lock release: target instance not found')
+                logger.info('[模拟器停止] 释放锁: 未找到目标实例')
                 return False
             if not self._emulator_function_wrapper(self._emulator_stop, instance):
-                logger.info('[emu-stop] lock release: stop failed')
+                logger.info('[模拟器停止] 释放锁: 停止失败')
                 return False
 
-            logger.info(f'[emu-stop] stop submitted: serial={instance.serial}')
-            logger.info('[emu-stop] lock release: stop submitted')
+            logger.info(f'[模拟器停止] 停止命令已提交: serial={instance.serial}')
+            logger.info('[模拟器停止] 释放锁: 停止命令已提交')
             return True
 
 
