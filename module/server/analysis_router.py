@@ -196,6 +196,10 @@ TASK_NAME_CN = {
     "Slightly": "小事件",
     "Chess": "百鬼棋局",
     "NewbieStory": "新手剧情",
+    "Activity999": "999",
+    "OutingRitual": "出巡仪式",
+    "DivineBarrier": "神威破障",
+    "BudokaiTournament": "武道大会",
 }
 
 _I18N_LOCK = threading.Lock()

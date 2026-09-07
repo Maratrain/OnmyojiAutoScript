@@ -256,5 +256,13 @@
   "Chess": "百鬼棋局",
   "chess_config": "百鬼棋局配置",
   "NewbieStory": "新手剧情",
-  "newbie_story_config": "新手剧情配置"
+  "newbie_story_config": "新手剧情配置",
+  "Activity999": "999",
+  "activity_999_config": "999活动配置",
+  "OutingRitual": "出巡仪式",
+  "outing_ritual_config": "出巡仪式配置",
+  "DivineBarrier": "神威破障",
+  "divine_barrier_config": "神威破障配置",
+  "BudokaiTournament": "武道大会",
+  "budokai_tournament_config": "武道大会配置"
 }

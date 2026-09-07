@@ -38,7 +38,7 @@ class TicketsNotEnough(Exception):
     pass
 
 
-class ScriptTask(GameUi, GeneralBattle, SwitchSoul, QuickLoadout, BaseActivity, MartialTournamentAssets):
+class ScriptTask(GameUi, SwitchSoul, QuickLoadout, BaseActivity, GeneralBattle, MartialTournamentAssets):
 
     AP_COST = 30
 

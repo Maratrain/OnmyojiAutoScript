@@ -84,6 +84,10 @@ from tasks.MysteryShop.config import MysteryShop
 from tasks.Duel.config import Duel
 from tasks.Chess.config import Chess
 from tasks.NewbieStory.config import NewbieStory
+from tasks.Activity999.config import Activity999
+from tasks.OutingRitual.config import OutingRitual
+from tasks.DivineBarrier.config import DivineBarrier
+from tasks.BudokaiTournament.config import BudokaiTournament
 # ----------------------------------------------------------------------------------------------------------------------
 
 class ConfigModel(ConfigBase):
@@ -132,6 +136,10 @@ class ConfigModel(ConfigBase):
     kitty_shop: KittyShop = Field(default_factory=KittyShop)
     dye_trials: DyeTrials = Field(default_factory=DyeTrials)
     gugu_art_studio: GuguArtStudio = Field(default_factory=GuguArtStudio)
+    outing_ritual: OutingRitual = Field(default_factory=OutingRitual)
+    divine_barrier: DivineBarrier = Field(default_factory=DivineBarrier)
+    budokai_tournament: BudokaiTournament = Field(default_factory=BudokaiTournament)
+    activity_999: Activity999 = Field(default_factory=Activity999)
 
     # 这些是肝帝专属
     bondling_fairyland: BondlingFairyland = Field(default_factory=BondlingFairyland)

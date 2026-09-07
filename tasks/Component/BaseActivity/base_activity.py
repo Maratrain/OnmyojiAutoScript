@@ -1,10 +1,29 @@
+# This Python file uses the following encoding: utf-8
+# @author runhey
+# github https://github.com/runhey
 from collections.abc import Callable
+from abc import abstractmethod
 
 from module.logger import logger
+from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 
 
-class BaseActivity:
-    """活动任务共享行为。"""
+class BaseActivity(GeneralBattle):
+    """活动任务共享行为(合并原版抽象基类与本地门票兜底逻辑)。"""
+
+    @abstractmethod
+    def run(self) -> None:
+        pass
+
+    @abstractmethod
+    def home_main(self) -> bool:
+        """从庭院到活动的爬塔界面"""
+        pass
+
+    @abstractmethod
+    def main_home(self) -> bool:
+        """从活动的爬塔界面到庭院"""
+        pass
 
     @staticmethod
     def verify_zero_ticket(
