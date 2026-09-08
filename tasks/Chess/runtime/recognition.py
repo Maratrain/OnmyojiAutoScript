@@ -11,7 +11,11 @@ import cv2
 
 from module.atom.image import RuleImage
 from module.logger import logger
-from tasks.Chess.strategy.lineup import resolve_lineup_key
+from tasks.Chess.strategy.lineup import (
+    RANDOM_LINEUP_KEY,
+    pick_random_lineup_key,
+    resolve_lineup_key,
+)
 from tasks.Chess.strategy.shikigami_catalog import (
     SHIKIGAMI_BONDS_BY_ROMAJI,
     SHIKIGAMI_BY_ROMAJI,
@@ -29,13 +33,19 @@ class ChessRecognitionMixin:
         self,
         lineup_key: str | None = None,
     ) -> dict:
-        """返回当前阵容策略；新增体系只需实现同结构模块并注册。"""
+        """返回当前阵容策略；新增体系只需实现同结构模块并注册。
+
+        “随机”在此处解析为随机抽取的真实阵容，保证任何时刻读取
+        策略都能拿到一套可执行的配置。
+        """
         selected = (
             lineup_key
             or getattr(self, '_active_lineup_key', None)
             or self.DEFAULT_LINEUP_KEY
         )
         key = resolve_lineup_key(selected)
+        if key == RANDOM_LINEUP_KEY:
+            key = pick_random_lineup_key()
         entry = self.LINEUP_REGISTRY.get(key)
         if entry is None:
             logger.warning(

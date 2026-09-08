@@ -1120,10 +1120,12 @@ class ChessHandOperationsMixin:
             if soul_name in config.get('preferred_souls', ())
         }
         active_preferred_names = preferred_names & verified_names
+        # 专属御魂跟随式神的本局随机换列站位，不再直读阵容配置。
         preferred_positions = sorted(
-            int(strategy_shikigami[name]['position'])
+            int(self.shikigami_deploy_positions[name])
             for name in active_preferred_names
             if can_equip(name)
+            and name in self.shikigami_deploy_positions
         )
         if preferred_positions:
             return [

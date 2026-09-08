@@ -15,6 +15,7 @@ from tasks.Chess.runtime.settings import ChessRuntimeSettings
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.GameUi.game_ui import GameUi
 from tasks.Chess.page import page_chess
+from tasks.Chess.strategy.lineup import RANDOM_LINEUP_KEY, resolve_lineup_key
 
 
 class ScriptTask(
@@ -42,6 +43,12 @@ class ScriptTask(
             self.DEFAULT_LINEUP_KEY,
         )
         strategy = self.select_lineup_strategy(selected_lineup)
+        lineup_display = (
+            '随机(每局轮换)'
+            if resolve_lineup_key(selected_lineup) == RANDOM_LINEUP_KEY
+            else f'{strategy["key"]} ({strategy["display_name"]})'
+        )
+        self._configured_lineup_key = resolve_lineup_key(selected_lineup)
 
         # 启动恢复会主动退出遗留对局；正常循环只保留保段位退三局。
         self._recover_interrupted_chess_game()
@@ -61,7 +68,7 @@ class ScriptTask(
         rank_protection_exits_remaining = 0
         logger.info(
             'Chess task constraints: '
-            f'lineup={strategy["key"]} ({strategy["display_name"]}), '
+            f'lineup={lineup_display}, '
             f'run_count={target_count}, coin_full_exit={coin_full_exit}, '
             f'rank_protection={rank_protection}'
         )
@@ -581,6 +588,17 @@ class ScriptTask(
     def _start_chess_game(self) -> None:
         """从棋局大厅开战，确认进入局内后直接开始回合流程。"""
         logger.debug('Chess game start')
+        # 配置为“随机”时每局抽取一套阵容，连续打也能轮换体系。
+        configured_lineup = (
+            getattr(self, '_configured_lineup_key', None)
+            or self.DEFAULT_LINEUP_KEY
+        )
+        if resolve_lineup_key(configured_lineup) == RANDOM_LINEUP_KEY:
+            strategy = self.select_lineup_strategy(RANDOM_LINEUP_KEY)
+            logger.info(
+                'Chess random lineup picked for this game: '
+                f'{strategy["key"]} ({strategy["display_name"]})'
+            )
         # 式神本局属性：(守护之印, 御魂1, 御魂2)。
         # 守护之印不占普通御魂槽，三个属性均允许为空。
         self._board_shikigami_attributes = {}

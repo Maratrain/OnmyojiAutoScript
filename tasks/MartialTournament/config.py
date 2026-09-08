@@ -12,18 +12,24 @@ from tasks.Component.config_base import ConfigBase, Time
 
 
 class MartialTournamentConfig(ConfigBase):
-    """Martial Tournament activity config"""
-    limit_time: Time = Field(default=Time(hour=1, minute=30), description='limit_time_help')
-    run_sequence: str = Field(default='pass,ap',
-                              description='mt_run_sequence_help')
-    pass_limit: int = Field(default=50, description='mt_pass_limit_help')
-    ap_limit: int = Field(default=300, description='ap_limit')
+    """武林大会活动配置"""
+    limit_time: Time = Field(default=Time(hour=1, minute=30), title='最长运行时间',
+                             description='到达该时长后安全结束任务')
+    run_sequence: str = Field(default='pass,ap', title='运行顺序',
+                              description='爬塔类型与先后顺序，逗号分隔：pass=名帖(券)爬塔, ap=体力爬塔')
+    pass_limit: int = Field(default=50, title='名帖爬塔次数',
+                            description='名帖(券)爬塔的目标次数')
+    ap_limit: int = Field(default=300, title='体力爬塔上限',
+                          description='体力爬塔消耗的体力上限')
     # 开启使用注灵搜寻券
-    use_pass_2: bool = Field(default=False, description='mt_use_pass_2_help')
+    use_pass_2: bool = Field(default=False, title='使用注灵搜寻券',
+                             description='名帖不足时改用注灵搜寻券继续爬塔')
     # 结束后激活御魂清理
-    active_souls_clean: bool = Field(default=False, description='active_souls_clean_help')
+    active_souls_clean: bool = Field(default=False, title='结束后清理御魂',
+                                     description='任务结束后自动激活御魂清理')
     # 点击战斗随机休息
-    random_sleep: bool = Field(default=False, description='random_sleep_help')
+    random_sleep: bool = Field(default=False, title='战斗前随机休息',
+                               description='点击战斗前随机等待一段时间，模拟人工操作')
 
     @property
     def limit_time_v(self) -> timedelta:
@@ -58,20 +64,32 @@ class MartialTournamentConfig(ConfigBase):
 
 class SwitchSoulConfig(BaseModel):
     # 群体boss御魂配置
-    enable_switch_group: bool = Field(default=False)
-    group_boss_team: str = Field(default='-1,-1', description='group_boss_team_help')
-    enable_switch_group_by_name: bool = Field(default=False)
-    group_boss_team_name: str = Field(default='')
+    enable_switch_group: bool = Field(default=False, title='切换群体Boss御魂',
+                                      description='打群体Boss前切换到指定御魂队伍')
+    group_boss_team: str = Field(default='-1,-1', title='群体Boss队伍编号',
+                                 description='组1-7,队伍1-4，中间用英文逗号分隔')
+    enable_switch_group_by_name: bool = Field(default=False, title='按名称切换群体Boss御魂',
+                                              description='改用预设队伍名称切换')
+    group_boss_team_name: str = Field(default='', title='群体Boss队伍名称',
+                                      description='组名,队伍名，中间用英文逗号分隔')
     # 单体boss御魂配置
-    enable_switch_single: bool = Field(default=False)
-    single_group_team: str = Field(default='-1,-1', description='single_group_team_help')
-    enable_switch_single_by_name: bool = Field(default=False)
-    single_group_team_name: str = Field(default='')
+    enable_switch_single: bool = Field(default=False, title='切换单体Boss御魂',
+                                       description='打单体Boss前切换到指定御魂队伍')
+    single_group_team: str = Field(default='-1,-1', title='单体Boss队伍编号',
+                                   description='组1-7,队伍1-4，中间用英文逗号分隔')
+    enable_switch_single_by_name: bool = Field(default=False, title='按名称切换单体Boss御魂',
+                                               description='改用预设队伍名称切换')
+    single_group_team_name: str = Field(default='', title='单体Boss队伍名称',
+                                        description='组名,队伍名，中间用英文逗号分隔')
     # 体力爬塔御魂配置
-    enable_switch_mt_ap: bool = Field(default=False)
-    mt_ap_team: str = Field(default='-1,-1', description='mt_ap_team_help')
-    enable_switch_mt_ap_by_name: bool = Field(default=False)
-    mt_ap_team_name: str = Field(default='')
+    enable_switch_mt_ap: bool = Field(default=False, title='切换体力爬塔御魂',
+                                      description='体力爬塔前切换到指定御魂队伍')
+    mt_ap_team: str = Field(default='-1,-1', title='体力爬塔队伍编号',
+                            description='组1-7,队伍1-4，中间用英文逗号分隔')
+    enable_switch_mt_ap_by_name: bool = Field(default=False, title='按名称切换体力爬塔御魂',
+                                              description='改用预设队伍名称切换')
+    mt_ap_team_name: str = Field(default='', title='体力爬塔队伍名称',
+                                 description='组名,队伍名，中间用英文逗号分隔')
 
 
 class MartialTournament(ConfigBase):

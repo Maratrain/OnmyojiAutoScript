@@ -9,11 +9,13 @@ class Activity999Config(BaseModel):
     battle_count_limit: int = Field(
         default=0,
         ge=0,
-        description='battle_count_limit_help',
+        title='战斗次数上限',
+        description='完成指定次数后停止；0 表示不限制，直到活动次数耗尽',
     )
     run_time_limit: Time = Field(
         default=Time(hour=0, minute=0, second=0),
-        description='run_time_limit_help',
+        title='最长运行时间',
+        description='到达该时长后安全结束；0 表示不限制',
     )
 
 
