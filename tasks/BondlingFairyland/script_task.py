@@ -156,7 +156,7 @@ class ScriptTask(GameUi, GeneralInvite, GeneralRoom, GeneralBattle, SwitchSoul, 
                     if self.appear_then_click(self.I_UI_CONFIRM, interval=1):
                         continue
                     if self.appear(self.I_CREATE_TEAM, interval=1):
-                        self.ensure_private()
+                        self.ensure_private(room_mark=self.I_GI_IN_ROOM)
                         self.appear_then_click(self.I_CREATE_TEAM, interval=2)
                         continue
                     # 求援
