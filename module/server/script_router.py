@@ -3,6 +3,7 @@
 # github https://github.com/runhey
 import asyncio
 import json
+from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -341,6 +342,21 @@ async def script_task_log(script_name: str):
     response = StreamingResponse(log_generate_events(), media_type="text/event-stream")
     response.headers["Cache-Control"] = "no-cache"
     return response
+
+
+@script_app.delete('/{script_name}/log/content')
+async def clear_script_log_content(script_name: str):
+    """清空所选脚本实例当天的日志文件。"""
+    if script_name not in mm.all_script_files():
+        raise HTTPException(status_code=404, detail='Script config not found')
+    safe_name = script_name.split('_', 1)[0]
+    log_file = Path('./log') / f'{datetime.now().date()}_{safe_name}.txt'
+    try:
+        if log_file.exists():
+            log_file.write_text('', encoding='utf-8')
+    except OSError as error:
+        raise HTTPException(status_code=500, detail=f'Clear log failed: {error}')
+    return True
 
 # -------------------------------------- websocket --------------------------------------
 

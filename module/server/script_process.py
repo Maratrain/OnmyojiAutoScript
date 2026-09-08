@@ -5,6 +5,7 @@
 import multiprocessing
 from asyncio import QueueEmpty, CancelledError, sleep
 from enum import Enum
+from threading import Lock
 
 from module.logger import logger
 from module.server.config_manager import ConfigManager
@@ -33,6 +34,8 @@ class ScriptProcess(ScriptWSManager):
         self.state_queue = _SCRIPT_PROCESS_CONTEXT.Queue()
         self.state: ScriptState = ScriptState.INACTIVE
         self._process = None
+        # HTTP/WebSocket 请求与停机流程在不同线程, 需要锁保证子进程记录的原子性
+        self._lifecycle_lock = Lock()
 
     @staticmethod
     def _extract_log_dedup_key(log: str) -> str | None:
@@ -50,31 +53,36 @@ class ScriptProcess(ScriptWSManager):
     async def start(self):
         self.state = ScriptState.RUNNING
         await self.broadcast_state({"state": self.state})
-        if self._process:
-            logger.warning(f'[脚本进程] 脚本 {self.config_name} 已初始化')
-        if self._process and self._process.is_alive():
-            logger.warning(f'[脚本进程] 脚本 {self.config_name} 已在运行，将先停止')
-            self.stop()
-        self._process = _SCRIPT_PROCESS_CONTEXT.Process(
-            target=func,
-            args=(self.config_name, self.state_queue, self.log_pipe_in,),
-            name=self.config_name,
-            daemon=True,
-        )
-        self._process.start()
+        # 检查与记录子进程必须原子完成, 防止并发请求重复启动
+        with self._lifecycle_lock:
+            if self._process is not None and self._process.is_alive():
+                logger.warning(f'[脚本进程] 脚本 {self.config_name} 已在运行，忽略重复启动')
+                return
+            if self._process is not None:
+                self._process.join(timeout=0)
+                self._process.close()
+                self._process = None
+            self._process = _SCRIPT_PROCESS_CONTEXT.Process(
+                target=func,
+                args=(self.config_name, self.state_queue, self.log_pipe_in,),
+                name=self.config_name,
+                daemon=True,
+            )
+            self._process.start()
 
 
     async def stop(self):
         self.state = ScriptState.INACTIVE
         await self.broadcast_state({"state": self.state})
-        if self._process is None:
-            logger.warning(f'[脚本进程] 脚本 {self.config_name} 进程已被移除')
-            return
-        if not self._process.is_alive():
-            logger.warning(f'[脚本进程] 脚本 {self.config_name} 未在运行')
-            return
-        self._process.terminate()
-        self._process = None
+        with self._lifecycle_lock:
+            if self._process is None:
+                logger.warning(f'[脚本进程] 脚本 {self.config_name} 进程已被移除')
+                return
+            if not self._process.is_alive():
+                logger.warning(f'[脚本进程] 脚本 {self.config_name} 未在运行')
+                return
+            self._process.terminate()
+            self._process = None
 
     async def coroutine_broadcast_state(self):
         try:
