@@ -2,11 +2,11 @@
   {
     "itemName": "check_main_1",
     "imageName": "main1_check_main_1.png",
-    "roiFront": "1049,146,48,55",
-    "roiBack": "880,119,271,100",
+    "roiFront": "573,348,26,44",
+    "roiBack": "500,330,420,80",
     "method": "Template matching",
-    "threshold": 0.8,
-    "description": "description"
+    "threshold": 0.7,
+    "description": "庭院标志(町中挂牌, 兼入口锚点, 随庭院摆位横移由 roiBack 覆盖)"
   },
   {
     "itemName": "main_goto_exploration_1",
@@ -29,11 +29,11 @@
   {
     "itemName": "main_goto_town_1",
     "imageName": "main1_main_goto_town_1.png",
-    "roiFront": "567,340,36,60",
-    "roiBack": "474,325,240,86",
+    "roiFront": "573,348,26,44",
+    "roiBack": "500,330,420,80",
     "method": "Template matching",
-    "threshold": 0.8,
-    "description": "description"
+    "threshold": 0.7,
+    "description": "庭院前往町中(挂牌模板, roi 覆盖左右两种入口摆位)"
   },
   {
     "itemName": "pet_house_1",
