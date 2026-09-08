@@ -20,5 +20,7 @@ if errorlevel 1 (
     echo Build failed.
     exit /b 1
 )
-echo Built deploy\launcher\oas-launcher.exe
+rem 同步到仓库根目录，保证用户双击的 oas-launcher.exe 始终是最新构建。
+copy /y deploy\launcher\oas-launcher.exe oas-launcher.exe >nul
+echo Built deploy\launcher\oas-launcher.exe (synced to repo root)
 endlocal

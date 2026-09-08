@@ -890,13 +890,19 @@ namespace OasLauncher
                 }
             }
 
-            /// <summary>加载 oasx 式神头像；优先 exe 同目录 logo.png。</summary>
+            /// <summary>加载 oasx 式神头像：exe 同目录 logo.png → 仓库 deploy\launcher\logo.png。</summary>
             private static Image LoadShikigamiLogo()
             {
                 try
                 {
                     string dir = Path.GetDirectoryName(Application.ExecutablePath);
                     string p = dir != null ? Path.Combine(dir, "logo.png") : null;
+                    if (p == null || !File.Exists(p))
+                    {
+                        string root = FindRepoRoot();
+                        if (root != null)
+                            p = Path.Combine(root, "deploy", "launcher", "logo.png");
+                    }
                     if (p == null || !File.Exists(p)) return null;
                     using (Bitmap raw = new Bitmap(p))
                         return new Bitmap(raw, 104, 104);
