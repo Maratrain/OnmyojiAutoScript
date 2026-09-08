@@ -584,6 +584,8 @@ class ScriptTask(
         # 式神本局属性：(守护之印, 御魂1, 御魂2)。
         # 守护之印不占普通御魂槽，三个属性均允许为空。
         self._board_shikigami_attributes = {}
+        # 每局在阵容占用的同排格位内随机换列，避免每局布局完全一致。
+        self._game_deploy_position_map = self.roll_game_deploy_positions()
         self._board_lineup_names = set()
         self._board_actual_positions = {}
         self._board_position_reconcile_pending = set()

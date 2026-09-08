@@ -2,6 +2,7 @@
 
 # This Python file uses the following encoding: utf-8
 
+import random
 import time
 from functools import cached_property
 from pathlib import Path
@@ -117,10 +118,54 @@ class ChessRecognitionMixin:
 
     @property
     def shikigami_deploy_positions(self) -> dict[str, int]:
+        override = getattr(self, '_game_deploy_position_map', None)
+        if override is not None:
+            return dict(override)
         return {
             name: int(config['position'])
             for name, config in self.get_lineup_strategy()['shikigami'].items()
         }
+
+    def roll_game_deploy_positions(self) -> dict[str, int]:
+        """每局在阵容占用的同排格位内随机换列，生成站位覆盖表。
+
+        行(站位奇偶)承载前后排与御魂投放规则，必须逐式神保持；
+        换列只发生在本阵容该排已占用的格位集合内，因此棋盘占用
+        形状、守护之印、荒川金鱼等约束都不受影响。与上一局的排布
+        强制不同，避免出现可识别的固定布局。
+        """
+        strategy_shikigami = self.get_lineup_strategy()['shikigami']
+        rows: dict[int, list[tuple[str, int]]] = {}
+        for name, config in strategy_shikigami.items():
+            position = int(config['position'])
+            rows.setdefault(position % 2, []).append((name, position))
+
+        previous = getattr(self, '_game_deploy_position_map', None)
+        mapping: dict[str, int] = {}
+        for members in rows.values():
+            cells = [position for _, position in members]
+            if len(cells) == 1:
+                mapping[members[0][0]] = cells[0]
+                continue
+            for _ in range(16):
+                random.shuffle(cells)
+                candidate = {
+                    name: cell
+                    for (name, _), cell in zip(members, cells)
+                }
+                if candidate != previous:
+                    break
+            mapping.update(candidate)
+        logger.info(
+            'Chess per-game deploy layout rolled: '
+            + ', '.join(
+                f'{name}->{position}'
+                for name, position in sorted(
+                    mapping.items(), key=lambda item: item[1]
+                )
+            )
+        )
+        return mapping
 
     def _lineup_final_level(self) -> int:
         """阵容最终不保留经济的阶数，等于当前羁绊式神总人数。"""
