@@ -531,6 +531,7 @@ namespace OasLauncher
 
             private readonly Stopwatch _clock = Stopwatch.StartNew();
             private readonly System.Windows.Forms.Timer _anim;
+            private readonly Image _logo;
             private readonly Rectangle _closeRect;
             private bool _hoverClose;
             private float _targetPercent;
@@ -555,6 +556,7 @@ namespace OasLauncher
                     Region = new Region(p);
                 }
                 _closeRect = new Rectangle(W - 34, 0, 34, 44);
+                _logo = LoadShikigamiLogo();
 
                 _anim = new System.Windows.Forms.Timer { Interval = 33 };
                 _anim.Tick += delegate
@@ -610,6 +612,7 @@ namespace OasLauncher
             protected override void OnFormClosed(FormClosedEventArgs e)
             {
                 _anim.Dispose();
+                if (_logo != null) _logo.Dispose();
                 base.OnFormClosed(e);
             }
 
@@ -694,21 +697,34 @@ namespace OasLauncher
                     g.FillRectangle(b, 0, 0, W, 44);
                 using (Pen p = new Pen(Hair)) g.DrawLine(p, 0, 44, W, 44);
 
-                // 渐变圆角 logo
-                RectangleF lr = new RectangleF(16, 12, 20, 20);
-                using (GraphicsPath lp = Round(lr, 6))
-                using (LinearGradientBrush lb = new LinearGradientBrush(lr, Acc, Acc2, 45f))
-                    g.FillPath(lb, lp);
+                // 品牌图标：oasx 式神头像（圆角缩放 + 白色描边 + 底部柔光）
+                if (_logo != null)
+                {
+                    RectangleF lr = new RectangleF(14, 9, 26, 26);
+                    Glow(g, lr.X + lr.Width / 2f, lr.Bottom - 2, 30, 10, Acc, 70);
+                    using (GraphicsPath lp = Round(lr, 7))
+                    {
+                        var lclip = g.Save();
+                        g.SetClip(lp);
+                        var prevIp = g.InterpolationMode;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.DrawImage(_logo, lr);
+                        g.InterpolationMode = prevIp;
+                        g.Restore(lclip);
+                        using (Pen pen = new Pen(Color.FromArgb(200, Color.White), 1.5f))
+                            g.DrawPath(pen, lp);
+                    }
+                }
 
                 using (SolidBrush b = new SolidBrush(Tx))
                 using (StringFormat sf = new StringFormat { LineAlignment = StringAlignment.Center })
                 {
-                    g.DrawString("OAS", FBrand, b, new RectangleF(44, 0, 60, 44), sf);
+                    g.DrawString("OAS", FBrand, b, new RectangleF(46, 0, 60, 44), sf);
                 }
                 using (SolidBrush b = new SolidBrush(Tx3))
                 using (StringFormat sf = new StringFormat { LineAlignment = StringAlignment.Center })
                 {
-                    g.DrawString("启动器", FSub, b, new RectangleF(92, 1, 70, 44), sf);
+                    g.DrawString("启动器", FSub, b, new RectangleF(94, 1, 70, 44), sf);
                 }
 
                 // 右侧连接状态胶囊
@@ -871,6 +887,23 @@ namespace OasLauncher
                 {
                     g.DrawString("后端在后台运行 · 关闭 OASX 窗口后自动退出", FSmall, b,
                         new RectangleF(0, H - 30, W, 20), sf);
+                }
+            }
+
+            /// <summary>加载 oasx 式神头像；优先 exe 同目录 logo.png。</summary>
+            private static Image LoadShikigamiLogo()
+            {
+                try
+                {
+                    string dir = Path.GetDirectoryName(Application.ExecutablePath);
+                    string p = dir != null ? Path.Combine(dir, "logo.png") : null;
+                    if (p == null || !File.Exists(p)) return null;
+                    using (Bitmap raw = new Bitmap(p))
+                        return new Bitmap(raw, 104, 104);
+                }
+                catch (Exception)
+                {
+                    return null;
                 }
             }
 
