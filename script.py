@@ -482,6 +482,11 @@ class Script:
             task = ""
             try:
                 # Get task
+                self.config.reload()
+                self.config.update_scheduler()
+                if not self.config.pending_task and not self.config.waiting_task:
+                    logger.info('[脚本] 没有已启用的任务，调度器正常结束')
+                    break
                 task = self.get_next_task()
                 # Skip first restart
                 if self.is_first_task and task == 'Restart':
@@ -515,6 +520,9 @@ class Script:
             success = self.run(inflection.camelize(task))
             self.config.model.running_task = ''
             logger.info(f'[脚本] 调度: 任务 `{task}` 执行结束')
+            if getattr(self.config, 'request_scheduler_stop', False):
+                logger.info('[脚本] 收到调度停止请求，结束调度循环')
+                break
             self.is_first_task = False
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())
 

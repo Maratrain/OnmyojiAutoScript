@@ -825,6 +825,42 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         try:
             while True:
                 self.screenshot()
+                # 活动 hook: 探索等任务可定义 close_chat_window 在战斗等待期间关闭聊天抽屉
+                close_chat_window = getattr(self, 'close_chat_window', None)
+                if close_chat_window is not None and close_chat_window():
+                    # 关闭抽屉本身是一次点击, 会清掉卡死记录, 需要恢复长超时
+                    self.device.stuck_record_add('BATTLE_STATUS_S')
+                    continue
+                # 活动 hook: 部分活动(Activity999 等)使用专属结算页, 由任务自定义识别与关闭逻辑
+                activity_win = getattr(self, 'I_ACTIVITY_999_BATTLE_WIN', None)
+                if activity_win is not None:
+                    activity_win_click = getattr(self, 'C_ACTIVITY_999_BATTLE_WIN', None)
+                    win_check = getattr(self, 'is_activity_battle_win', None)
+                    result_closed = getattr(self, 'is_activity_battle_result_closed', None)
+                    dismiss = getattr(self, 'dismiss_activity_battle_result', None)
+                    if self.appear(self.I_PREPARE_HIGHLIGHT, threshold=0.8):
+                        logger.info('[通用战斗] 超时后重新出现准备页; 点击准备')
+                        self.click(self.I_PREPARE_HIGHLIGHT, interval=0.8)
+                        self.device.stuck_record_add('BATTLE_STATUS_S')
+                        continue
+                    appeared = win_check() if win_check is not None else self.appear(activity_win)
+                    if appeared:
+                        logger.info('[通用战斗] 活动专属结算页命中')
+                        if dismiss is not None:
+                            dismiss()
+                            return True
+                        result_timer = Timer(15).start()
+                        while True:
+                            if result_timer.reached():
+                                logger.warning('[通用战斗] 活动结算页关闭超时')
+                                return False
+                            self.screenshot()
+                            if result_closed is not None and result_closed():
+                                return True
+                            if result_closed is None and not self.appear(activity_win):
+                                return True
+                            if activity_win_click is not None:
+                                self.click(activity_win_click, interval=0.8)
                 self._tick_long_battle(context)
                 self._tick_timeout(context)
                 page = GameUi.detect_page_in(self, page_battle_prepare, page_battle, page_battle_result,

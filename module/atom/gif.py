@@ -4,6 +4,7 @@
 import numpy as np
 
 from module.atom.image import RuleImage
+from module.base.utils import random_roi_point_gaussian
 from module.image.rpc import get_image_client
 
 
@@ -60,8 +61,7 @@ class RuleGif:
 
 
     def coord(self) -> tuple:
-        x, y, w, h = self.roi_front
-        return x + np.random.randint(0, w), y + np.random.randint(0, h)
+        return random_roi_point_gaussian(self.roi_front)
 
     def front_center(self) -> tuple:
         x, y, w, h = self.roi_front

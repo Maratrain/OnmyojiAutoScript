@@ -1,6 +1,9 @@
 import time
+import random
+from time import monotonic, sleep
 
 # from module.base.button import Button
+from module.base.random_delay import lognormal_delay
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import *
@@ -66,6 +69,23 @@ class Control(Minitouch, Adb, Scrcpy, Window):
         """
         if control_check:
             self.handle_control_check(control_name)
+        interval_setting = getattr(self, 'minimum_click_interval', 0) or 0
+        if isinstance(interval_setting, dict):
+            minimum_interval = lognormal_delay(**interval_setting)
+        elif isinstance(interval_setting, (tuple, list)):
+            lower, upper = sorted(float(value) for value in interval_setting)
+            mean = (lower + upper) / 2
+            variance = ((upper - lower) / 4) ** 2
+            minimum_interval = lognormal_delay(
+                mean=mean, variance=variance, minimum=lower,
+                maximum=upper, digits=1)
+        else:
+            minimum_interval = float(interval_setting)
+        last_click = getattr(self, '_last_click_monotonic', None)
+        if minimum_interval > 0 and last_click is not None:
+            remaining = minimum_interval - (monotonic() - last_click)
+            if remaining > 0:
+                sleep(remaining)
         x, y = ensure_int(x, y)
         self._invalidate_image_batch_cache()
         method = self.click_methods.get(
@@ -75,6 +95,7 @@ class Control(Minitouch, Adb, Scrcpy, Window):
         start = time.perf_counter()
         method(x, y)
         elapsed = time.perf_counter() - start
+        self._last_click_monotonic = monotonic()
         logger.info(f'{self._format_action_duration(elapsed)}点击 {point2str(x, y)} @ {control_name}')
 
 

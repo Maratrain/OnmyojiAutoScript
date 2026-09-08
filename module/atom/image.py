@@ -10,7 +10,7 @@ from pathlib import Path
 from module.base.decorator import cached_property
 from module.image.rpc import get_image_client
 from module.logger import logger
-from module.base.utils import is_approx_rectangle
+from module.base.utils import is_approx_rectangle, random_roi_point_gaussian
 from module.base.utils.utils import random_normal_distribution_int
 
 
@@ -314,16 +314,14 @@ class RuleImage:
         获取roi_front的随机的点击的坐标
         :return:
         """
-        x, y, w, h = self.roi_front
-        return x + random_normal_distribution_int(0, w), y + random_normal_distribution_int(0, h)
+        return random_roi_point_gaussian(self.roi_front)
 
     def coord_more(self) -> tuple:
         """
          获取roi_back的随机的点击的坐标
         :return:
         """
-        x, y, w, h = self.roi_back
-        return x + random_normal_distribution_int(0, w), y + random_normal_distribution_int(0, h)
+        return random_roi_point_gaussian(self.roi_back)
 
     def front_center(self) -> tuple:
         """

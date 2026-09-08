@@ -2,11 +2,31 @@ import re
 
 import cv2
 import sys
+import math
+import random
 import numpy as np
 import importlib
 from PIL import Image
 
 REGEX_NODE = re.compile(r'(-?[A-Za-z]+)(-?\d+)')
+
+
+def random_roi_point_gaussian(roi):
+    """从 (x, y, width, height) ROI 中按二维高斯分布生成点击坐标。"""
+    x, y, width, height = (float(value) for value in roi)
+    if width <= 0 or height <= 0:
+        return int(round(x)), int(round(y))
+
+    left = math.ceil(x)
+    top = math.ceil(y)
+    right = max(left, math.ceil(x + width) - 1)
+    bottom = max(top, math.ceil(y + height) - 1)
+    sampled_x = round(random.gauss(x + width / 2, width / 6))
+    sampled_y = round(random.gauss(y + height / 2, height / 6))
+    return (
+        min(max(sampled_x, left), right),
+        min(max(sampled_y, top), bottom),
+    )
 
 
 def random_normal_distribution_int(a, b, n=3):
