@@ -6,6 +6,7 @@ from cached_property import cached_property
 from datetime import timedelta, datetime
 from module.atom.gif import RuleGif
 from module.atom.image import RuleImage
+from module.atom.click import RuleClick
 from module.base.timer import Timer
 
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
@@ -20,7 +21,7 @@ from tasks.Utils.config_enum import ShikigamiClass
 import tasks.Exploration.page as pages
 
 from module.logger import logger
-from module.exception import TaskEnd, GameStuckError
+from module.exception import TaskEnd, GameStuckError, RequestHumanTakeover
 from module.atom.animate import RuleAnimate
 from typing import Optional
 
@@ -31,6 +32,15 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
     user_status: UserStatus = UserStatus.ALONE
     wait_start_time: datetime = datetime.now()
     pre_page: pages.Page = None
+
+    # 聊天抽屉把手(战斗等待期出现时会遮挡画面)
+    I_CHAT_WINDOW_HANDLE = RuleImage(
+        roi_front=(615, 300, 85, 180), roi_back=(600, 285, 115, 210),
+        threshold=0.78, method='Template matching',
+        file='./tasks/Exploration/res/chat_window_handle.png')
+    # 抽屉右侧安全点击区
+    C_CHAT_WINDOW_CLOSE_SAFE = RuleClick(
+        (930, 315, 80, 70), (930, 315, 80, 70), 'chat_window_close_safe')
 
     def _exit_matcher(self) -> ExitMatcher:
         return pages.any_of(self.I_E_SETTINGS_BUTTON, self.I_E_AUTO_ROTATE_ON, self.I_E_AUTO_ROTATE_OFF)
@@ -123,7 +133,17 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
                 if config_exploration_level.get_index() < min_level.get_index():
                     self.swipe(self.S_SWIPE_LEVEL_UP)
                 elif config_exploration_level.get_index() > max_level.get_index():
-                    self.swipe(self.S_SWIPE_LEVEL_DOWN)
+                    # 目标章节超出已解锁范围: 先移交新手剧情解锁一章, 再重试一次
+                    if getattr(self, '_newbie_story_handoff_target', None) != config_exploration_level:
+                        self._newbie_story_handoff_target = config_exploration_level
+                        self.run_newbie_story_handoff()
+                        swipeCount = 0
+                        continue
+                    self.disable_completed_chapter()
+                    raise RequestHumanTakeover(
+                        f"[探索] 目标章节 {config_exploration_level} 未解锁; "
+                        f"已运行一次新手剧情但仍未解锁下一章"
+                    )
             swipeCount += 1
             debug_info = f"[探索] 已滑动 {swipeCount} 次，当前章节: {text1}"
             logger.info(debug_info)
@@ -149,6 +169,49 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
                 break
 
         return True
+
+    def close_chat_window(self) -> bool:
+        """战斗等待期出现聊天抽屉时, 点击其右侧安全空白区关闭。"""
+        if not self.appear(self.I_CHAT_WINDOW_HANDLE):
+            return False
+        logger.info('[探索] 检测到聊天窗, 从右侧空白区关闭')
+        self.click(self.C_CHAT_WINDOW_CLOSE_SAFE)
+        self.device.click_record_clear()
+        time.sleep(0.5)
+        return True
+
+    def disable_completed_chapter(self):
+        """章节已完成时先持久化禁用探索, 防止弹窗或重启导致重打。"""
+        with self.config.lock_config:
+            self.config.reload()
+            self.config.model.exploration.scheduler.enable = False
+            self.config.save()
+        logger.info('[探索] 章节已完成: 探索任务已禁用, 需手动重新开启')
+
+    def run_newbie_story_handoff(self) -> None:
+        """章节未解锁时运行新手剧情, 结束后恢复探索。"""
+        from tasks.NewbieStory.script_task import ScriptTask as NewbieStoryTask
+
+        logger.info('[探索] 需要剧情交互, 移交 NewbieStory 处理')
+        self.disable_completed_chapter()
+        try:
+            NewbieStoryTask(self.config, self.device).run()
+        except TaskEnd as error:
+            logger.info(f'[探索] NewbieStory 移交执行结束: {error}')
+
+        self.config.reload()
+        self.__dict__.pop('_config', None)
+        # NewbieStory 在独立任务实例中运行, 页面变化不会更新本实例缓存
+        self.ui_current = None
+        self.ui_get_current_page(skip_first_screenshot=False)
+        if not self.ui_goto(pages.page_exploration):
+            raise RequestHumanTakeover(
+                '[探索] NewbieStory 结束后无法返回探索页面; 探索保持禁用'
+            )
+        with self.config.lock_config:
+            self.config.model.exploration.scheduler.enable = True
+            self.config.save()
+        logger.info('[探索] 已从 NewbieStory 返回, 重试一次章节选择')
 
     def fill_shikigami(self):
         """填充式神(最后回到探索主界面)"""
