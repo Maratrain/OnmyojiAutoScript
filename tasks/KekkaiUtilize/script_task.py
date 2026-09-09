@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 from module.base.timer import Timer
 from module.atom.image_grid import ImageGrid
 from module.logger import logger
-from module.exception import TaskEnd, GamePageUnknownError
+from module.exception import TaskEnd, GamePageUnknownError, GameStuckError
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.KekkaiUtilize.page import page_guild_realm, page_guild_realm_utilize, page_guild_realm_growth, \
@@ -29,16 +29,63 @@ import random
 class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
     last_best_index = 99
     utilize_add_count = 0
+    utilize_failed_count = 0
+    utilize_entered_failed_count = 0
+    utilize_terminal_failure = False
+    utilize_found_eligible_card = False
+    utilize_current_group_has_eligible_card = False
+    utilize_current_group_scan_completed = False
+    utilize_lazy_mode_active = False
     ap_max_num = 0
     jade_max_num = 0
 
+    # 同类型、同星级结界卡的最高奖励。达到最高值后，本轮不再打开同档卡片。
+    CARD_TIER_INFO = {
+        CardClass.TAIKO4: ('太鼓', 4, 59),
+        CardClass.TAIKO5: ('太鼓', 5, 67),
+        CardClass.TAIKO6: ('太鼓', 6, 76),
+        CardClass.FISH4: ('斗鱼', 4, 118),
+        CardClass.FISH5: ('斗鱼', 5, 134),
+        CardClass.FISH6: ('斗鱼', 6, 151),
+    }
+    # 当前策略的全局最高收益。普通浏览一旦实际 OCR 到对应数值，
+    # 当前卡已经是最终目标，不再继续向下翻页。
+    STRATEGY_MAX_REWARDS = {
+        '太鼓': 76,
+        '斗鱼': 151,
+    }
+
     def run(self):
         con = self.config.kekkai_utilize.utilize_config
+        self.utilize_add_count = 0
+        self.utilize_failed_count = 0
+        self.utilize_entered_failed_count = 0
+        self.utilize_terminal_failure = False
+        self.utilize_found_eligible_card = False
+        self.utilize_current_group_has_eligible_card = False
+        self.utilize_current_group_scan_completed = False
+        self.utilize_lazy_mode_active = False
+        self.ap_max_num = 0
+        self.jade_max_num = 0
+        if con.utilize_enable and con.lazy_mode:
+            lazy_roll = random.random()
+            self.utilize_lazy_mode_active = (
+                lazy_roll < con.lazy_mode_weight
+            )
+            logger.info(
+                '怠惰模式随机判定: '
+                f'roll={lazy_roll:.4f}, '
+                f'weight={con.lazy_mode_weight:.4f}, '
+                f'active={self.utilize_lazy_mode_active}'
+            )
         # 进入寮结界
         self.goto_page(page_guild_realm)
         # 育成界面去蹭卡
         if con.utilize_enable:
-            self.check_utilize_add()
+            if not self.check_utilize_add():
+                # 正常返回而非抛出 TaskEnd，使调度器把本轮记为失败；
+                # 下次运行时间已由失败处理设置为 10 分钟后。
+                return
 
         # 查看育成满级
         self.check_max_lv(con.shikigami_class, con.auto_fill)
@@ -67,10 +114,22 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         while 1:
             self.utilize_add_count += 1
             if self.utilize_add_count >= 5:
-                logger.warning('没有合适可以蹭的卡, 5分钟后再次执行蹭卡')
-                self.push_notify(content=f"没有合适可以蹭的卡, 5分钟后再次执行蹭卡")
+                if not self.utilize_found_eligible_card:
+                    target_name = {
+                        UtilizeRule.TAIKO: '太鼓',
+                        UtilizeRule.FISH: '斗鱼',
+                        UtilizeRule.DEFAULT: '太鼓或斗鱼',
+                    }.get(con.utilize_rule, '目标结界卡')
+                    message = (
+                        f'未检测到四星及以上{target_name}, '
+                        '5分钟后再次执行蹭卡'
+                    )
+                    logger.warning(message)
+                    self.push_notify(content=message)
+                else:
+                    logger.warning('已检测到四星及以上结界卡，但未能完成选择，5分钟后重试')
                 self.set_next_run(task='KekkaiUtilize', target=datetime.now() + timedelta(minutes=5))
-                return
+                return True
 
             # 无论收不收到菜，都会进入看看至少看一眼时间还剩多少
             time.sleep(0.5)
@@ -89,12 +148,16 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                 if min_interval and min_interval.total_seconds() > 0:
                     next_time = max(next_time, datetime.now() + min_interval)
                 self.set_next_run(task='KekkaiUtilize', target=next_time)
-                return
+                return True
             if not self.goto_page(page_guild_realm_utilize):
                 logger.info('[结界蹭卡] 进入蹭卡界面失败，退出')
             # 开始执行寄养
             self.run_utilize(con.select_friend_list, con.shikigami_class, con.shikigami_order)
+            # 无论寄养成功还是失败，都先退出好友结界；终止失败时不能把
+            # 任务留在目标结界内部。
             self.goto_page(page_guild_realm_growth)
+            if self.utilize_terminal_failure:
+                return False
 
     def check_max_lv(self, shikigami_class: ShikigamiClass = ShikigamiClass.N, auto_fill: bool = False):
         """
@@ -140,6 +203,10 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                 continue
             if timer_check.reached():
                 return False
+            # 关闭展开的寮活动横幅
+            if self.appear_then_click(self.I_GUILD_EXPAND):
+                timer_check.reset()
+                continue
             # 资金收取确认
             if self.appear_then_click(self.I_GUILD_ASSETS_RECEIVE, interval=1):
                 time.sleep(1)
@@ -307,14 +374,75 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
     def order_targets(self) -> ImageGrid:
         rule = self.config.kekkai_utilize.utilize_config.utilize_rule
         if rule == UtilizeRule.DEFAULT:
-            return ImageGrid([self.I_U_FISH_6, self.I_U_TAIKO_6, self.I_U_FISH_5, self.I_U_TAIKO_5])
+            return ImageGrid([
+                self.I_U_FISH_6, self.I_U_TAIKO_6,
+                self.I_U_FISH_5, self.I_U_TAIKO_5,
+                self.I_U_FISH_4, self.I_U_TAIKO_4,
+            ])
         elif rule == UtilizeRule.FISH:
-            return ImageGrid([self.I_U_FISH_6, self.I_U_FISH_5])
+            return ImageGrid([self.I_U_FISH_6, self.I_U_FISH_5, self.I_U_FISH_4])
         elif rule == UtilizeRule.TAIKO:
-            return ImageGrid([self.I_U_TAIKO_6, self.I_U_TAIKO_5])
+            return ImageGrid([self.I_U_TAIKO_6, self.I_U_TAIKO_5, self.I_U_TAIKO_4])
         else:
             logger.error('[结界蹭卡] 未知的蹭卡规则')
             raise ValueError('Unknown utilize rule')
+
+    @cached_property
+    def lazy_scan_targets(self) -> ImageGrid:
+        """怠惰模式扫描四星以上卡；四星仅用于排除星级冲突。"""
+        return ImageGrid([
+            self.I_U_FISH_6, self.I_U_TAIKO_6,
+            self.I_U_FISH_5, self.I_U_TAIKO_5,
+            self.I_U_FISH_4, self.I_U_TAIKO_4,
+        ])
+
+    @staticmethod
+    def _same_card_match(area_a: tuple, area_b: tuple) -> bool:
+        """判断两个模板结果是否来自好友列表中的同一张结界卡。"""
+        ax, ay, aw, ah = area_a
+        bx, by, bw, bh = area_b
+        center_ax, center_ay = ax + aw / 2, ay + ah / 2
+        center_bx, center_by = bx + bw / 2, by + bh / 2
+        return (
+            abs(center_ax - center_bx) <= 35
+            and abs(center_ay - center_by) <= 25
+        )
+
+    def _deduplicate_card_matches(self, cards: list | None) -> list:
+        """合并同一位置的多星级模板结果，并保留全部候选类别供校验。"""
+        if not cards:
+            return []
+
+        groups: list[list] = []
+        for match in sorted(cards, key=lambda item: item[2][1]):
+            for group in groups:
+                if self._same_card_match(match[2], group[0][2]):
+                    group.append(match)
+                    break
+            else:
+                groups.append([match])
+
+        result = []
+        for group in groups:
+            selected = max(group, key=lambda item: item[1])
+            detected_classes = tuple({
+                target_to_card_class(target)
+                for target, _, _ in group
+            })
+            if len(detected_classes) > 1:
+                detail = ', '.join(
+                    f'{target_to_card_class(target).value}@{score:.3f}'
+                    for target, score, _ in sorted(
+                        group,
+                        key=lambda item: item[1],
+                        reverse=True,
+                    )
+                )
+                logger.warning(
+                    f'同一结界卡命中多个模板，保留最高置信度结果: {detail}'
+                )
+            result.append((*selected, detected_classes))
+        return result
 
     @cached_property
     def order_cards(self) -> list[CardClass]:
@@ -336,6 +464,95 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             raise ValueError('Unknown utilize rule')
         return result
 
+    def _reset_utilize_friend_list(self, friend: SelectFriendList) -> None:
+        """刷新好友列表并回到所选分组的顶部。"""
+        if friend == SelectFriendList.SAME_SERVER:
+            self.switch_friend_list(SelectFriendList.SAME_SERVER)
+            self.swipe(self.S_U_END, interval=3)
+            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
+            self.switch_friend_list(SelectFriendList.SAME_SERVER)
+        else:  # 跨区必须切换两次，否则结界卡不会刷新到顶部
+            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
+            self.swipe(self.S_U_END, interval=3)
+            self.switch_friend_list(SelectFriendList.SAME_SERVER)
+            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
+
+    def _record_utilize_failure(
+        self,
+        reason: str,
+        *,
+        entered_realm: bool = False,
+    ) -> bool:
+        """记录蹭卡失败，并区分入场前失败与进入目标结界后的失败。"""
+        if entered_realm:
+            self.utilize_entered_failed_count += 1
+            logger.warning(
+                '进入目标结界后的蹭卡流程失败: '
+                f'{reason} ({self.utilize_entered_failed_count}/2)'
+            )
+            if self.utilize_entered_failed_count < 2:
+                return False
+
+            message = '目标结界已被占用'
+            logger.error(message)
+            logger.info('蹭卡任务推迟10分钟')
+            self.push_notify(content=message)
+            self.set_next_run(
+                task='KekkaiUtilize',
+                finish=True,
+                server=False,
+                target=datetime.now() + timedelta(minutes=10),
+            )
+            self.utilize_terminal_failure = True
+            return False
+
+        self.utilize_failed_count += 1
+        logger.warning(
+            f'蹭卡失败: {reason} ({self.utilize_failed_count}/3)'
+        )
+        if self.utilize_failed_count < 3:
+            return False
+
+        message = '连续3次蹭卡失败，目标结界视为已经被蹭，任务失败，10分钟后重试'
+        logger.error(message)
+        self.push_notify(content=message)
+        self.set_next_run(
+            task='KekkaiUtilize',
+            finish=True,
+            server=False,
+            target=datetime.now() + timedelta(minutes=10),
+        )
+        self.utilize_terminal_failure = True
+        return False
+
+    def _finish_low_value_utilize(self) -> bool:
+        """已扫描范围没有四星以上策略卡时，失败并延迟任务。"""
+        rule = self.config.kekkai_utilize.utilize_config.utilize_rule
+        scan_scope = (
+            '当前优先分组'
+            if self.utilize_lazy_mode_active
+            else '同区和跨区'
+        )
+        target_name = {
+            UtilizeRule.TAIKO: '太鼓',
+            UtilizeRule.FISH: '斗鱼',
+            UtilizeRule.DEFAULT: '太鼓或斗鱼',
+        }.get(rule, '目标结界卡')
+        message = (
+            f'{scan_scope}全是当前策略低价值卡，未检测到四星及以上{target_name}，'
+            '任务失败，20分钟后重试'
+        )
+        logger.error(message)
+        self.push_notify(content=message)
+        self.set_next_run(
+            task='KekkaiUtilize',
+            finish=True,
+            server=False,
+            target=datetime.now() + timedelta(minutes=20),
+        )
+        self.utilize_terminal_failure = True
+        return False
+
     def run_utilize(self, friend: SelectFriendList = SelectFriendList.SAME_SERVER,
                     shikigami_class: ShikigamiClass = ShikigamiClass.N,
                     shikigami_order: int = 7):
@@ -348,21 +565,48 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         :return:
         """
         logger.hr('开始寄养')
-        # 不管什么时候进来都要切换刷新列表(同区与跨区保持一致先切换滑动再切换)
-        if friend == SelectFriendList.SAME_SERVER:
-            self.switch_friend_list(SelectFriendList.SAME_SERVER)
-            self.swipe(self.S_U_END, interval=3)
-            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
-            self.switch_friend_list(SelectFriendList.SAME_SERVER)
-        else:  # 跨区必须切换两次, 否则结界卡不刷新到头部
-            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
-            self.swipe(self.S_U_END, interval=3)
-            self.switch_friend_list(SelectFriendList.SAME_SERVER)
-            self.switch_friend_list(SelectFriendList.DIFFERENT_SERVER)
+        fallback_friend = (
+            SelectFriendList.DIFFERENT_SERVER
+            if friend == SelectFriendList.SAME_SERVER
+            else SelectFriendList.SAME_SERVER
+        )
+        selected_friend = None
 
-        # --------------- 结界卡选择 ---------------
-        if not self._select_optimal_resource_card():
-            return False
+        # 普通模式会在优先分组无可用卡时扫描备选分组；怠惰模式只处理
+        # 当前配置的优先分组，确认无五星后在该分组回退选四星。
+        friend_groups = (
+            (friend,)
+            if self.utilize_lazy_mode_active
+            else (friend, fallback_friend)
+        )
+        for index, target_friend in enumerate(friend_groups, start=1):
+            priority_text = '优先' if index == 1 else '备选'
+            logger.hr(f'{priority_text}好友分组: {target_friend.value}', 2)
+            self._reset_utilize_friend_list(target_friend)
+            if self.utilize_lazy_mode_active:
+                select_result = self._select_lazy_resource_card(target_friend)
+            else:
+                select_result = self._select_optimal_resource_card(target_friend)
+            if select_result is True:
+                selected_friend = target_friend
+                logger.info(
+                    f'已在{priority_text}分组[{target_friend.value}]选中蹭卡目标，'
+                    '不再检查其他分组'
+                )
+                break
+            if select_result is False:
+                logger.warning(
+                    f'分组[{target_friend.value}]存在可用卡，但最优卡定位失败，'
+                    '本轮不切换分组'
+                )
+                return False
+            logger.info(
+                f'分组[{target_friend.value}]没有当前策略可用的'
+                '四星及以上结界卡'
+            )
+
+        if selected_friend is None:
+            return self._finish_low_value_utilize()
 
         # 找到卡,重置次数
         self.utilize_add_count = 0
@@ -373,12 +617,14 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             logger.warning('[结界蹭卡] 未找到进入结界按钮')
             # 可能是滑动的时候出错
             logger.warning('[结界蹭卡] 可能是滑动操作出错')
-            return None
+            return self._record_utilize_failure('未识别到进入结界按钮')
         try:
             self.goto_page(page_friend_utilize)
-        except GamePageUnknownError:
+        except (GamePageUnknownError, GameStuckError) as error:
             logger.warning('[结界蹭卡] 进入好友结界失败')
-            return None
+            return self._record_utilize_failure(
+                f'进入好友结界失败: {type(error).__name__}'
+            )
         # 判断好友的有两个位置还是一个坑位
         stop_image = None
         self.screenshot()
@@ -392,114 +638,388 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             # 没有坑位可能是其他人的手速太快了抢占了
             self.save_image(content='没有坑位了', wait_time=0, push_flag=False, image_type='png')
             logger.warning('没有坑位可能是其他人的手速太快了抢占了')
-            return True
-        # 切换式神的类型
-        self.switch_shikigami_class(shikigami_class)
-        # 上式神
-        self.set_shikigami(shikigami_order, stop_image)
+            return self._record_utilize_failure(
+                '目标结界已经没有可用坑位',
+                entered_realm=True,
+            )
+        try:
+            # 切换式神的类型
+            self.switch_shikigami_class(shikigami_class)
+            # 上式神
+            self.set_shikigami(shikigami_order, stop_image)
+        except (GamePageUnknownError, GameStuckError) as error:
+            return self._record_utilize_failure(
+                f'式神寄养失败: {type(error).__name__}',
+                entered_realm=True,
+            )
+        self.utilize_failed_count = 0
+        self.utilize_entered_failed_count = 0
         return True
 
-    def _select_optimal_resource_card(self):
-        """整合后的智能选卡主逻辑（无嵌套函数版）"""
-        # 类常量声明（需在类中定义）
-        RESOURCE_PRESETS = {
-            '斗鱼': [151, 143, 134, 126, 101, 84],
-            '太鼓': [76,  76,  67,  67,  59,  50]
-        }
-        MAX_INDEX = 99
+    def _lazy_card_matches_rule(
+        self,
+        card_class: CardClass,
+        *,
+        minimum_star: int = 5,
+        maximum_star: int | None = None,
+    ) -> bool:
+        """判断资源卡是否符合怠惰策略及指定星级范围。"""
+        tier_info = self.CARD_TIER_INFO.get(card_class)
+        if not tier_info:
+            return False
+        card_type, star, _ = tier_info
+        if star < minimum_star:
+            return False
+        if maximum_star is not None and star > maximum_star:
+            return False
+        rule = self.config.kekkai_utilize.utilize_config.utilize_rule
+        if rule == UtilizeRule.TAIKO:
+            return card_type == '太鼓'
+        if rule == UtilizeRule.FISH:
+            return card_type == '斗鱼'
+        if rule == UtilizeRule.DEFAULT:
+            return card_type in ('太鼓', '斗鱼')
+        logger.error('[结界蹭卡] 未知的蹭卡规则')
+        raise ValueError('Unknown utilize rule')
 
-        def get_resource_index(resource_name, current_value, preset_values):
-            """获取资源匹配的档位索引"""
-            for idx, val in enumerate(preset_values):
-                if current_value >= val:
-                    logger.info(f'📊 {resource_name}区间匹配: {current_value} ≥ {val} (档位{idx})')
-                    return idx
-            logger.warning(f'⚠️ {resource_name}值[{current_value}]低于所有预设')
-            return MAX_INDEX
+    def _select_lazy_resource_card(
+        self,
+        friend: SelectFriendList,
+    ) -> bool | None:
+        """怠惰模式：先找五星；确认没有后复位并选当前分组首张四星。"""
+        max_swipes = 20
+        consecutive_miss_limit = 3
+        timeout = Timer(120).start()
+        miss_count = 0
+        found_four_star = False
+        self.utilize_current_group_has_eligible_card = False
+        self.utilize_current_group_scan_completed = False
 
-        while True:
+        logger.hr('怠惰模式快速选择结界卡', 2)
+        for swipe_count in range(max_swipes + 1):
+            if timeout.reached():
+                logger.warning('怠惰模式扫描超时，不能确认当前分组无可用卡')
+                return False
+
             self.screenshot()
+            raw_cards = self.lazy_scan_targets.find_everyone(
+                self.device.image,
+                frame_id=self.device.image_frame_id,
+            )
+            cards = self._deduplicate_card_matches(raw_cards)
+            eligible_cards = []
+            if cards:
+                for card in cards:
+                    target, _, _, _ = card
+                    card_class = target_to_card_class(target)
+                    if self._lazy_card_matches_rule(
+                        card_class,
+                        minimum_star=4,
+                        maximum_star=4,
+                    ):
+                        found_four_star = True
+                        self.utilize_found_eligible_card = True
+                        self.utilize_current_group_has_eligible_card = True
+                    if self._lazy_card_matches_rule(
+                        card_class,
+                        minimum_star=5,
+                    ):
+                        eligible_cards.append(card)
 
-            # 第一阶段：初始记录获取
-            if self.ap_max_num == 0 and self.jade_max_num == 0:
-                logger.hr('第一阶段：初始记录获取', 2)
-                if self._current_select_best():
-                    logger.info(f'✅ 完美结界卡确认成功，重置状态')
-                    self.ap_max_num, self.jade_max_num = 0, 0
-                    return True
-                logger.info(f'📝 记录最佳值 | 斗鱼:{self.ap_max_num} 太鼓:{self.jade_max_num}')
-                return False
-
-            logger.hr('第二阶段：资源优先级判断', 2)
-            # 获取双资源档位
-            ap_index = get_resource_index('斗鱼', self.ap_max_num, RESOURCE_PRESETS['斗鱼'])
-            jade_index = get_resource_index('太鼓', self.jade_max_num, RESOURCE_PRESETS['太鼓'])
-
-            # 双资源超限处理
-            if ap_index == MAX_INDEX and jade_index == MAX_INDEX:
-                logger.warning('🔄 斗鱼和太鼓均低于预设，重置初始记录')
-                self.ap_max_num, self.jade_max_num = 0, 0
-                return False
-
-            # 决策优先级
-            res_type, target = ('斗鱼', self.ap_max_num) if ap_index <= jade_index else ('太鼓', self.jade_max_num)
-            logger.info(f'⚖️ 选择{res_type}卡 | 目标: {target}')
-
-            # 第三阶段：执行选卡操作
-            logger.hr('第三阶段：执行选卡操作', 2)
-            if self._current_select_best(res_type, target, selected_card=True):
-                logger.info(f'✅ {res_type}卡确认成功，重置状态')
-                self.ap_max_num, self.jade_max_num = 0, 0
+            if eligible_cards:
+                self.utilize_found_eligible_card = True
+                self.utilize_current_group_has_eligible_card = True
+                target, _, area, _ = eligible_cards[0]
+                card_class = target_to_card_class(target)
+                card_type, star, _ = self.CARD_TIER_INFO[card_class]
+                self.C_SELECT_CARD.roi_front = area
+                self.click(self.C_SELECT_CARD)
+                time.sleep(2)
+                logger.info(
+                    f'怠惰模式已选择首个符合策略的{star}星{card_type}: '
+                    f'swipe={swipe_count}, area={area}'
+                )
                 return True
-            else:
-                logger.warning(f'❌ {res_type}卡确认失败，重置状态')
-                self.ap_max_num, self.jade_max_num = 0, 0
+
+            # 当前屏即使只有四星卡或另一策略资源卡，也说明仍位于
+            # 有效卡区域，需要继续向下寻找，不能计入连续空屏。
+            miss_count = 0 if cards else miss_count + 1
+            logger.info(
+                f'怠惰模式第{swipe_count}屏未发现当前策略五星以上结界卡'
+            )
+            if self.appear(self.I_U_EMPTY_CARD):
+                logger.info('怠惰模式已到达好友列表空卡区域')
+                self.utilize_current_group_scan_completed = True
+                break
+            if miss_count > consecutive_miss_limit:
+                logger.info(
+                    f'怠惰模式连续{miss_count}屏没有四星以上资源卡候选，'
+                    '结束当前分组扫描'
+                )
+                self.utilize_current_group_scan_completed = True
+                break
+            self.perform_swipe_action()
+        else:
+            self.utilize_current_group_scan_completed = True
+            logger.info(
+                f'怠惰模式已按最大滑动次数{max_swipes}完成当前分组扫描'
+            )
+
+        if not found_four_star:
+            logger.info('当前优先分组没有符合策略的五星或四星结界卡')
+            return None
+
+        logger.info(
+            '当前优先分组已确认没有五星以上目标，'
+            '复位列表并回退选择四星卡'
+        )
+        self._reset_utilize_friend_list(friend)
+        if self._locate_lazy_four_star_card():
+            return True
+        logger.warning('已发现四星目标，但复位后重新定位失败')
+        return False
+
+    def _locate_lazy_four_star_card(self) -> bool:
+        """从当前好友分组顶部选择首张符合怠惰策略的四星卡。"""
+        max_swipes = 20
+        consecutive_miss_limit = 3
+        timeout = Timer(120).start()
+        miss_count = 0
+
+        logger.hr('怠惰模式回退选择四星结界卡', 2)
+        for swipe_count in range(max_swipes + 1):
+            if timeout.reached():
+                logger.warning('怠惰模式重新定位四星卡超时')
                 return False
 
-    def _current_select_best(self, best_card_type=None, best_card_num=0, selected_card=False):
-        """结界卡选择核心逻辑（集成版）
-        功能：滑动屏幕寻找最优资源卡，支持两种模式：
-        - 探索模式：记录当前遇到的最佳结界卡数值
-        - 确认模式：根据给定条件选择指定类型结界卡
+            self.screenshot()
+            raw_cards = self.lazy_scan_targets.find_everyone(
+                self.device.image,
+                frame_id=self.device.image_frame_id,
+            )
+            cards = self._deduplicate_card_matches(raw_cards)
+            if cards:
+                for target, _, area, _ in cards:
+                    card_class = target_to_card_class(target)
+                    if not self._lazy_card_matches_rule(
+                        card_class,
+                        minimum_star=4,
+                        maximum_star=4,
+                    ):
+                        continue
+                    card_type, star, _ = self.CARD_TIER_INFO[card_class]
+                    self.C_SELECT_CARD.roi_front = area
+                    self.click(self.C_SELECT_CARD)
+                    time.sleep(2)
+                    logger.info(
+                        f'怠惰模式已回退选择{star}星{card_type}: '
+                        f'swipe={swipe_count}, area={area}'
+                    )
+                    return True
+                miss_count = 0
+            else:
+                miss_count += 1
 
-        :param best_card_type: 目标卡类型('太鼓'/'斗鱼')
-        :param best_card_num:  要求的最低数值
-        :param selected_card:  是否处于确认选择模式
-        :return: 找到符合条件返回True，否则None
-        """
+            if (
+                self.appear(self.I_U_EMPTY_CARD)
+                or miss_count > consecutive_miss_limit
+            ):
+                return False
+            self.perform_swipe_action()
+
+        return False
+
+    def _select_optimal_resource_card(
+        self,
+        friend: SelectFriendList,
+    ) -> bool | None:
+        """浏览当前分组，计算最高收益并确保最终重新选中该卡。"""
+        self.ap_max_num, self.jade_max_num = 0, 0
+        self.utilize_current_group_has_eligible_card = False
+        self.utilize_current_group_scan_completed = False
+        try:
+            logger.hr('浏览列表并选择最优结界卡', 2)
+            reached_strategy_maximum = self._current_select_best()
+            if reached_strategy_maximum:
+                logger.info('🏁 已命中当前策略最高收益，停止下划并直接进入结界')
+                return True
+            logger.info(
+                f'📝 列表浏览完成 | '
+                f'斗鱼:{self.ap_max_num} 太鼓:{self.jade_max_num}'
+            )
+
+            rule = self.config.kekkai_utilize.utilize_config.utilize_rule
+            if rule == UtilizeRule.TAIKO and self.jade_max_num > 0:
+                card_type, card_value = '太鼓', self.jade_max_num
+            elif rule == UtilizeRule.FISH and self.ap_max_num > 0:
+                card_type, card_value = '斗鱼', self.ap_max_num
+            elif rule == UtilizeRule.DEFAULT and (
+                self.ap_max_num > 0 or self.jade_max_num > 0
+            ):
+                ap_as_jade = self.ap_max_num / 1.8
+                logger.info(
+                    f'⚖️ 默认换算 | 斗鱼:{self.ap_max_num}体力 ÷ 1.8 '
+                    f'= {ap_as_jade:.2f} | 太鼓:{self.jade_max_num}勾玉'
+                )
+                if ap_as_jade >= self.jade_max_num:
+                    card_type, card_value = '斗鱼', self.ap_max_num
+                else:
+                    card_type, card_value = '太鼓', self.jade_max_num
+            else:
+                if self.utilize_current_group_has_eligible_card:
+                    logger.warning('🔄 检测到四星以上目标，但奖励数值识别失败')
+                    return False
+                if not self.utilize_current_group_scan_completed:
+                    logger.warning('当前好友分组未能完整扫描，不能判定为全是低价值卡')
+                    return False
+                logger.info('当前分组全是当前策略低价值结界卡')
+                return None
+
+            logger.info(f'🎯 最优决策: {card_type}@{card_value}')
+            # 扫描过程中最后点击的卡不一定是最高值。回到当前好友分组顶部，
+            # 在同一次选卡流程内按 OCR 数值重新定位，避免拿记录值冒充选择状态。
+            self._reset_utilize_friend_list(friend)
+            if self._locate_recorded_resource_card(card_type, card_value):
+                logger.info(f'✅ 已重新选中最优结界卡: {card_type}@{card_value}')
+                return True
+            logger.warning(f'❌ 无法重新定位最优结界卡: {card_type}@{card_value}')
+            return False
+        finally:
+            self.ap_max_num, self.jade_max_num = 0, 0
+
+    def _locate_recorded_resource_card(
+        self,
+        best_card_type: str,
+        best_card_value: int,
+    ) -> bool:
+        """从列表顶部重新找到并保留浏览阶段记录的最优卡。"""
+        max_swipes = 20
+        consecutive_miss_limit = 3
+        timeout = Timer(120).start()
+        miss_count = 0
+
+        logger.info(
+            f'开始重新定位最优结界卡: {best_card_type}@{best_card_value}'
+        )
+        for swipe_count in range(max_swipes + 1):
+            if timeout.reached():
+                logger.warning('重新定位最优结界卡超时')
+                return False
+
+            self.screenshot()
+            raw_cards = self.order_targets.find_everyone(
+                self.device.image,
+                frame_id=self.device.image_frame_id,
+            )
+            cards = self._deduplicate_card_matches(raw_cards)
+            if not cards:
+                miss_count += 1
+                if (
+                    miss_count > consecutive_miss_limit
+                    or self.appear(self.I_U_EMPTY_CARD)
+                ):
+                    return False
+                self.perform_swipe_action()
+                continue
+
+            miss_count = 0
+            for target, _, area, _ in cards:
+                tier_info = self.CARD_TIER_INFO.get(
+                    target_to_card_class(target)
+                )
+                if tier_info and tier_info[0] != best_card_type:
+                    continue
+
+                self.C_SELECT_CARD.roi_front = area
+                self.click(self.C_SELECT_CARD)
+                time.sleep(2)
+                card_type, card_value = self.check_card_num()
+                logger.info(
+                    '重新定位候选: '
+                    f'{card_type}@{card_value}, '
+                    f'target={best_card_type}@{best_card_value}'
+                )
+                if (
+                    card_type == best_card_type
+                    and card_value == best_card_value
+                ):
+                    return True
+
+            if self.appear(self.I_U_EMPTY_CARD):
+                return False
+            self.perform_swipe_action()
+
+        logger.warning(f'重新定位达到最大滑动次数{max_swipes}')
+        return False
+
+    def _is_strategy_maximum_reward(
+        self,
+        card_type: str,
+        card_value: int,
+    ) -> bool:
+        """判断当前卡是否已经达到所选策略的全局最高收益。"""
+        maximum = self.STRATEGY_MAX_REWARDS.get(card_type)
+        if maximum is None or card_value < maximum:
+            return False
+
+        rule = self.config.kekkai_utilize.utilize_config.utilize_rule
+        if rule == UtilizeRule.TAIKO:
+            return card_type == '太鼓'
+        if rule == UtilizeRule.FISH:
+            return card_type == '斗鱼'
+        if rule == UtilizeRule.DEFAULT:
+            return card_type in ('太鼓', '斗鱼')
+        logger.error('[结界蹭卡] 未知的蹭卡规则')
+        raise ValueError('Unknown utilize rule')
+
+    def _current_select_best(self) -> bool:
+        """浏览好友列表、记录奖励，并保留当前选中的最佳结界卡。"""
         # ============== 配置常量 ==============#
         RESOURCE_CONFIG = {
-            '斗鱼': {'max': 151, 'record_attr': 'ap_max_num'},
-            '太鼓': {'max': 76, 'record_attr': 'jade_max_num'}
+            '斗鱼': {'record_attr': 'ap_max_num'},
+            '太鼓': {'record_attr': 'jade_max_num'}
         }
         MAX_SWIPES = 20  # 最大滑动次数
         CONSEC_MISS = 3  # 允许连续无卡次数
         TIMEOUT = 120  # 操作超时(秒)
 
         # ============== 初始化阶段 ==============#
-        logger.info(f'启动{"探索模式" if not selected_card else f"确认模式 | 目标: {best_card_type} @ {best_card_num}"}')
+        logger.info('启动结界卡浏览选择')
         timer = Timer(TIMEOUT).start()
         miss_count = 0  # 连续无卡计数器
+        maxed_card_classes: set[CardClass] = set()
+        # 每种资源已经实际打开并确认过奖励的最高星级。更低星级的
+        # 理论上限不会超过更高星级，因此后续无需再打开确认；同星级
+        # 仍由 maxed_card_classes 判断是否已经达到该档最高奖励。
+        confirmed_highest_stars: dict[str, int] = {}
 
         # ============== 主滑动循环 ==============#
         for swipe_count in range(MAX_SWIPES + 1):
             # 超时检测
             if timer.reached():
                 logger.warning('⏰ 操作超时，终止流程')
-                return None
+                return False
 
             # ------ 步骤1: 截图识别结界卡 ------#
             self.screenshot()
-            cards = self.order_targets.find_everyone(self.device.image, frame_id=self.device.image_frame_id)
+            raw_cards = self.order_targets.find_everyone(
+                self.device.image,
+                frame_id=self.device.image_frame_id,
+            )
+            cards = self._deduplicate_card_matches(raw_cards)
 
             # 处理无卡情况
             if not cards:
                 miss_count += 1
                 logger.info(f'第{swipe_count}次滑动 | 未检测到结界卡' if swipe_count > 0 else '初始界面 | 未检测到结界卡')
-                # 连续无卡超过阈值则终止/已经出现空卡也不再滑动
+                # 游戏会优先排列有结界卡的好友，连续未命中或出现空卡时
+                # 即可视为当前分组已扫描完成。
                 if miss_count > CONSEC_MISS or self.appear(self.I_U_EMPTY_CARD):
-                    logger.warning(f'⚠️ 连续{miss_count}次 | 未检测到结界卡, 终止流程')
-                    return None
+                    logger.warning(
+                        f'⚠️ 连续{miss_count}次未检测到目标结界卡，终止当前分组扫描'
+                    )
+                    self.utilize_current_group_scan_completed = True
+                    return False
                 # 执行滑动操作
                 self.perform_swipe_action()
                 continue
@@ -507,11 +1027,38 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
             miss_count = 0  # 重置无卡计数器
 
             # ------ 步骤2: 处理识别到的结界卡 ------
-            cards_list = [target for target, _, _ in cards]
+            cards_list = [target for target, _, _, _ in cards]
             logger.info((f'第{swipe_count}次滑动' if swipe_count > 0 else '初始界面') + f' | 检测到结界卡：{cards_list}')
 
             # 遍历所有结界卡（已按位置排序）
-            for _, _, area in cards:
+            for target, _, area, _ in cards:
+                card_class = target_to_card_class(target)
+                tier_info = self.CARD_TIER_INFO.get(card_class)
+                if tier_info:
+                    self.utilize_found_eligible_card = True
+                    self.utilize_current_group_has_eligible_card = True
+
+                if card_class in maxed_card_classes:
+                    card_type, star, tier_max = tier_info
+                    logger.info(
+                        f'⏭️ {star}星{card_type}已确认最高奖励{tier_max}，'
+                        '本轮不再点击同档卡片'
+                    )
+                    continue
+
+                if tier_info:
+                    card_type, star, _ = tier_info
+                    confirmed_star = confirmed_highest_stars.get(
+                        card_type,
+                        0,
+                    )
+                    if star < confirmed_star:
+                        logger.info(
+                            f'⏭️ 已确认{confirmed_star}星{card_type}奖励，'
+                            f'不再向下确认{star}星{card_type}'
+                        )
+                        continue
+
                 # 设置点击区域并获取结界卡详情
                 self.C_SELECT_CARD.roi_front = area
                 self.click(self.C_SELECT_CARD)
@@ -525,8 +1072,27 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                     logger.info(f'⏭️ 跳过无效卡: {card_type}@{card_value}')
                     continue
 
+                if tier_info:
+                    tier_type, star, tier_max = tier_info
+                    if tier_type == card_type:
+                        previous_star = confirmed_highest_stars.get(
+                            card_type,
+                            0,
+                        )
+                        if star > previous_star:
+                            confirmed_highest_stars[card_type] = star
+                            logger.info(
+                                f'✅ 已确认{star}星{card_type}奖励，'
+                                f'后续跳过{star}星以下同类型卡片'
+                            )
+                        if card_value >= tier_max:
+                            maxed_card_classes.add(card_class)
+                            logger.info(
+                                f'✅ {star}星{card_type}达到当前档位最高奖励: '
+                                f'{card_value}（标准{tier_max}）'
+                            )
+
                 # ====== 模式分支处理 ======#
-                current_max = RESOURCE_CONFIG[card_type]['max']
                 record_attr = RESOURCE_CONFIG[card_type]['record_attr']
                 current_record = getattr(self, record_attr, 0)
                 logger.info(f'🔍 识别卡片: {card_type} | 当前值: {card_value}, 最优值: {current_record}')
@@ -536,29 +1102,26 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                     logger.info(f'📈 更新记录: {card_type} | {current_record} → {card_value}')
                     setattr(self, record_attr, card_value)
 
-                if selected_card:  # 确认选择模式
-                    # 检查是否符合选择条件
-                    if (card_type == best_card_type) and (card_value >= best_card_num):
-                        logger.info(f'🎉 确认蹭卡: {card_type} | 当前值: {card_value} ≥ 目标值: {best_card_num}')
-                        self.save_image(push_flag=False, wait_time=0, content=f'🎉 确认蹭卡（{card_type}: {card_value}）')
-                        return True
-                else:  # 探索记录模式
-                    # 发现完美卡直接返回
-                    if card_value >= current_max:
-                        message = f'🎉 完美蹭卡 | {card_type}: {card_value}'
-                        logger.info(message)
-                        self.save_image(push_flag=False, wait_time=0, content=message)
-                        return True
+                if self._is_strategy_maximum_reward(card_type, card_value):
+                    logger.info(
+                        f'✅ 当前策略最高收益已确认: '
+                        f'{card_type}@{card_value}，保留当前选项并停止浏览'
+                    )
+                    return True
 
             if self.appear(self.I_U_EMPTY_CARD):
-                logger.info('[结界蹭卡] 已出现空卡，结束选卡')
-                return None
+                logger.info('[结界蹭卡] 已出现空卡，结束当前分组扫描')
+                self.utilize_current_group_scan_completed = True
+                return False
             # ------ 步骤3: 滑动到下一屏 ------#
             self.perform_swipe_action()
 
         # ============== 终止处理 ==============#
-        logger.warning(f'⚠️ 已达到最大滑动次数{MAX_SWIPES}, 终止流程')
-        return None
+        self.utilize_current_group_scan_completed = True
+        logger.info(
+            f'已按最大滑动次数{MAX_SWIPES}完成当前分组的有界全量扫描'
+        )
+        return False
 
     def perform_swipe_action(self):
         """统一滑动操作"""
@@ -622,4 +1185,3 @@ if __name__ == "__main__":
     # t.screenshot()
     # print(t.appear(t.I_BOX_EXP, threshold=0.6))
     # print(t.appear(t.I_BOX_EXP_MAX, threshold=0.6))
-

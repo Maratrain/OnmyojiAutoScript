@@ -36,6 +36,13 @@ class UtilizeConfig(BaseModel):
     harvest_guild_max_times: int = Field(default=2, description='harvest_guild_max_times_help')
     utilize_harvest: bool = Field(default=True, description='utilize_harvest_help')
     utilize_enable: bool = Field(default=True, description='utilize_enable_help')
+    lazy_mode: bool = Field(default=False, description='lazy_mode_help')
+    lazy_mode_weight: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+        description='lazy_mode_weight_help',
+    )
     box_ap_enable: bool = Field(default=True)
     box_exp_enable: bool = Field(default=True)
     box_exp_waste: bool = Field(default=True, description='box_exp_waste_help')
@@ -44,6 +51,3 @@ class UtilizeConfig(BaseModel):
 class KekkaiUtilize(ConfigBase):
     scheduler: UtilizeScheduler = Field(default_factory=UtilizeScheduler)
     utilize_config: UtilizeConfig = Field(default_factory=UtilizeConfig)
-
-
-

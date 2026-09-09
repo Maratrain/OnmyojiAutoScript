@@ -546,5 +546,9 @@
   "Priority": "优先级",
   "wait_10s": "等待10秒",
   "window_background": "窗口后台",
-  "window_message": "窗口消息"
+  "window_message": "窗口消息",
+  "lazy_mode": "怠惰模式",
+  "lazy_mode_help": "开启后每次任务按权重随机进入怠惰模式；命中时不比较奖励数值，优先选择当前可见的五星及以上目标卡，否则选择首个符合策略的四星卡。",
+  "lazy_mode_weight": "怠惰模式权重",
+  "lazy_mode_weight_help": "取值范围0-1，默认1；0表示永不触发，1表示每次触发。"
 }
