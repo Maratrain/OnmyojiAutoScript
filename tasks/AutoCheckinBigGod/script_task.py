@@ -8,6 +8,7 @@ import sys
 import time
 import json
 import random
+import shlex
 
 # 直接运行本脚本时，需要先将项目根目录加入 Python 路径
 if __name__ == '__main__' and 'tasks' not in sys.modules:
@@ -248,7 +249,9 @@ class ScriptTask(ManualClaimMixin):
         if root_mode == 'adb':
             return self._adb_shell([command], timeout=timeout)
         if root_mode == 'su':
-            return self._adb_shell(['su', '-c', command], timeout=timeout)
+            # 部分模拟器的 su 只把 -c 后第一个词当命令（如 MuMu），
+            # 必须将整条命令作为单个加引号参数传入，否则仅首词以 root 执行
+            return self._adb_shell(['su', '-c', shlex.quote(command)], timeout=timeout)
         raise RuntimeError('模拟器未提供Root权限')
 
     def _get_app_pid(self):
