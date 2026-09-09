@@ -57,7 +57,7 @@ class DuelAssets:
 	# ban选界面 
 	I_D_CHECK_BAN = RuleImage(roi_front=(611,36,56,62), roi_back=(590,14,100,100), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_d_check_ban.png")
 	# 斗技荣誉图标 
-	I_DUEL_HONOR = RuleImage(roi_front=(211,636,20,20), roi_back=(200,601,130,100), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_duel_honor.png")
+	I_DUEL_HONOR = RuleImage(roi_front=(211,636,20,20), roi_back=(180,601,217,98), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_duel_honor.png")
 	# 胜利分享 
 	I_D_WIN_SHARE = RuleImage(roi_front=(1123,608,82,73), roi_back=(1123,608,82,73), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/d_win_share.png")
 
