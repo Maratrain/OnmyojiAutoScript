@@ -407,11 +407,7 @@ class ChessHandOperationsMixin:
         self,
         verified_names: set[str] | None = None,
     ) -> int | None:
-        """从阵容级配置读取守护之印目标位置。
-
-        守护之印跟随被保护式神：先按阵容配置定位被保护式神，再换算
-        成其本局随机换列后的实际站位。
-        """
+        """从阵容级配置读取守护之印目标位置。"""
         strategy = self.get_lineup_strategy()
         if self.HAKUZOSU_NAME not in strategy['shikigami']:
             return None
@@ -430,22 +426,14 @@ class ChessHandOperationsMixin:
                     or target_name in verified_names
                 )
             ):
-                return int(
-                    self.shikigami_deploy_positions.get(
-                        target_name, position
-                    )
-                )
+                return position
 
         # 兼容尚未迁移的第三方四元组阵容配置。
         for name, config in strategy['shikigami'].items():
             if verified_names is not None and name not in verified_names:
                 continue
             if config.get('equip_hakuzosu_protect', False):
-                return int(
-                    self.shikigami_deploy_positions.get(
-                        name, int(config['position'])
-                    )
-                )
+                return int(config['position'])
         return None
 
     def _arakawa_goldfish_target_position(self) -> int | None:
@@ -865,15 +853,13 @@ class ChessHandOperationsMixin:
             self.device,
             p1=source,
             p2=target_position,
-            # 按住时长与落点随机化，模拟人工拖动节奏；棋盘格间距
-            # 约 100px，±6px 落点抖动不会误落到相邻格。
-            hold_duration=random.uniform(0.35, 0.75),
-            point_random=(-6, -6, 6, 6),
-            swipe_duration=random.uniform(0.35, 0.65),
+            hold_duration=0.5,
+            point_random=(-3, -3, 3, 3),
+            swipe_duration=0.5,
             name=f'CHESS_DEPLOY_{name.upper()}_SET_{set_index}',
         )
         self.close_shikigami_specifics_if_open()
-        time.sleep(self.HAND_DEPLOY_WAIT + random.uniform(0.0, 0.35))
+        time.sleep(self.HAND_DEPLOY_WAIT)
         self.screenshot()
         count_after = self._read_shikigami_count()
         hand_count_after = self._lineup_hand_card_match_count(name)
@@ -1006,8 +992,7 @@ class ChessHandOperationsMixin:
             return None
 
         # 同名多张时先保留最左侧。不同式神先按阵容配置的上阵权重
-        # 排序（数值越低越优先），同权重内随机挑选，避免每局上阵
-        # 顺序完全一致暴露脚本特征。
+        # 排序（数值越低越优先），同权重再保持原有的从左到右顺序。
         selected_by_name = {}
         for candidate in sorted(
             candidates,
@@ -1015,25 +1000,20 @@ class ChessHandOperationsMixin:
         ):
             selected_by_name.setdefault(candidate['name'], candidate)
         strategy_shikigami = self.get_lineup_strategy()['shikigami']
-        best_weight = min(
-            int(
-                strategy_shikigami[item['name']].get(
-                    'deploy_weight', 1
-                )
-            )
-            for item in selected_by_name.values()
+        selected = min(
+            selected_by_name.values(),
+            key=lambda item: (
+                int(
+                    strategy_shikigami[item['name']].get(
+                        'deploy_weight', 1
+                    )
+                ),
+                item['position'][0],
+            ),
         )
-        selected = random.choice([
-            item
-            for item in selected_by_name.values()
-            if int(
-                strategy_shikigami[item['name']].get(
-                    'deploy_weight', 1
-                )
-            )
-            == best_weight
-        ])
-        selected['deploy_weight'] = best_weight
+        selected['deploy_weight'] = int(
+            strategy_shikigami[selected['name']].get('deploy_weight', 1)
+        )
         return selected
 
     def _scan_lineup_hand_card_candidates_once(
@@ -1120,12 +1100,10 @@ class ChessHandOperationsMixin:
             if soul_name in config.get('preferred_souls', ())
         }
         active_preferred_names = preferred_names & verified_names
-        # 专属御魂跟随式神的本局随机换列站位，不再直读阵容配置。
         preferred_positions = sorted(
-            int(self.shikigami_deploy_positions[name])
+            int(strategy_shikigami[name]['position'])
             for name in active_preferred_names
             if can_equip(name)
-            and name in self.shikigami_deploy_positions
         )
         if preferred_positions:
             return [
