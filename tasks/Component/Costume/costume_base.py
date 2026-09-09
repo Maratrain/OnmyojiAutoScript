@@ -10,10 +10,12 @@ from tasks.Component.Costume.config import (
     CostumeConfig,
     ShikigamiType,
     BattleType,
+    CarpBannerType,
     CourtyardAffairType,
 )
 from tasks.Component.Costume.assets import CostumeAssets
 from tasks.Component.CostumeBattle.assets import CostumeBattleAssets
+from tasks.Component.CostumeCarpBanner.assets import CostumeCarpBannerAssets
 from tasks.Component.CostumeShikigami.assets import CostumeShikigamiAssets
 from tasks.Component.CustomCourtyardAffair.assets import CustomCourtyardAffairAssets
 
@@ -34,6 +36,16 @@ main_costume_model = {
         'I_HARVEST_GUILD_REWARD': f'I_HARVEST_GUILD_REWARD_{i}',
     }
     for i in range(1, 18)
+}
+
+# 鲤鱼旗皮肤，覆盖结界页的育成/结界卡/防守按钮识别
+carpbanner_costume_model = {
+    getattr(CarpBannerType, f'COSTUME_CARPBANNER_{i}'): {
+        'I_SHI_GROWN': f'I_SHI_GROWN_{i}',
+        'I_SHI_CARD': f'I_SHI_CARD_{i}',
+        'I_SHI_DEFENSE': f'I_SHI_DEFENSE_{i}',
+    }
+    for i in range(1, 4)
 }
 
 # 战斗主题（使用循环处理常规情况 + 特例处理）
@@ -95,6 +107,7 @@ class CostumeBase:
         if config is None:
             config: CostumeConfig = self.config.model.global_game.costume_config
         self.check_costume_main(config.costume_main_type)
+        self.check_costume_carpbanner(config.costume_carpbanner_type)
         self.check_costume_battle(config.costume_battle_type)
         self.check_costume_shikigami(config.costume_shikigami_type)
         self.check_custom_courtyard_affair(config.custom_courtyard_affair)
@@ -121,6 +134,21 @@ class CostumeBase:
             assert_value: RuleImage = getattr(costume_assets, value, None)
             if assert_value is None:
                 continue
+            self.replace_img(key, assert_value)
+
+    def check_costume_carpbanner(self, carpbanner_type: CarpBannerType):
+        if carpbanner_type == CarpBannerType.COSTUME_CARPBANNER_DEFAULT:
+            return
+        logger.info(f'[皮肤] 切换鲤鱼旗皮肤为 {carpbanner_type}, 覆盖结界按钮识别模板')
+        carpbanner_assets = CostumeCarpBannerAssets()
+        model = carpbanner_costume_model.get(carpbanner_type, {})
+        for key, value in model.items():
+            if not hasattr(carpbanner_assets, value):
+                # 尚未采集完成的鲤鱼旗模板，跳过
+                logger.warning(f'[皮肤] 鲤鱼旗皮肤模板 {value} 不存在, 跳过')
+                continue
+            assert_value: RuleImage = getattr(carpbanner_assets, value)
+            # 覆盖结界页育成/结界卡/防守按钮的同名模板
             self.replace_img(key, assert_value)
 
     def check_costume_battle(self, battle_type: BattleType):

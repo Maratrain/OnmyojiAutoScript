@@ -6,7 +6,8 @@ from tasks.GlobalGame.assets import GlobalGameAssets
 from tasks.KekkaiUtilize.assets import KekkaiUtilizeAssets
 
 # 寮结界主界面
-page_guild_realm = Page(KekkaiUtilizeAssets.I_REALM_SHIN)
+# 默认皮肤用结界皮肤按钮识别; 其他皮肤按钮外观会变, 用多尺度的防守按钮文字兜底
+page_guild_realm = Page(any_of(KekkaiUtilizeAssets.I_REALM_SHIN, KekkaiUtilizeAssets.I_SHI_DEFENSE))
 page_guild_realm.connect(page_guild, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_guild_realm->page_guild")
 page_guild.connect(page_guild_realm, KekkaiUtilizeAssets.I_GUILD_REALM, key="page_guild->page_guild_realm")
 # 放置结界卡界面

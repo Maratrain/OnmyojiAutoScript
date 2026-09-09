@@ -36,6 +36,33 @@
     "description": "结界皮肤"
   },
   {
+    "itemName": "shi_grown",
+    "imageName": "realm_shi_grown.png",
+    "roiFront": "595,291,35,38",
+    "roiBack": "530,220,202,267",
+    "method": "Multi-scale template matching",
+    "threshold": 0.6,
+    "description": "育成按钮（多尺度适配结界皮肤缩放）"
+  },
+  {
+    "itemName": "shi_card",
+    "imageName": "realm_shi_card.png",
+    "roiFront": "891,300,31,55",
+    "roiBack": "823,210,252,297",
+    "method": "Multi-scale template matching",
+    "threshold": 0.6,
+    "description": "结界卡按钮（多尺度适配结界皮肤缩放）"
+  },
+  {
+    "itemName": "shi_defense",
+    "imageName": "realm_shi_defense.png",
+    "roiFront": "303,308,34,52",
+    "roiBack": "178,209,261,274",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "防守按钮（多尺度适配结界皮肤缩放）"
+  },
+  {
     "itemName": "utilize_exp",
     "imageName": "realm_utilize_exp.png",
     "roiFront": "583,144,58,43",

@@ -53,8 +53,14 @@ class KekkaiUtilizeAssets:
 	I_BOX_AP = RuleImage(roi_front=(815,435,57,51), roi_back=(744,336,395,216), threshold=0.7, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_box_ap.png")
 	# 收取盒子的经验（没有满） 
 	I_BOX_EXP = RuleImage(roi_front=(893,440,42,45), roi_back=(792,334,359,232), threshold=0.7, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_box_exp.png")
-	# 结界皮肤 
+	# 结界皮肤
 	I_REALM_SHIN = RuleImage(roi_front=(175,460,54,58), roi_back=(22,359,393,328), threshold=0.9, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_realm_shin.png")
+	# 式神育成按钮（多尺度匹配适配结界皮肤缩放）
+	I_SHI_GROWN = RuleImage(roi_front=(595,291,35,38), roi_back=(530,220,202,267), threshold=0.6, method="Multi-scale template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_grown.png")
+	# 结界卡按钮（多尺度匹配适配结界皮肤缩放）
+	I_SHI_CARD = RuleImage(roi_front=(891,300,31,55), roi_back=(823,210,252,297), threshold=0.6, method="Multi-scale template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_card.png")
+	# 防守按钮（多尺度匹配适配结界皮肤缩放）
+	I_SHI_DEFENSE = RuleImage(roi_front=(303,308,34,52), roi_back=(178,209,261,274), threshold=0.7, method="Multi-scale template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_defense.png")
 	# 寄养别人的经验 
 	I_UTILIZE_EXP = RuleImage(roi_front=(583,144,58,43), roi_back=(513,43,280,309), threshold=0.8, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_utilize_exp.png")
 	# 取出 
