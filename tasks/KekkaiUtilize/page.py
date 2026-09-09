@@ -17,7 +17,16 @@ page_guild_realm.connect(page_guild_card, KekkaiUtilizeAssets.O_R_REALM, key="pa
 # 结界育成界面
 page_guild_realm_growth = Page(ReplaceShikigamiAssets.I_RS_RECORDS_SHIKI)
 page_guild_realm_growth.connect(page_guild_realm, GlobalGameAssets.I_UI_BACK_BLUE, key="page_guild_realm_growth->page_guild_realm")
-page_guild_realm.connect(page_guild_realm_growth, KekkaiUtilizeAssets.O_R_SHIKIGAMI, key="page_guild_realm->page_guild_realm_growth")
+
+
+def _enter_growth(task) -> bool:
+    """进入式神育成: 育成按钮为多尺度模板, 皮肤缩放下也能命中; OCR 找不到竖排小字时兜底"""
+    if task.appear_then_click(task.I_SHI_GROWN, interval=1):
+        return True
+    return task.ocr_appear_click(task.O_R_SHIKIGAMI, interval=1)
+
+
+page_guild_realm.connect(page_guild_realm_growth, _enter_growth, key="page_guild_realm->page_guild_realm_growth")
 # 结界育成寄养页面
 page_guild_realm_utilize = Page(KekkaiUtilizeAssets.I_U_ENTER_REALM)
 page_guild_realm_utilize.connect(page_guild_realm_growth, random_click, key="page_guild_realm_utilize->page_guild_realm_growth")
@@ -33,7 +42,7 @@ page_friend_utilize = Page(
 )
 page_friend_utilize.connect(page_friend_realm, GlobalGameAssets.I_UI_BACK_BLUE, key="page_friend_utilize->page_friend_realm")
 page_guild_realm_utilize.connect(page_friend_utilize, KekkaiUtilizeAssets.I_U_ENTER_REALM, key="page_guild_realm_utilize->page_friend_utilize")
-page_friend_realm.connect(page_friend_utilize, KekkaiUtilizeAssets.O_R_SHIKIGAMI, key="page_friend_realm->page_friend_utilize")
+page_friend_realm.connect(page_friend_utilize, _enter_growth, key="page_friend_realm->page_friend_utilize")
 # 体力食盒
 page_gr_ap_box = Page(KekkaiUtilizeAssets.I_AP_EXTRACT, priority=75)
 page_gr_ap_box.connect(page_guild_realm, GlobalGameAssets.I_UI_BACK_RED, key="page_gr_ap_box->page_guild_realm")
