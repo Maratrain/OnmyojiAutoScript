@@ -36,10 +36,10 @@ class Activity999Assets:
         method='Template matching',
         file='./tasks/Activity999/res/activity_999_entry.png',
     )
-    # 织梦莲庭皮肤：入口在右侧图标列顶部（金色圆形"活动"图标），位置样式完全不同。
+    # 织梦莲庭皮肤：同款金色圆形传送门，位于庭院中部偏左（人物身后）。
     I_ACTIVITY_999_ENTRY_MAIN1 = RuleImage(
-        roi_front=(1176, 132, 60, 60),
-        roi_back=(1100, 60, 180, 260),
+        roi_front=(438, 338, 74, 74),
+        roi_back=(330, 240, 340, 220),
         threshold=0.72,
         method='Template matching',
         file='./tasks/Activity999/res/activity_999_entry_main1.png',
