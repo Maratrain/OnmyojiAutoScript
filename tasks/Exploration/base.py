@@ -201,10 +201,9 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
 
         self.config.reload()
         self.__dict__.pop('_config', None)
-        # NewbieStory 在独立任务实例中运行, 页面变化不会更新本实例缓存
-        self.ui_current = None
-        self.ui_get_current_page(skip_first_screenshot=False)
-        if not self.ui_goto(pages.page_exploration):
+        # NewbieStory 在独立任务实例中运行, 页面变化不会更新本实例导航缓存
+        self.navigator.current_page = None
+        if not self.goto_page(pages.page_exploration, skip_first_screenshot=False):
             raise RequestHumanTakeover(
                 '[探索] NewbieStory 结束后无法返回探索页面; 探索保持禁用'
             )

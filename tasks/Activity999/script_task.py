@@ -93,8 +93,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         """Enter the activity from courtyard and open the elite page."""
         self.screenshot()
         if not self.appear(self.I_ACTIVITY_999_ENTRY):
-            self.ui_get_current_page()
-            self.ui_goto(page_main)
+            self.goto_page(page_main)
             self.screenshot()
         if not self.appear(self.I_ACTIVITY_999_ENTRY):
             raise RequestHumanTakeover('999 activity entrance not found in courtyard')

@@ -22,8 +22,7 @@ class ScriptTask(GameUi, GeneralBattleAssets, OutingRitualAssets):
         if self.appear(self.I_OR_START):
             return True
 
-        self.ui_get_current_page()
-        self.ui_goto(page_main)
+        self.goto_page(page_main)
         timeout = Timer(40).start()
         while not timeout.reached():
             self.screenshot()

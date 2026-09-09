@@ -291,7 +291,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         # 自动接力时先返回主页，再由下一帧判断是否出现真正的剧情交互。
         if self.appear(page_exploration.check_button):
             logger.info('Exploration page detected; return to main before running newbie story')
-            self.ui_goto(page_main)
+            self.goto_page(page_main)
             sleep(2.0)
             return True
 
