@@ -287,7 +287,7 @@ def build_analysis(script_name: str, target_day: date_cls, task_filter: str = ""
         if run["end"] is not None:
             continue
         run["end"] = fallback_end
-        for _, later in raw_runs[i + 1:]:
+        for later in raw_runs[i + 1:]:
             if later["start"] > run["start"]:
                 run["end"] = later["start"]
                 run["explicit_end"] = False
