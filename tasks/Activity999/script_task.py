@@ -1,7 +1,7 @@
 import time
 
 from module.base.timer import Timer
-from module.exception import RequestHumanTakeover
+from module.exception import RequestHumanTakeover, TaskEnd
 from module.logger import logger
 from module.base.random_delay import (
     BATTLE_SETTLEMENT_DELAY,
@@ -21,6 +21,8 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
     minimum_click_interval = CONTINUOUS_CONFIRM_DELAY
     recognition_click_delay = FIRST_OPERATION_DELAY
     PAGE_WAIT_TIMEOUT = 15
+    # 从活动首页点"战斗"到回响地图加载完成, 中间要过鬼王出场动画, 放宽到 30 秒
+    BATTLE_MAP_TIMEOUT = 30
 
     def is_activity_battle_win(self):
         """Recognize both normal and reward-covered activity settlement pages."""
@@ -40,12 +42,25 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         while not timer.reached():
             self.screenshot()
             if self.is_activity_battle_result_closed():
-                return
+                break
             self.click(self.C_ACTIVITY_999_BATTLE_WIN, interval=0.8)
             # This loop has its own deadline; do not let repeated safe clicks
             # trigger click protection before that deadline is evaluated.
             self.device.click_record_clear()
-        raise RequestHumanTakeover('999 battle result could not be closed')
+        else:
+            raise RequestHumanTakeover('999 battle result could not be closed')
+        self.dismiss_supply_popups()
+
+    def dismiss_supply_popups(self):
+        """关闭结算后弹出的灵符补给/金花灵符推荐窗。
+
+        弹窗没有关闭按钮，点击画面最底部边缘（遮罩外区域）即可关闭；
+        弹窗可能多层叠加，固定清理两轮。未弹出时该点击落在精锐页
+        底部空白处，无副作用。
+        """
+        for _ in range(2):
+            self.click(self.C_ACTIVITY_999_POPUP_GAP)
+            time.sleep(1.0)
 
     @staticmethod
     def wait_after_activity_battle():
@@ -65,6 +80,24 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         if not self.wait_until_appear(target, wait_time=timeout):
             raise RequestHumanTakeover(message)
 
+    def wait_echo_map_or_battle(self):
+        """点击战斗入口后等待回响地图出现。
+
+        加载动画过长时地图锚点会晚到; 若期间检测到已进入准备页或战斗中,
+        说明这次点击直接生效开打了, 返回 'battle' 交给调用方接战斗流程,
+        避免把进行中的战斗留在现场后请求人工接管。
+        """
+        timer = Timer(self.BATTLE_MAP_TIMEOUT).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_ACTIVITY_999_ECHO_HOME):
+                return 'map'
+            if self.is_in_prepare(False) or self.is_in_real_battle(False):
+                logger.info('999 battle started before echo map appeared')
+                return 'battle'
+            time.sleep(0.5)
+        raise RequestHumanTakeover('999 battle map did not appear')
+
     def open_elite_page_from_activity(self):
         """Move from the activity home/echo page to the elite challenge page."""
         self.screenshot()
@@ -74,20 +107,26 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         if self.appear(self.I_ACTIVITY_999_HOME):
             logger.info('999 activity home detected')
             self.click(self.C_ACTIVITY_999_BATTLE)
-            self.wait_or_raise(
-                self.I_ACTIVITY_999_ECHO_HOME,
-                '999 battle map did not appear',
-            )
+            result = self.wait_echo_map_or_battle()
+            if result == 'battle':
+                # 点战斗直接开打了: 打完这场再回精锐页
+                self.finish_battle()
+                return
             self.screenshot()
 
         if not self.appear(self.I_ACTIVITY_999_ECHO_HOME):
             raise RequestHumanTakeover('999 activity page state is unknown')
 
-        self.click(self.C_ACTIVITY_999_ELITE_MENU)
-        self.wait_or_raise(
-            self.I_ACTIVITY_999_ELITE_PAGE,
-            '999 elite page did not appear',
-        )
+        # 地图入场动画可能吞掉第一次点击，循环重试直到精锐页出现。
+        timer = Timer(self.PAGE_WAIT_TIMEOUT).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_ACTIVITY_999_ELITE_PAGE):
+                return
+            self.click(self.C_ACTIVITY_999_ELITE_MENU, interval=1.5)
+            # 该循环有自己的超时兜底，重试点击不应在此之前触发点击保护。
+            self.device.click_record_clear()
+        raise RequestHumanTakeover('999 elite page did not appear')
 
     def enter_activity(self):
         """Enter the activity from courtyard and open the elite page."""
@@ -121,6 +160,43 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             time.sleep(0.4)
         raise RequestHumanTakeover('999 elite page did not return after battle settlement')
 
+    def confirm_challenge_started(self) -> bool:
+        """确认挑战点击生效；被残留弹窗吞掉时清理后重试。
+
+        点击挑战后精锐页标题会在几秒内被加载/准备页替换；若持续停留在
+        精锐页，说明点击被弹窗遮罩吞掉，此时点击面板缝隙关闭弹窗并重试。
+        重试后购买引导窗仍弹出，说明挑战票已耗尽，返回 False 由调用方
+        正常结束任务。
+
+        Returns:
+            True 表示战斗已开始；False 表示票已耗尽无法继续挑战。
+        """
+        for attempt in range(3):
+            leave_timer = Timer(8).start()
+            stayed = True
+            while not leave_timer.reached():
+                self.screenshot()
+                if not self.appear(self.I_ACTIVITY_999_ELITE_PAGE):
+                    stayed = False
+                    break
+                time.sleep(0.5)
+            if not stayed:
+                return True
+            if attempt > 0:
+                # 关闭弹窗后再次点击挑战仍弹出引导窗，判定为票已耗尽。
+                logger.info('999 challenge tickets exhausted; activity finished')
+                self.click(self.C_ACTIVITY_999_POPUP_GAP)
+                time.sleep(1.0)
+                return False
+            logger.warning('999 challenge click did not start a battle; closing leftover popup and retrying')
+            self.click(self.C_ACTIVITY_999_POPUP_GAP)
+            time.sleep(1.0)
+            self.screenshot()
+            if not self.appear(self.I_ACTIVITY_999_CHALLENGE):
+                raise RequestHumanTakeover('999 challenge button unavailable after popup cleanup')
+            self.click(self.C_ACTIVITY_999_CHALLENGE)
+        return False
+
     def finish_battle(self):
         """Run one battle and return to a usable elite challenge page."""
         result = self.run_general_battle(
@@ -149,10 +225,30 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             return 'activity_unknown'
         return 'outside'
 
+    def recover_unknown_subpage(self) -> str:
+        """在活动内但子页未知时, 点击左上角返回逐级退出并重新识别。
+
+        游戏重启后常直接恢复到活动深层的某个界面, 状态机认不出具体子页;
+        每次点返回后重新判定, 回到已知子页即返回该状态。
+        """
+        for _ in range(4):
+            self.screenshot()
+            state = self.get_start_state()
+            if state != 'activity_unknown':
+                return state
+            logger.info('999 unknown subpage, clicking back to recover')
+            self.click(self.C_ACTIVITY_999_BACK, interval=1.5)
+            self.device.click_record_clear()
+            time.sleep(1.0)
+        return self.get_start_state()
+
     def run(self):
         logger.hr('999 ACTIVITY', level=1)
         self.screenshot()
         state = self.get_start_state()
+        if state == 'activity_unknown':
+            # 游戏重启后可能恢复在活动深层界面, 先点返回恢复到已知子页
+            state = self.recover_unknown_subpage()
         logger.info(f'999 startup state: {state}')
 
         if state == 'settlement':
@@ -171,8 +267,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         elif state == 'outside':
             self.enter_activity()
         else:
-            # Keep the user inside the activity instead of letting generic UI
-            # navigation press Back until it reaches the courtyard.
+            # 恢复后仍是未知状态(返回链上出现了不认识的界面), 交给人工处理
             raise RequestHumanTakeover(
                 '999 is inside the activity, but the current subpage is unknown')
         self.run_elite_loop()
@@ -211,12 +306,25 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             if not self.appear(self.I_ACTIVITY_999_CHALLENGE):
                 raise RequestHumanTakeover('999 challenge button unavailable; resources may be exhausted')
             self.wait_before_next_challenge()
-            self.screenshot()
-            if not (self.appear(self.I_ACTIVITY_999_ELITE_PAGE)
-                    and self.appear(self.I_ACTIVITY_999_CHALLENGE)):
+            # BOSS 展示页的粒子动画会瞬时拉低按钮匹配分，单帧误判率高；
+            # 在 3 秒窗口内多帧确认，页面真变了才放弃。
+            confirm_timer = Timer(3).start()
+            page_ok = False
+            while not confirm_timer.reached():
+                self.screenshot()
+                if (self.appear(self.I_ACTIVITY_999_ELITE_PAGE)
+                        and self.appear(self.I_ACTIVITY_999_CHALLENGE)):
+                    page_ok = True
+                    break
+                time.sleep(0.4)
+            if not page_ok:
                 raise RequestHumanTakeover('999 challenge page changed during random delay')
             self.click(self.C_ACTIVITY_999_CHALLENGE)
             logger.info('Click 999 elite challenge')
+            if not self.confirm_challenge_started():
+                # 挑战票耗尽，今日活动打完，按正常完成顺延下次运行。
+                self.set_next_run(task='Activity999', success=True, finish=True)
+                raise TaskEnd
             self.finish_battle()
             completed_count += 1
             logger.info(

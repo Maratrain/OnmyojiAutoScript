@@ -11,6 +11,14 @@ class Activity999Assets:
         name='activity_999_safe_random',
     )
 
+    # 弹窗关闭点：双列推荐弹窗（灵符挑战补给/金花灵符）之间 x≈640 的竖向缝隙。
+    # 弹窗没有关闭按钮，遮罩不响应点击；仅两面板之间的缝隙可穿透关闭。
+    C_ACTIVITY_999_POPUP_GAP = RuleClick(
+        roi_front=(620, 300, 40, 200),
+        roi_back=(620, 300, 40, 200),
+        name='activity_999_popup_gap',
+    )
+
     # 奖励图标位于画面中部，结算只能点击面板下方的空白区域。
     # 该区域在返回虚无精锐页后也避开了右下角挑战及底部操作按钮。
     C_ACTIVITY_999_BATTLE_WIN = RuleClick(
@@ -20,10 +28,10 @@ class Activity999Assets:
     )
     # 庭院紫色树下方人物头顶的金色活动入口。
     I_ACTIVITY_999_ENTRY = RuleImage(
-        roi_front=(435, 214, 72, 76),
-        # 庭院角色站位和左侧任务栏会让入口有少量横向漂移。
-        # 搜索框需完整覆盖图标，避免模板在边界处被裁掉。
-        roi_back=(350, 175, 220, 170),
+        roi_front=(709, 259, 72, 76),
+        # 庭院角色站位和皮肤会让入口大范围横向漂移（当前庭院在人物头顶偏右）。
+        # 搜索框从左侧任务提示一直覆盖到画面中部，避免模板在边界处被裁掉。
+        roi_back=(350, 170, 470, 190),
         threshold=0.72,
         method='Template matching',
         file='./tasks/Activity999/res/activity_999_entry.png',
