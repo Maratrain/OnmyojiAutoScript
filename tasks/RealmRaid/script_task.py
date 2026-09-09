@@ -463,7 +463,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         self.wait_until_appear(self.I_FIRE_AGAIN)
         while True:
             self.screenshot()
-            if not self.appear(self.I_FIRE_AGAIN):
+            if self.appear(self.I_EXIT):
                 logger.info(f'[个人突破] 点击再次挑战成功')
                 return True
             if self.appear_then_click(self.I_SHOW_AGAIN, interval=2):
