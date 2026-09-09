@@ -26,7 +26,7 @@ class Activity999Assets:
         roi_back=(480, 590, 220, 70),
         name='activity_999_battle_win',
     )
-    # 庭院紫色树下方人物头顶的金色活动入口。
+    # 庭院紫色树下方人物头顶的金色活动入口（烬夜韶阁皮肤）。
     I_ACTIVITY_999_ENTRY = RuleImage(
         roi_front=(709, 259, 72, 76),
         # 庭院角色站位和皮肤会让入口大范围横向漂移（当前庭院在人物头顶偏右）。
@@ -35,6 +35,14 @@ class Activity999Assets:
         threshold=0.72,
         method='Template matching',
         file='./tasks/Activity999/res/activity_999_entry.png',
+    )
+    # 织梦莲庭皮肤：入口在右侧图标列顶部（金色圆形"活动"图标），位置样式完全不同。
+    I_ACTIVITY_999_ENTRY_MAIN1 = RuleImage(
+        roi_front=(1176, 132, 60, 60),
+        roi_back=(1100, 60, 180, 260),
+        threshold=0.72,
+        method='Template matching',
+        file='./tasks/Activity999/res/activity_999_entry_main1.png',
     )
 
     # “拾光永恒”活动首页左上角标题。

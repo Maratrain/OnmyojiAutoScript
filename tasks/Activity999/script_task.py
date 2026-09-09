@@ -128,16 +128,25 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             self.device.click_record_clear()
         raise RequestHumanTakeover('999 elite page did not appear')
 
+    def _entry_visible(self) -> bool:
+        """活动入口各庭院皮肤样式与位置不同, 任一已采集模板命中即可。"""
+        return (self.appear(self.I_ACTIVITY_999_ENTRY)
+                or self.appear(self.I_ACTIVITY_999_ENTRY_MAIN1))
+
     def enter_activity(self):
         """Enter the activity from courtyard and open the elite page."""
         self.screenshot()
-        if not self.appear(self.I_ACTIVITY_999_ENTRY):
+        if not self._entry_visible():
             self.goto_page(page_main)
             self.screenshot()
-        if not self.appear(self.I_ACTIVITY_999_ENTRY):
+        if not self._entry_visible():
             raise RequestHumanTakeover('999 activity entrance not found in courtyard')
 
-        self.click(self.I_ACTIVITY_999_ENTRY)
+        # 命中哪个模板就点哪个, 避免跨皮肤点击错误位置
+        if self.appear(self.I_ACTIVITY_999_ENTRY):
+            self.click(self.I_ACTIVITY_999_ENTRY)
+        else:
+            self.click(self.I_ACTIVITY_999_ENTRY_MAIN1)
         logger.info('Click 999 activity entrance')
         self.wait_or_raise(
             self.I_ACTIVITY_999_HOME,
