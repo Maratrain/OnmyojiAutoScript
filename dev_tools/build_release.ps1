@@ -53,6 +53,9 @@ if ($LASTEXITCODE -ne 0) { throw "git clone 失败" }
 # origin 指向 GitHub 仓库，保证用户端界面里的“更新”按钮可用
 git -C $PkgDir remote set-url origin $SourceUrl
 if ($LASTEXITCODE -ne 0) { throw "设置 origin 失败" }
+# config/deploy.yaml 不被 git 追踪，但必须随包分发：
+# 缺失时用户端首次运行会按内置模板生成默认配置，更新源指向第三方镜像而非本仓库
+Copy-Item (Join-Path $RepoRoot "config\deploy.yaml") (Join-Path $PkgDir "config\deploy.yaml")
 
 # ---- 2. 复制 toolkit 运行时（内嵌 Python + Git + 依赖 + adb） ----
 Write-Host "[2/4] 复制 toolkit 运行时（约 800MB，需要几分钟）..."
