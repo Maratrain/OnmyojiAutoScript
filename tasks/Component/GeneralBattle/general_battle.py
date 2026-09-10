@@ -557,6 +557,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             None: 需要时原地补挂战斗卡死保护标记。
         """
 
+        # 集结类战斗(如逢魔首领)点击准备后停留在等待开战界面, 四个战斗页均识别不到,
+        # 此时沿用上一识别页保持卡死保护, 避免点击清空记录后 60 秒误报卡死
+        if page is None:
+            page = context.last_page
         if page not in {page_battle_prepare, page_battle}:
             return
         if context.last_page not in {page_battle_prepare, page_battle}:
