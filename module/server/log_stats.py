@@ -22,8 +22,9 @@ _EQ_LINE_RE = re.compile(r"^═{15,}\s*$")
 _EQ_TITLE_LINE_RE = re.compile(r"^═{10,}\s+(?P<title>.*?)\s+═{10,}\s*$")
 _TITLE_LINE_RE = re.compile(r"^─{10,}\s*(?P<title>.*?)\s*─{10,}\s*$")
 _TASK_ENDED_RE = re.compile(r"^(?P<title>.+?)\s+task ended\b", re.IGNORECASE)
-_BATTLE_TITLE = "GENERAL BATTLE START"
-_START_TITLE = "START"
+# 战斗/启动分隔线标题需同时兼容中文化前后的日志格式
+_BATTLE_TITLES = {"GENERAL BATTLE START", "通用战斗开始"}
+_START_TITLES = {"START", "启动"}
 _SIX_REALMS_TITLE = "SIXREALMS"
 _SIX_REALMS_TASK_NAMES = {
     "MOONSEA": "MoonSea",
@@ -166,7 +167,7 @@ class LogStatsParser:
         matched = _TITLE_LINE_RE.match(line.strip())
         if not matched:
             return False
-        return matched.group("title").strip().upper() == _BATTLE_TITLE
+        return matched.group("title").strip().upper() in _BATTLE_TITLES
 
     @staticmethod
     def _normalize_title(title: str) -> str:
@@ -188,7 +189,7 @@ class LogStatsParser:
         self._close_active_battle()
         self._close_active_task()
         self._reset_six_realms_state()
-        if title.upper() == _START_TITLE:
+        if title.upper() in _START_TITLES:
             self._handle_start_boundary()
             self._pending_task_start_name = None
             return
