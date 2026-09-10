@@ -127,6 +127,8 @@ class DemonEncounterAssets:
 	# Ocr Rule Assets
 	# 计数已经开启多少的 
 	O_DE_COUNTER = RuleOcr(roi=(1204,685,48,34), area=(1204,685,48,34), mode="DigitCounter", method="Default", keyword="", name="de_counter")
+	# 今日首领挑战次数 
+	O_DE_CHALLENGE_COUNT = RuleOcr(roi=(500,60,250,42), area=(500,60,250,42), mode="DigitCounter", method="Default", keyword="", name="de_challenge_count")
 
 
 	# Click Rule Assets

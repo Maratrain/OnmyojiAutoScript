@@ -151,63 +151,75 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                     continue
             return True
 
-        fail_count = 0
-        while True:
-            if fail_count >= 5:
-                return
-            if not find_boss():
-                continue
-            if enter_boss():
-                break
-            fail_count += 1
+        # 活动期间(截止 9 月 26 日)首领每日可挑战两次：第一次必定挑战,
+        # 第二次挑战前回到地图读取顶部「今日挑战次数」, 总数为 2 且有剩余才继续;
+        # 活动结束后总数恢复为 1, 或识别失败时, 均保持原来的单次挑战行为
+        for challenge in range(1, 3):
+            logger.hr(f'首领挑战 第 {challenge} 次', 2)
+            if challenge > 1:
+                self.screenshot()
+                current, remain, total = self.O_DE_CHALLENGE_COUNT.ocr(self.device.image)
+                if total != 2 or remain < 1:
+                    logger.info(f'[逢魔] 今日首领挑战次数 ({current}/{total}), 不进行额外挑战')
+                    break
+                logger.info(f'[逢魔] 今日首领挑战次数 ({current}/{total}), 继续挑战')
+            fail_count = 0
+            while True:
+                if fail_count >= 5:
+                    return
+                if not find_boss():
+                    continue
+                if enter_boss():
+                    break
+                fail_count += 1
 
-        logger.info('[逢魔] 确认并进入首领战斗')
-        self.device.stuck_record_clear()
-        # 等待挑战, 5秒也是等
-        time.sleep(5)
-        refresh_timer = Timer(280)
-        while True:
-            self.screenshot()
-            if self.appear(self.I_BOSS_DONE_CHECK):
-                break
-            if self.appear(self.I_BOSS_GATHER):
-                if not refresh_timer.started() or refresh_timer.reached():
+            logger.info('[逢魔] 确认并进入首领战斗')
+            self.device.stuck_record_clear()
+            # 等待挑战, 5秒也是等
+            time.sleep(5)
+            refresh_timer = Timer(280)
+            while True:
+                self.screenshot()
+                if self.appear(self.I_BOSS_DONE_CHECK):
+                    break
+                if self.appear(self.I_BOSS_GATHER):
+                    if not refresh_timer.started() or refresh_timer.reached():
+                        self.device.stuck_record_clear()
+                        self.device.stuck_record_add('BATTLE_STATUS_S')
+                        logger.info('[逢魔] 首领集结中...')
+                        refresh_timer.reset()
+                    sleep(2)
+                    continue
+                if self.appear(self.I_BOSS_WAIT):
+                    logger.info('[逢魔] 首领战斗失败，等待 2 秒...')
                     self.device.stuck_record_clear()
                     self.device.stuck_record_add('BATTLE_STATUS_S')
-                    logger.info('[逢魔] 首领集结中...')
                     refresh_timer.reset()
-                sleep(2)
-                continue
-            if self.appear(self.I_BOSS_WAIT):
-                logger.info('[逢魔] 首领战斗失败，等待 2 秒...')
-                self.device.stuck_record_clear()
-                self.device.stuck_record_add('BATTLE_STATUS_S')
-                refresh_timer.reset()
-                sleep(2)
-                continue
-            if self.appear(self.I_PREPARE_HIGHLIGHT):
-                if self.best_demon_enable:
-                    general_battle_config = convert_to_general_battle_config(self.boss_type,
-                                                                             best_demon_battle_conf=self.conf.best_demon_battle_config)
-                else:
-                    general_battle_config = convert_to_general_battle_config(self.boss_type,
-                                                                             demon_battle_conf=self.conf.demon_battle_config)
-                self.run_general_battle(config=general_battle_config, battle_key=self.boss_type)
-                continue
-            logger.info('[逢魔] 未知场景或首领战斗失败，等待准备按钮出现...')
-            self.wait_until_appear(self.I_PREPARE_HIGHLIGHT, wait_time=2)
+                    sleep(2)
+                    continue
+                if self.appear(self.I_PREPARE_HIGHLIGHT):
+                    if self.best_demon_enable:
+                        general_battle_config = convert_to_general_battle_config(self.boss_type,
+                                                                                 best_demon_battle_conf=self.conf.best_demon_battle_config)
+                    else:
+                        general_battle_config = convert_to_general_battle_config(self.boss_type,
+                                                                                 demon_battle_conf=self.conf.demon_battle_config)
+                    self.run_general_battle(config=general_battle_config, battle_key=self.boss_type)
+                    continue
+                logger.info('[逢魔] 未知场景或首领战斗失败，等待准备按钮出现...')
+                self.wait_until_appear(self.I_PREPARE_HIGHLIGHT, wait_time=2)
 
-        # 等待回到挑战boss主界面
-        self.wait_until_appear(self.I_BOSS_GATHER)
-        while 1:
-            self.screenshot()
-            if self.appear(self.I_DE_LOCATION):
-                break
-            if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
-                continue
-            if self.appear_then_click(self.I_BOSS_BACK_WHITE, interval=1):
-                continue
-        # 返回到封魔主界面
+            # 等待回到挑战boss主界面
+            self.wait_until_appear(self.I_BOSS_GATHER)
+            while 1:
+                self.screenshot()
+                if self.appear(self.I_DE_LOCATION):
+                    break
+                if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
+                    continue
+                if self.appear_then_click(self.I_BOSS_BACK_WHITE, interval=1):
+                    continue
+            # 返回到封魔主界面
 
     def execute_lantern(self):
         """
