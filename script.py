@@ -23,6 +23,7 @@ from pydantic import BaseModel, ValidationError
 from threading import Thread
 from multiprocessing.queues import Queue
 from module.config.utils import convert_to_underscore
+from module.atom.scatter import RuleScatter
 from module.config.config import Config
 from module.config.anti_ban import AntiBanGuard
 from module.device.device import Device
@@ -517,7 +518,11 @@ class Script:
             logger.hr(task, level=0)
             self.config.model.running_task = task
             _task_start = datetime.now()
-            success = self.run(inflection.camelize(task))
+            RuleScatter.begin_task(task)
+            try:
+                success = self.run(inflection.camelize(task))
+            finally:
+                RuleScatter.end_task(task)
             self.config.model.running_task = ''
             logger.info(f'[脚本] 调度: 任务 `{task}` 执行结束')
             if getattr(self.config, 'request_scheduler_stop', False):

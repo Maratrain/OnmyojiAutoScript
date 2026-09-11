@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import copy
+
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
 from tasks.Chess.assets import ChessAssets
 from tasks.Component.GeneralInvite.assets import GeneralInviteAssets
@@ -49,6 +51,24 @@ def random_click(
     if low is None or high is None:
         return click
     return [click for _ in range(random.randint(low, high))]
+
+
+def settlement_random_click() -> RuleClick:
+    """使用 GeneralBattle 的散点安全区域生成结算点击。"""
+    # RuleScatter 的重心在资源加载时生成。这里使用浅拷贝隔离单次
+    # 结算的连点属性，同时沿用本次脚本启动时生成的重心。
+    click = copy(GeneralBattleAssets.C_SAFE_RANDOM_CLICK_AREA)
+    click.name = 'SETTLEMENT_RANDOM_CLICK'
+    click.burst_count = 1
+    click.burst_interval = (0.1, 0.2)
+    if random.random() < 0.15:
+        click.burst_count = random.randint(2, 3)
+    return click
+
+
+def reward_random_click() -> RuleClick:
+    """奖励页使用 GeneralBattle 的散点安全区域。"""
+    return settlement_random_click()
 
 
 def handle_login_page(task) -> bool:
@@ -315,7 +335,7 @@ page_battle_result = Page(
     category="global",
     priority=25
 )
-page_battle_result.add_enter_success_hooks(lambda _task: random_click())
+page_battle_result.add_enter_success_hooks(lambda _task: settlement_random_click())
 
 page_reward = Page(
     any_of(
@@ -346,7 +366,7 @@ def handle_battle_reward_page(task) -> bool:
     """
     if task.appear_then_click(GeneralBattleAssets.I_OVER_GHOST, interval=0.8):
         return True
-    return task.click(random_click(), interval=0.8)
+    return task.click(reward_random_click(), interval=0.8)
 
 page_reward.add_enter_success_hooks(handle_battle_reward_page)
 
