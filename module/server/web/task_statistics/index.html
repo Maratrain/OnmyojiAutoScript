@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任务执行统计</title>
+<link rel="stylesheet" href="/task_statistics/static/page.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="header">
+    <div class="header-title"><span class="header-icon">📊</span>任务执行统计分析</div>
+    <div class="header-sub">实时监控游戏任务执行与结果</div>
+  </header>
+
+  <div class="card filter-bar">
+    <select id="scriptSelect" class="input" title="选择配置"></select>
+    <select id="taskSelect" class="input" title="选择任务"></select>
+    <div class="date-range">
+      <span class="date-icon">🕐</span>
+      <input type="datetime-local" id="startInput" class="input" step="1">
+      <span class="date-sep">至</span>
+      <input type="datetime-local" id="endInput" class="input" step="1">
+    </div>
+    <button id="refreshBtn" class="btn-primary">刷新数据</button>
+  </div>
+
+  <div class="cards">
+    <div class="card stat-card">
+      <div class="stat-label">总执行次数</div>
+      <div class="stat-value"><span id="statTotal">0</span><span class="stat-unit">次</span></div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">成功率</div>
+      <div class="stat-value"><span id="statRate">0%</span></div>
+      <div class="stat-sub" id="statRateSub">成功 0 / 失败 0</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">平均执行时长</div>
+      <div class="stat-value"><span id="statAvg">0</span><span class="stat-unit">分钟</span></div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">总战斗次数</div>
+      <div class="stat-value"><span id="statBattle">0</span><span class="stat-unit">场</span></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="col">
+      <div class="card">
+        <div class="card-title">📈 每日执行趋势</div>
+        <div class="legend-row">
+          <span class="legend-item"><span class="dot dot-blue"></span>执行次数</span>
+          <span class="legend-item"><span class="dot dot-green"></span>平均时长(分钟)</span>
+        </div>
+        <div id="trendChart" class="chart chart-trend"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 任务执行分布</div>
+        <div id="pieChart" class="chart chart-pie"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 任务执行时长对比</div>
+        <div id="barChart" class="chart chart-bar"></div>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <div class="card-title">🧾 最近执行记录</div>
+      <table class="record-table">
+        <thead>
+          <tr>
+            <th>任务</th><th>开始时间</th><th>结束时间</th><th>总用时</th>
+            <th>平均用时</th><th>场次</th><th>结果</th><th>错误类型</th>
+          </tr>
+        </thead>
+        <tbody id="recordBody"></tbody>
+      </table>
+      <div class="pager">
+        <span class="pager-total">Total <b id="pagerTotal">0</b></span>
+        <select id="pageSize" class="input input-sm">
+          <option value="10">10/page</option>
+          <option value="20" selected>20/page</option>
+          <option value="50">50/page</option>
+          <option value="100">100/page</option>
+        </select>
+        <button class="pager-btn" id="pagePrev">‹</button>
+        <span id="pageNumbers" class="page-numbers"></span>
+        <button class="pager-btn" id="pageNext">›</button>
+        <span class="pager-goto">Go to <input type="number" id="gotoInput" class="input input-sm goto-input" min="1"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/task_statistics/static/echarts.min.js"></script>
+<script src="/task_statistics/static/page.js"></script>
+</body>
+</html>
