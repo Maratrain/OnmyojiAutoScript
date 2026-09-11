@@ -11,9 +11,12 @@
      每日活跃上限 3 小时, 触发后强制休息 2 小时;
   2. 连续任务休息: 每 45-90 分钟随机休息 2-20 分钟;
   3. 空闲策略: 队列空了立即关游戏, 空闲超过 30 分钟连模拟器一起关（不再 7x24 挂庭院）;
-  4. 任务囤积: 15 分钟窗口内到期的任务合并到一个时段执行, 减少上线次数;
-  5. 运行时间抖动: 所有启用任务的 float_time 统一为 1 小时随机浮动;
-  6. 0 点机器人高峰期(server_update 00:0x)的任务改到 10:00 档, 错开扎堆时段。
+  4. 运行时间抖动: 所有启用任务的 float_time 统一为 1 小时随机浮动（寮宴会等任务内部
+     按活动开放时间精确调度的除外）;
+  5. 0 点机器人高峰期(server_update 00:0x)的任务改到 10:00 档, 错开扎堆时段;
+  6. 逢魔之时档位校正: 早于 17:05 的档位改到 17:05, 保证落在 17 点后的开放窗口内。
+
+注意: 不启用任务囤积(task_hoarding_duration) —— 它会把寮宴会等限时任务无差别推迟错过。
 """
 import json
 import sys
@@ -42,13 +45,19 @@ DEVICE_PROFILE = {
 }
 
 OPTIMIZATION_PROFILE = {
-    'task_hoarding_duration': 15,
+    # 注意: 任务囤积(task_hoarding_duration)必须保持 0 —— 它会无差别推迟所有到期任务,
+    # 寮宴会/逢魔等限时窗口任务会被推迟错过, 不能对跑限时任务的角色启用
+    'task_hoarding_duration': 0,
     'when_task_queue_empty': 'close_emulator_or_close_game',
-    'close_game_limit_time': '00:05:00',
+    'close_game_limit_time': '00:30:00',
     'close_emulator_limit_time': '00:30:00',
 }
 
 FLOAT_TIME_PROFILE = '01:00:00'
+# 精确调度任务不加抖动: next_run 由任务内部按活动开放时间精确写入, 抖动会导致错过窗口
+TASK_FLOAT_TIME_KEEP = {
+    'guild_banquet',
+}
 # 0 点是脚本扎堆上线的高峰期, 该时段的任务统一改到 10:00 档
 MIDNIGHT_SERVER_UPDATES = {'00:00:00', '00:05:00', '00:06:00', '00:10:00', '00:15:00', '00:30:00'}
 MIDNIGHT_REPLACE_TO = '10:00:00'
@@ -108,6 +117,8 @@ def apply_profile(config_name: str) -> list[str]:
             continue
         scheduler = task.get('scheduler')
         if not isinstance(scheduler, dict) or not scheduler.get('enable'):
+            continue
+        if task_name in TASK_FLOAT_TIME_KEEP:
             continue
         if scheduler.get('float_time') != FLOAT_TIME_PROFILE:
             changes.append(f'{task_name}.scheduler.float_time: '
