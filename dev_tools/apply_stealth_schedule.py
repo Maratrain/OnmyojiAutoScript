@@ -52,6 +52,11 @@ FLOAT_TIME_PROFILE = '01:00:00'
 # 0 点是脚本扎堆上线的高峰期, 该时段的任务统一改到 10:00 档
 MIDNIGHT_SERVER_UPDATES = {'00:00:00', '00:05:00', '00:06:00', '00:10:00', '00:15:00', '00:30:00'}
 MIDNIGHT_REPLACE_TO = '10:00:00'
+# 限时窗口任务的档位校正: 当前档位早于窗口开启时间时才改
+# 逢魔之时 17:00 才开启, 统一放到 17:05 档, 配合 1 小时抖动落在 17:05-18:05
+TASK_SERVER_UPDATE_OVERRIDE = {
+    'demon_encounter': '17:05:00',
+}
 
 
 def is_instance_running(config_name: str) -> bool:
@@ -108,10 +113,16 @@ def apply_profile(config_name: str) -> list[str]:
             changes.append(f'{task_name}.scheduler.float_time: '
                            f'{scheduler.get("float_time")} -> {FLOAT_TIME_PROFILE}')
             scheduler['float_time'] = FLOAT_TIME_PROFILE
-        if scheduler.get('server_update') in MIDNIGHT_SERVER_UPDATES:
-            old = scheduler.get('server_update')
+        override = TASK_SERVER_UPDATE_OVERRIDE.get(task_name)
+        current_server_update = str(scheduler.get('server_update'))
+        if override and current_server_update < override:
+            scheduler['server_update'] = override
+            changes.append(f'{task_name}.scheduler.server_update: '
+                           f'{current_server_update} -> {override}')
+        elif scheduler.get('server_update') in MIDNIGHT_SERVER_UPDATES:
             scheduler['server_update'] = MIDNIGHT_REPLACE_TO
-            changes.append(f'{task_name}.scheduler.server_update: {old} -> {MIDNIGHT_REPLACE_TO}')
+            changes.append(f'{task_name}.scheduler.server_update: '
+                           f'{current_server_update} -> {MIDNIGHT_REPLACE_TO}')
 
     if changes:
         content = json.dumps(data, indent=2, ensure_ascii=False, sort_keys=False, default=str)
