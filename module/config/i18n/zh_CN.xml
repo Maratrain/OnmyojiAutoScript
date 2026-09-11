@@ -337,6 +337,10 @@ window_background >>> DroidCast_raw >  ADB_nc >> DroidCast > uiautomator2 ~= ADB
 	<message><source>continuous_task_rest_enable_help</source><translation>开启后，脚本在未进入任务等待状态的情况下连续执行达到随机间隔时，会暂停2至20分钟后再继续调度。功能独立于低配模式。</translation></message>
 	<message><source>continuous_task_rest_interval</source><translation>连续任务休息间隔（分钟）</translation></message>
 	<message><source>continuous_task_rest_interval_help</source><translation>输入两个正整数，例如60,120。每轮连续执行开始时，在该范围内均匀随机抽取一个整数分钟作为本轮休息触发间隔。</translation></message>
+	<message><source>low_spec_mode</source><translation>低配模式</translation></message>
+	<message><source>low_spec_mode_help</source><translation>默认关闭。开启后截图帧保留10秒，OCR请求超时提高到30秒并启用短期结果缓存，图像对比阈值保持不变。修改后需停止当前运行的脚本，再重新启动脚本生效。</translation></message>
+	<message><source>resource_precache_enable</source><translation>资源预缓存</translation></message>
+	<message><source>resource_precache_enable_help</source><translation>默认关闭。开启后，脚本启动时会先将当前使用的OCR模型加载到OCR服务内存，预缓存完成后才开始执行任务。修改后需停止当前运行的脚本，再重新启动脚本生效。</translation></message>
 </context>
 <context>
     <name>Args</name>

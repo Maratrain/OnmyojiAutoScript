@@ -58,6 +58,7 @@ class FrameEntry:
     image: np.ndarray
     created_at: float
     last_access_at: float
+    expire_seconds: float
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -200,13 +201,19 @@ class ImageRuntime:
             "cache_stats": cache_stats,
         }
 
-    def register_frame(self, image_bytes: bytes, config_name: str = "unknown") -> dict[str, Any]:
+    def register_frame(
+        self,
+        image_bytes: bytes,
+        config_name: str = "unknown",
+        expire_seconds: float | None = None,
+    ) -> dict[str, Any]:
         """
         注册一张截图到帧缓存，并返回服务端生成的 `frame_id`。
 
         Args:
             image_bytes: 客户端序列化后的 numpy 数组字节流。
             config_name: 截图所属脚本配置名；同配置新帧会替换旧帧。
+            expire_seconds: 当前截图的缓存期限；为空时使用服务端默认值。
         """
         image = pickle.loads(image_bytes)
         if not isinstance(image, np.ndarray):
@@ -215,12 +222,16 @@ class ImageRuntime:
         config_name = self._normalize_config_name(config_name)
         frame_id = uuid.uuid4().hex
         now = time.time()
+        if expire_seconds is None:
+            expire_seconds = self.settings.frame_cache_expire_seconds
+        expire_seconds = max(0.1, float(expire_seconds))
         entry = FrameEntry(
             frame_id=frame_id,
             config_name=config_name,
             image=image,
             created_at=now,
             last_access_at=now,
+            expire_seconds=expire_seconds,
         )
         with self._lock:
             old_frame_id = self._config_frames.get(config_name)
@@ -235,6 +246,7 @@ class ImageRuntime:
             "frame_id": frame_id,
             "config_name": config_name,
             "shape": list(entry.shape),
+            "expire_seconds": entry.expire_seconds,
         }
 
     def get_frame_info(self, frame_id: str) -> dict[str, Any]:
@@ -246,6 +258,7 @@ class ImageRuntime:
             "shape": list(entry.shape),
             "created_at": entry.created_at,
             "last_access_at": entry.last_access_at,
+            "expire_seconds": entry.expire_seconds,
         }
 
     def prepare_template(self, template_path: str, include_sift: bool = False) -> dict[str, Any]:
@@ -894,11 +907,10 @@ class ImageRuntime:
 
         先按 TTL 淘汰失效帧，再在容量超限时按最近最少访问顺序继续回收。
         """
-        expire_before = now - self.settings.frame_cache_expire_seconds
         expired = [
             frame_id
             for frame_id, entry in self._frames.items()
-            if entry.last_access_at < expire_before
+            if now - entry.last_access_at >= entry.expire_seconds
         ]
         for frame_id in expired:
             self._delete_frame(frame_id)

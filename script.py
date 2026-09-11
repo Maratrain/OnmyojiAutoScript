@@ -34,8 +34,8 @@ from module.base.decorator import del_cached_property
 from module.logger import logger
 from module.exception import *
 from module.server.i18n import I18n
-from module.image.rpc import ensure_image_server_ready
-from module.ocr.rpc import ensure_ocr_server_ready
+from module.image.rpc import ensure_image_server_ready, set_image_low_spec_mode
+from module.ocr.rpc import ensure_ocr_server_ready, set_ocr_low_spec_mode, get_ocr_client
 from module.script import ScriptRuntimeController, ScriptRuntimeDecision
 from tasks.Restart.server_update import delay_pending_tasks_for_server_update, is_server_update_window
 from module.server.log_service import build_error_log_dir_name
@@ -64,6 +64,16 @@ class Script:
         self._continuous_task_started_at: float | None = None
         self._continuous_task_limit_seconds: int | None = None
         self._continuous_task_interval_range: tuple[int, int] | None = None
+        # 低配模式属于进程级运行参数，只在脚本进程创建时读取一次。
+        # OASX 中途修改配置不会影响正在运行的脚本。
+        self.low_spec_mode = bool(self.config.script.device.low_spec_mode)
+        set_image_low_spec_mode(self.low_spec_mode)
+        set_ocr_low_spec_mode(self.low_spec_mode)
+        if self.low_spec_mode:
+            logger.info('[脚本] 低配模式已启用: 帧缓存=10秒, OCR超时=30秒, OCR结果缓存=2秒')
+        self.resource_precache_enable = bool(
+            self.config.script.device.resource_precache_enable
+        )
         # 运行loop的线程
         self.loop_thread: Thread = None
         self.anti_ban_guard: AntiBanGuard = AntiBanGuard()
@@ -544,6 +554,14 @@ class Script:
             logger.set_file_logger(self.config_name, do_cleanup=True)
         start_day = date.today()
         logger.info(f'[脚本] 启动调度循环: {self.config_name}')
+        if self.resource_precache_enable:
+            logger.info('[脚本] 资源预缓存已启用，正在预热 OCR 模型')
+            try:
+                get_ocr_client().warmup()
+            except Exception as exc:
+                logger.exception(exc)
+                raise ScriptError('OCR 模型资源预缓存失败') from exc
+            logger.info('[脚本] 资源预缓存完成，调度任务可以开始')
         self.config.model.running_task = ''
         self.anti_ban_guard.reset()
 

@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import atexit
+import hashlib
 import multiprocessing
 import pickle
 import socket
 import threading
 import time
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -24,6 +26,40 @@ from module.ocr.ppocr import TextSystem
 _OCR_SERVER_CONTEXT = multiprocessing.get_context("spawn")
 _OCR_SERVER_PROCESS: Optional[multiprocessing.Process] = None
 _OCR_CLIENT_CACHE: dict[str, "ModelProxy"] = {}
+# 脚本进程级 OCR 低配模式：延长请求超时并启用短期结果缓存。
+_OCR_LOW_SPEC_MODE: bool = False
+
+
+def set_ocr_low_spec_mode(enabled: bool) -> None:
+    """设置当前脚本进程的 OCR 低配模式。"""
+    global _OCR_LOW_SPEC_MODE
+    _OCR_LOW_SPEC_MODE = bool(enabled)
+
+
+class _OcrResultCache:
+    """短期 OCR 结果缓存，低配模式下减少对同一画面的重复识别。"""
+
+    def __init__(self, max_size: int = 16, ttl_seconds: float = 2.0) -> None:
+        self._max_size = max_size
+        self._ttl_seconds = ttl_seconds
+        self._entries: OrderedDict[tuple[Any, ...], tuple[float, Any]] = OrderedDict()
+
+    def get(self, key: tuple[Any, ...]):
+        entry = self._entries.get(key)
+        if entry is None:
+            return None
+        created_at, value = entry
+        if time.monotonic() - created_at >= self._ttl_seconds:
+            self._entries.pop(key, None)
+            return None
+        self._entries.move_to_end(key)
+        return value
+
+    def put(self, key: tuple[Any, ...], value: Any) -> None:
+        self._entries[key] = (time.monotonic(), value)
+        self._entries.move_to_end(key)
+        while len(self._entries) > self._max_size:
+            self._entries.popitem(last=False)
 
 
 def _normalize_address(address: str) -> str:
@@ -126,6 +162,14 @@ class OcrRuntime:
             "request_stats": request_stats,
             "loaded_worker_count": loaded_worker_count,
         }
+
+    def warmup(self) -> bool:
+        """在接受请求前先在工作线程加载模型。"""
+        logger.info('[OCR] 正在预热 OCR 模型')
+        future = self._scheduler.submit(self._get_model)
+        future.result()
+        logger.info('[OCR] 模型预热完成')
+        return True
 
     def ocr_single_line(self, image_bytes: bytes):
         image = self._decode_image(image_bytes)
@@ -359,7 +403,10 @@ def run_ocr_server(host: str, port: int, settings: dict[str, Any] | None = None)
 class ModelProxy:
     def __init__(self, address: str) -> None:
         self.address = _normalize_address(address)
-        self.client = zerorpc.Client(timeout=10)
+        # 低配模式下 OCR 请求耗时更长，使用更大的超时并启用短期结果缓存。
+        timeout = 30.0 if _OCR_LOW_SPEC_MODE else 10.0
+        self.client = zerorpc.Client(timeout=timeout)
+        self._cache = _OcrResultCache() if _OCR_LOW_SPEC_MODE else None
         try:
             self.client.connect(self.address)
             self.client.ping()
@@ -369,11 +416,23 @@ class ModelProxy:
     def ping(self) -> bool:
         return bool(self.client.ping())
 
+    def warmup(self) -> bool:
+        """请求 OCR 服务预热模型。"""
+        return bool(self.client.warmup())
+
     def get_server_info(self) -> dict[str, Any]:
         return self.client.get_server_info()
 
     def ocr_single_line(self, image: np.ndarray):
         payload = pickle.dumps(image, protocol=4)
+        if self._cache is not None:
+            key = ('ocr_single_line', hashlib.sha1(payload).hexdigest())
+            cached = self._cache.get(key)
+            if cached is not None:
+                return cached
+            result = self.client.ocr_single_line(payload)
+            self._cache.put(key, result)
+            return result
         return self.client.ocr_single_line(payload)
 
     def detect_and_ocr(
@@ -385,7 +444,22 @@ class ModelProxy:
         vertical: bool = False,
     ):
         payload = pickle.dumps(image, protocol=4)
-        results = self.client.detect_and_ocr(payload, drop_score, unclip_ratio, box_thresh, vertical)
+        if self._cache is not None:
+            key = (
+                'detect_and_ocr',
+                hashlib.sha1(payload).hexdigest(),
+                drop_score,
+                unclip_ratio,
+                box_thresh,
+                vertical,
+            )
+            cached = self._cache.get(key)
+            if cached is not None:
+                return cached
+            results = self.client.detect_and_ocr(payload, drop_score, unclip_ratio, box_thresh, vertical)
+            self._cache.put(key, results)
+        else:
+            results = self.client.detect_and_ocr(payload, drop_score, unclip_ratio, box_thresh, vertical)
         from ppocronnx.predict_system import BoxedResult
         return [
             BoxedResult(np.array(item["box"]), None, item["ocr_text"], item["score"])

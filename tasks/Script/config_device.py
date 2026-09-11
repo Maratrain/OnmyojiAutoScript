@@ -82,6 +82,13 @@ class Device(BaseModel):
         default='60,120',
         description='continuous_task_rest_interval_help',
     )
+    # 低配置设备延长截图帧缓存与OCR超时，并复用短期OCR结果；只在脚本进程启动时读取
+    low_spec_mode: bool = Field(default=False, description='low_spec_mode_help')
+    # 启动时先将当前使用的OCR模型加载到服务内存
+    resource_precache_enable: bool = Field(
+        default=False,
+        description='resource_precache_enable_help',
+    )
 
 
 if __name__ == '__main__':
