@@ -555,6 +555,8 @@
   "min_taiko_value_help": "只蹭勾玉收益不低于此值的太鼓卡（5星59-67，6星67-76），0为不限制",
   "min_fish_value": "斗鱼最低收益",
   "min_fish_value_help": "只蹭体力收益不低于此值的斗鱼卡（5星118-134，6星134-151），0为不限制",
+  "itachi_coin_buy_jade_help": "启用后进入鼬乐园商店，购买右侧自动前移的鼬乐礼盒；商品只尝试打开一次，三秒内未出现购买框则认为本周已购买。",
+  "WeeklyPurchase": "每周购买",
   "continuous_task_rest_enable": "休息模式",
   "continuous_task_rest_enable_help": "开启后，脚本在未进入任务等待状态的情况下连续执行达到随机间隔时，会暂停2至20分钟后再继续调度。功能独立于低配模式。",
   "continuous_task_rest_interval": "连续任务休息间隔（分钟）",
