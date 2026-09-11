@@ -22,11 +22,18 @@ class ScriptTask(GameUi, GuildBanquetAssets):
             self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
         self.goto_page(pages.page_guild)
-        self.screenshot()
-        if not self.appear(self.I_BANQUET_FLAG):
-            self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
-            self.goto_page(pages.page_main)
-            raise TaskEnd
+        # 开席前在寮界面轮询等入口(最长 20 分钟): 宴会窗口仅约 15 分钟,
+        # 提前到场等待, 避免和狭间等长任务抢调度而错过
+        open_deadline = datetime.now() + timedelta(minutes=20)
+        while not self.appear(self.I_BANQUET_FLAG):
+            if datetime.now() > open_deadline:
+                logger.warning('[寮宴会] 等待开席超时, 退出')
+                self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
+                self.goto_page(pages.page_main)
+                raise TaskEnd
+            logger.info('[寮宴会] 宴会尚未开席, 等待中')
+            time.sleep(20)
+            self.screenshot()
         logger.info("[寮宴会] 开始寮宴会")
         self.device.stuck_record_clear()
         max_wait_seconds = 660
@@ -104,9 +111,8 @@ class ScriptTask(GameUi, GuildBanquetAssets):
                 if success or now >= target_dt + timedelta(hours=1):
                     return target_dt + timedelta(days=7)
                 if now <= target_dt + timedelta(hours=1):  # 1小时内则自动加上失败间隔
-                    # 开席时间被狭间等长任务占住调度错过时, 当晚 20 分钟后重试,
-                    # 而不是 +24 小时导致整场宴会错过
-                    return now + timedelta(minutes=20)
+                    # 宴会窗口仅约 15 分钟, 快败后 3 分钟内重试兜底
+                    return now + timedelta(minutes=3)
             return target_dt
 
         day_1_dt = get_candidate(bt.day_1, bt.run_time_1)
