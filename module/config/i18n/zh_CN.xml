@@ -333,6 +333,10 @@ window_background >>> DroidCast_raw >  ADB_nc >> DroidCast > uiautomator2 ~= ADB
 	<message><source>combat_screenshot_interval_help</source><translation>执行两次截图之间的最小间隔，限制在 0.1 ~ 1.0，能降低战斗时的 CPU 占用</translation></message>
 	<message><source>task_hoarding_duration_help</source><translation>能在收菜期间降低操作游戏的频率,任务触发后，等待 X 分钟，再一次性执行囤积的任务</translation></message>
 	<message><source>when_task_queue_empty_help</source><translation>无任务时关闭游戏，能在收菜期间降低 CPU 占用，'goto_home'不可选，这项是为了兼容老代码</translation></message>
+	<message><source>continuous_task_rest_enable</source><translation>休息模式</translation></message>
+	<message><source>continuous_task_rest_enable_help</source><translation>开启后，脚本在未进入任务等待状态的情况下连续执行达到随机间隔时，会暂停2至20分钟后再继续调度。功能独立于低配模式。</translation></message>
+	<message><source>continuous_task_rest_interval</source><translation>连续任务休息间隔（分钟）</translation></message>
+	<message><source>continuous_task_rest_interval_help</source><translation>输入两个正整数，例如60,120。每轮连续执行开始时，在该范围内均匀随机抽取一个整数分钟作为本轮休息触发间隔。</translation></message>
 </context>
 <context>
     <name>Args</name>

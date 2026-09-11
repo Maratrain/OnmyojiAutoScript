@@ -11,6 +11,7 @@ import os
 import inflection
 import json
 import copy
+import random
 
 from datetime import date
 import threading
@@ -59,6 +60,10 @@ class Script:
         self.last_task_runtime_outcome: dict[str, Any] | None = None
         self.task_hoarding_until: datetime | None = None
         self.task_hoarding_released = False
+        # 连续任务休息只统计调度器未进入等待状态的墙钟时间。
+        self._continuous_task_started_at: float | None = None
+        self._continuous_task_limit_seconds: int | None = None
+        self._continuous_task_interval_range: tuple[int, int] | None = None
         # 运行loop的线程
         self.loop_thread: Thread = None
         self.anti_ban_guard: AntiBanGuard = AntiBanGuard()
@@ -346,6 +351,80 @@ class Script:
         logger.info("Task hoarding window ended, resume scheduled task execution")
         return task
 
+    @staticmethod
+    def _parse_continuous_task_interval(value: str) -> tuple[int, int]:
+        """解析连续任务休息间隔，格式为“最小分钟,最大分钟”。"""
+        matched = re.fullmatch(r'\s*(\d+)\s*[,，]\s*(\d+)\s*', str(value))
+        if matched is None:
+            raise ValueError(f'无效的连续任务休息间隔: {value!r}')
+        lower, upper = (int(item) for item in matched.groups())
+        if lower <= 0 or upper <= 0 or lower > upper:
+            raise ValueError(f'无效的连续任务休息间隔: {value!r}')
+        return lower, upper
+
+    @staticmethod
+    def _sample_continuous_task_rest_seconds() -> tuple[int, str]:
+        """休息时长：90% 落在2-8分钟的对称三角分布，其余10% 在8-20分钟内逐渐降低概率。"""
+        if random.random() < 0.9:
+            minutes = random.triangular(2, 8, 5)
+            branch = '短休息'
+        else:
+            minutes = random.triangular(8, 20, 8)
+            branch = '长尾'
+        return max(120, min(1200, round(minutes * 60))), branch
+
+    def _reset_continuous_task_rest(self, *, log_idle: bool = False) -> None:
+        if log_idle and self._continuous_task_started_at is not None:
+            logger.info('[脚本] 调度器进入任务等待状态，重置连续任务计时')
+        self._continuous_task_started_at = None
+        self._continuous_task_limit_seconds = None
+        self._continuous_task_interval_range = None
+
+    def _handle_continuous_task_rest(self) -> bool:
+        """在新任务开始前处理连续运行休息，已休息时返回 True 要求重新调度。"""
+        device_config = self.config.script.device
+        if not device_config.continuous_task_rest_enable:
+            self._reset_continuous_task_rest()
+            return False
+
+        try:
+            interval_range = self._parse_continuous_task_interval(
+                device_config.continuous_task_rest_interval
+            )
+        except ValueError as exc:
+            logger.warning(f'[脚本] {exc}，回退使用 60,120 分钟')
+            interval_range = (60, 120)
+
+        now = time.monotonic()
+        if (
+            self._continuous_task_started_at is None
+            or self._continuous_task_interval_range != interval_range
+        ):
+            limit_minutes = random.randint(*interval_range)
+            self._continuous_task_started_at = now
+            self._continuous_task_limit_seconds = limit_minutes * 60
+            self._continuous_task_interval_range = interval_range
+            logger.info(
+                '[脚本] 连续任务计时启动: '
+                f'上限={limit_minutes}分钟, 范围={interval_range[0]}-{interval_range[1]}分钟'
+            )
+            return False
+
+        elapsed = now - self._continuous_task_started_at
+        if elapsed < self._continuous_task_limit_seconds:
+            return False
+
+        rest_seconds, branch = self._sample_continuous_task_rest_seconds()
+        logger.info(
+            '[脚本] 达到连续任务时长上限: '
+            f'已连续={elapsed / 60:.1f}分钟, '
+            f'休息={rest_seconds / 60:.1f}分钟, 分布={branch}'
+        )
+        time.sleep(rest_seconds)
+        self._reset_continuous_task_rest()
+        logger.info('[脚本] 连续任务休息结束，重新调度任务')
+        return True
+
     def get_next_task(self) -> str:
         """
         获取下一个任务的名字, 大驼峰。
@@ -363,7 +442,11 @@ class Script:
                 self.state_queue.put({"schedule": self.config.get_schedule_data()})
             # 任务时间到了返回任务名称
             if task.next_run <= now:
+                # 连续执行达到上限时先休息，休息后重新调度
+                if self._handle_continuous_task_rest():
+                    continue
                 return task.command
+            self._reset_continuous_task_rest(log_idle=True)
             # 根据策略执行等待逻辑
             wait_until = task.next_run
             if self.task_hoarding_until and self.config.waiting_task:

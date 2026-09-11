@@ -554,5 +554,9 @@
   "min_taiko_value": "太鼓最低收益",
   "min_taiko_value_help": "只蹭勾玉收益不低于此值的太鼓卡（5星59-67，6星67-76），0为不限制",
   "min_fish_value": "斗鱼最低收益",
-  "min_fish_value_help": "只蹭体力收益不低于此值的斗鱼卡（5星118-134，6星134-151），0为不限制"
+  "min_fish_value_help": "只蹭体力收益不低于此值的斗鱼卡（5星118-134，6星134-151），0为不限制",
+  "continuous_task_rest_enable": "休息模式",
+  "continuous_task_rest_enable_help": "开启后，脚本在未进入任务等待状态的情况下连续执行达到随机间隔时，会暂停2至20分钟后再继续调度。功能独立于低配模式。",
+  "continuous_task_rest_interval": "连续任务休息间隔（分钟）",
+  "continuous_task_rest_interval_help": "输入两个正整数，例如60,120。每轮连续执行开始时，在该范围内均匀随机抽取一个整数分钟作为本轮休息触发间隔。"
 }
