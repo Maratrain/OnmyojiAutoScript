@@ -53,6 +53,8 @@ class ScriptRuntimeController:
         self.script = script
         self.server_update_wait_until: datetime | None = None
         self.server_update_wait_log_until: datetime | None = None
+        # 等待窗口的原因标注，用于日志区分「停服」与「页面识别退避」等场景
+        self.server_update_wait_reason: str = '停服'
 
     @property
     def config(self):
@@ -81,11 +83,12 @@ class ScriptRuntimeController:
             return
         if datetime.now() >= self.server_update_wait_until:
             logger.info(
-                '[脚本控制] 停服等待窗口已于 '
+                f'[脚本控制] {self.server_update_wait_reason}等待窗口已于 '
                 f'{self._format_datetime(self.server_update_wait_until)} 结束，恢复正常恢复流程'
             )
             self.server_update_wait_until = None
             self.server_update_wait_log_until = None
+            self.server_update_wait_reason = '停服'
 
     def _is_server_update_wait_active(self) -> bool:
         self._clear_server_update_wait_if_expired()
@@ -110,7 +113,7 @@ class ScriptRuntimeController:
 
         if self.server_update_wait_log_until != wait_until:
             logger.info(
-                '[脚本控制] 停服等待窗口持续至 '
+                f'[脚本控制] {self.server_update_wait_reason}等待窗口持续至 '
                 f'{self._format_datetime(wait_until)}，在此之前暂停运行时操作'
             )
             self.server_update_wait_log_until = wait_until

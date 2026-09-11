@@ -42,6 +42,12 @@ from module.server.log_service import build_error_log_dir_name
 
 _log_switch_lock = threading.Lock()#线程锁
 
+# 页面识别连续失败退避参数：统计窗口内失败达到阈值后，进入递增时长的安静等待
+PAGE_UNKNOWN_FAIL_WINDOW = timedelta(minutes=30)
+PAGE_UNKNOWN_FAIL_LIMIT = 3
+PAGE_UNKNOWN_BACKOFF_BASE = timedelta(minutes=30)
+PAGE_UNKNOWN_BACKOFF_CAP = timedelta(hours=2)
+
 
 class Script:
     def __init__(self, config_name: str ='oas') -> None:
@@ -77,6 +83,9 @@ class Script:
         # 运行loop的线程
         self.loop_thread: Thread = None
         self.anti_ban_guard: AntiBanGuard = AntiBanGuard()
+        # 页面识别连续失败退避状态（仅进程内使用）
+        self._page_unknown_fail_times: list[datetime] = []
+        self._page_unknown_backoff_round = 0
 
     @cached_property
     def config(self) -> "Config":
@@ -525,6 +534,64 @@ class Script:
         self._set_task_runtime_outcome(task=task, status='server_update_delayed', wait_until=delay_target)
         return True
 
+    def _reset_page_unknown_backoff(self) -> None:
+        """任务成功后复位页面识别退避计数。"""
+        if self._page_unknown_fail_times or self._page_unknown_backoff_round:
+            self._page_unknown_fail_times = []
+            self._page_unknown_backoff_round = 0
+            logger.info('[脚本] 页面识别已恢复正常，重置退避计数')
+
+    def _register_page_unknown_failure(self) -> datetime | None:
+        """
+        记录一次页面识别失败。
+        统计窗口内失败达到阈值时返回本次退避的等待目标时间，否则返回 None。
+        """
+        now = datetime.now()
+        self._page_unknown_fail_times = [
+            t for t in self._page_unknown_fail_times if now - t <= PAGE_UNKNOWN_FAIL_WINDOW
+        ]
+        self._page_unknown_fail_times.append(now)
+        if len(self._page_unknown_fail_times) < PAGE_UNKNOWN_FAIL_LIMIT:
+            return None
+        self._page_unknown_backoff_round += 1
+        duration_seconds = min(
+            PAGE_UNKNOWN_BACKOFF_BASE.total_seconds() * (2 ** (self._page_unknown_backoff_round - 1)),
+            PAGE_UNKNOWN_BACKOFF_CAP.total_seconds(),
+        )
+        self._page_unknown_fail_times = []
+        return now + timedelta(seconds=duration_seconds)
+
+    def _delay_all_pending_tasks(self, target: datetime) -> None:
+        """把所有到期与未到期的任务（含 Restart）推迟到指定时间。"""
+        self.config.update_scheduler()
+        delayed = set()
+        candidates = list(getattr(self.config, 'pending_task', []))
+        candidates.extend(getattr(self.config, 'waiting_task', []))
+        for task in candidates:
+            command = task.command
+            if command in delayed or command == 'Restart':
+                continue
+            if not isinstance(task.next_run, datetime) or task.next_run >= target:
+                continue
+            self.config.task_delay(task=command, server=False, target=target)
+            delayed.add(command)
+        self.config.task_delay(task='Restart', server=False, target=target)
+
+    def _enter_page_unknown_backoff(self, target: datetime) -> None:
+        """页面识别连续失败：关闭游戏安静等待，避免无限重启循环。"""
+        logger.warning(
+            f'[脚本] 页面识别连续失败，第 {self._page_unknown_backoff_round} 轮退避，'
+            f'暂停运行至 {target.strftime("%Y-%m-%d %H:%M:%S")}'
+        )
+        self.runtime.server_update_wait_reason = '页面识别退避'
+        self.runtime.server_update_wait_until = target
+        self.runtime.server_update_wait_log_until = None
+        self.config.notifier.push(
+            title='页面识别连续失败',
+            content=f'<{self.config_name}> 已暂停运行至 {target.strftime("%H:%M")}，期满自动恢复',
+        )
+        self._delay_all_pending_tasks(target)
+
     def run(self, command: str) -> bool:
         """
         :param command:  大写驼峰命名的任务名字
@@ -656,6 +723,7 @@ class Script:
                 exit(1)
 
             if success:
+                self._reset_page_unknown_backoff()
                 del_cached_property(self, 'config')
                 continue
             elif self.config.script.error.handle_error:
@@ -712,9 +780,13 @@ class Script:
             logger.info('[脚本] 游戏服务器可能正在维护或网络已断开，正在检查服务器状态')
             if command == 'GotoMain' and self._delay_tasks_for_server_update(
                     task=command,
-                    reason='failed to goto main during morning server update window',
+                    reason='维护窗口内 GotoMain 失败',
             ):
                 logger.info('[脚本] 服务器更新窗口内 GotoMain 失败，已延迟待执行任务并重新调度')
+                return False
+            backoff_target = self._register_page_unknown_failure()
+            if backoff_target is not None:
+                self._enter_page_unknown_backoff(backoff_target)
                 return False
             logger.critical('[脚本] 未知游戏页面')
             self.save_error_log()
