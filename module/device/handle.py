@@ -181,10 +181,15 @@ class Handle:
         self.root_handle = self.config.script.device.handle
         if self.root_handle == "auto":
             logger.info('[设备-句柄] 句柄为 auto，将自动查找模拟器窗口')
-            window_list = Handle.all_windows()
-            self.root_handle_title = self.auto_handle_title(window_list)
-            self.root_handle_num = handle_title2num(self.root_handle_title)
-        if isinstance(self.root_handle, str):
+            self.root_handle_num = self.auto_mumu_handle_num()
+            if self.root_handle_num:
+                self.root_handle_title = handle_num2title(self.root_handle_num)
+            else:
+                window_list = Handle.all_windows()
+                self.root_handle_title = self.auto_handle_title(window_list)
+                if self.root_handle_title:
+                    self.root_handle_num = handle_title2num(self.root_handle_title)
+        elif isinstance(self.root_handle, str):
             try:
                 self.root_handle_num = int(self.root_handle)
                 logger.info('[设备-句柄] 句柄为句柄号，将其作为根句柄号')
@@ -217,6 +222,112 @@ class Handle:
         logger.info(f'[设备-句柄] 模拟器截图大小: {self.screenshot_size}')
 
     @staticmethod
+    def _mumu_instance_id_from_serial(serial: str) -> int | None:
+        """从 MuMu ADB 序列号推算多开实例编号。"""
+        if not isinstance(serial, str):
+            return None
+        serial = serial.strip()
+        if serial.startswith('127.0.0.1:'):
+            try:
+                port = int(serial.rsplit(':', 1)[1])
+            except (IndexError, ValueError):
+                return None
+            index, offset = divmod(port - 16384 + 16, 32)
+            offset -= 16
+            if 0 <= index < 32 and offset in (-2, -1, 0, 1, 2):
+                return index
+            return None
+        if serial.startswith('emulator-'):
+            try:
+                port = int(serial[9:])
+            except ValueError:
+                return None
+            offset = port - 5554
+            if 0 <= offset < 64 and offset % 2 == 0:
+                return offset // 2
+        return None
+
+    def _find_current_mumu_instance(self):
+        """按当前脚本的 serial 找到对应的 MuMu12/15 实例。"""
+        serial = str(getattr(self, 'serial', '') or '').strip()
+        instance_id = self._mumu_instance_id_from_serial(serial)
+
+        # 优先使用平台层已经按 serial 解析出的目标，避免电脑同时安装
+        # MuMu 和其他模拟器时将 emulator-555x 误判为 MuMu 实例。
+        try:
+            current_instance = getattr(self, 'emulator_instance', None)
+        except Exception as e:
+            logger.warning(f'[设备-句柄] auto 模式无法解析当前模拟器实例: {e}')
+            current_instance = None
+        if current_instance is not None:
+            if getattr(current_instance, 'type', '') == 'MuMuPlayer12':
+                return current_instance
+            if serial.startswith('emulator-'):
+                return None
+
+        try:
+            instances = list(getattr(self, 'all_emulator_instances', []))
+        except Exception as e:
+            logger.warning(f'[设备-句柄] auto 模式无法枚举模拟器实例: {e}')
+            return None
+
+        mumu_instances = [
+            instance for instance in instances
+            if getattr(instance, 'type', '') == 'MuMuPlayer12'
+        ]
+        for instance in mumu_instances:
+            if getattr(instance, 'serial', '') == serial:
+                return instance
+
+        if instance_id is not None:
+            for instance in mumu_instances:
+                if getattr(instance, 'MuMuPlayer12_id', None) == instance_id:
+                    return instance
+        return None
+
+    def auto_mumu_handle_num(self) -> int:
+        """
+        通过当前脚本对应的 MuMu 实例实时查询根窗口句柄。
+
+        Returns:
+            int: 有效 HWND；无法确认当前设备为 MuMu 时返回 0，并交由旧逻辑回退。
+        """
+        instance = self._find_current_mumu_instance()
+        if instance is None:
+            return 0
+
+        try:
+            from module.device.platform2.handlers import get_handler
+
+            handler = get_handler(instance.type)
+            if handler is None:
+                return 0
+            player_info = handler.query_player_info(instance, self)
+        except Exception as e:
+            logger.warning(f'[设备-句柄] auto 模式查询 MuMu 实例信息失败: {e}')
+            return 0
+
+        hwnd = player_info.get('main_wnd') if isinstance(player_info, dict) else None
+        if isinstance(hwnd, str):
+            try:
+                hwnd = int(hwnd, 16)
+            except ValueError:
+                hwnd = 0
+        if not isinstance(hwnd, int) or hwnd <= 0 or not is_handle_valid(hwnd):
+            logger.warning(
+                '[设备-句柄] auto 模式获取到无效的 MuMu 主窗口句柄: '
+                f'serial={getattr(self, "serial", "")}, main_wnd={hwnd}'
+            )
+            return 0
+
+        logger.info(
+            '[设备-句柄] auto 模式已匹配 MuMu 实例: '
+            f'serial={getattr(self, "serial", "")}, '
+            f'name={getattr(instance, "name", "")}, hwnd={hwnd}'
+        )
+        return hwnd
+
+    @staticmethod
     def all_windows() -> list:
         """
         获取桌面上的所有窗体
@@ -227,6 +338,7 @@ class Handle:
         def enum_windows_callback(hwnd, windows):
             window_text = GetWindowText(hwnd)
             windows.append(window_text)
+            return True
 
         windows = []
         EnumWindows(enum_windows_callback, windows)
@@ -247,6 +359,7 @@ class Handle:
             for item in Handle.emulator_list:
                 if window_title.find(item) != -1:
                     emu_list.append(window_title)
+                    break
 
         if not len(emu_list):
             logger.error('[设备-句柄] 未找到模拟器句柄，请确认模拟器正在运行')
@@ -260,8 +373,13 @@ class Handle:
         
         # MuMu5.0更新，窗体标题改动: 'MuMu模拟器','MuMuNxDevice','MuMu安卓设备'
         # 如果没有匹配上旧版本，尝试匹配MuMu5.0窗口名                                                                  
-        if emulator_title == '' and 'MuMu安卓设备' in emu_list:
-            emulator_title = 'MuMu安卓设备'
+        if emulator_title == '':
+            mumu_android_titles = [
+                title for title in emu_list
+                if title.startswith('MuMu安卓设备')
+            ]
+            if mumu_android_titles:
+                emulator_title = mumu_android_titles[0]
 
         if len(emu_list) > 1 and emulator_title == '':
             logger.warning(f'[设备-句柄] 找到多个模拟器句柄，使用第一个 {emu_list[0]}')

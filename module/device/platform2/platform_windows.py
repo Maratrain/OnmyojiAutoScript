@@ -132,6 +132,7 @@ class EmulatorStartWatchState:
     interval: Timer
     timeout: Timer
     struct_window: Timer
+    launch_confirm: Timer | None
     window_hidden: bool = False
     new_window: int = 0
     logged_events: set[str] = field(default_factory=set)
@@ -172,6 +173,27 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             command,
             close_fds=True,
             startupinfo=startupinfo
+        )
+
+    @classmethod
+    def execute_output(
+            cls,
+            command: str,
+            timeout: int = 15,
+            show_window: bool = False,
+            encoding: str | None = None,
+    ) -> subprocess.CompletedProcess:
+        startupinfo = cls.build_startupinfo(show_window=show_window)
+        command = cls.normalize_command(command)
+        return subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding=encoding,
+            errors='replace' if encoding else None,
+            timeout=timeout,
+            startupinfo=startupinfo,
+            close_fds=True,
         )
 
     @classmethod
@@ -271,7 +293,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
 
         return False
 
-    def is_instance_online(self, instance: EmulatorInstance, log_prefix: str = '[emu-start]') -> bool:
+    def is_instance_online(self, instance: EmulatorInstance, log_prefix: str = '[模拟器启动]') -> bool:
         try:
             devices = self.list_device().select(serial=instance.serial)
         except Exception as e:
@@ -294,13 +316,19 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         """
         构建模拟器启动监视所需的运行状态。
         """
-        return EmulatorStartWatchState(
+        handler = self._get_handler(instance)
+        launch_confirm = handler.build_launch_confirm_timer(instance) if handler else None
+        state = EmulatorStartWatchState(
             serial=instance.serial,
             current_window=get_focused_window(),
             interval=Timer(1).start(),
             timeout=Timer(120).start(),
             struct_window=Timer(10),
+            launch_confirm=launch_confirm,
         )
+        state._platform = self
+        state._handler = handler
+        return state
 
     def _log_emulator_watch_once(
         self,
@@ -343,28 +371,43 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             return False
         return True
 
+    def _check_handler_launch_state(
+        self,
+        instance: EmulatorInstance,
+        state: EmulatorStartWatchState
+    ) -> tuple[str, dict | None]:
+        """
+        通过 Handler 检查启动流程是否已经真正拉起。
+        """
+        handler = getattr(state, '_handler', None)
+        if handler is None:
+            return 'ready', None
+        return handler.check_launch_state(instance, state)
+
     def _hide_emulator_window_if_needed(
         self,
-        state: EmulatorStartWatchState
+        instance: EmulatorInstance,
+        state: EmulatorStartWatchState,
+        player_info: dict | None
     ) -> None:
         """
-        在仅后台运行模式下按配置的窗口名称查找并隐藏一次。
+        在仅后台运行模式下尝试隐藏模拟器窗口（委托给 Handler）。
         """
         if not self.config.script.device.run_background_only or state.window_hidden:
             return
-        target_window_name = self.config.script.device.handle
-        if not target_window_name:
+        handler = getattr(state, '_handler', None)
+        if handler is None:
             return
-        hwnd = find_hwnd_by_name(target_window_name)
-        if not hwnd:
+        if player_info is None:
+            player_info = handler.query_player_info(instance, self)
+        if not handler.try_hide_window(instance, self, info=player_info):
             return
 
-        hide_window(hwnd)
         self._log_emulator_watch_once(
             state,
             'hidden_window',
             'info',
-            f'[模拟器启动] 隐藏模拟器窗口: serial={state.serial}, name={target_window_name}'
+            f'[模拟器启动] 隐藏实例窗口: serial={state.serial}'
         )
         state.window_hidden = True
 
@@ -515,6 +558,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             logger.info(f'[设备-平台] 最小化新模拟器窗口: {emulator_window_minimize}')
         if self.config.script.device.run_background_only:
             logger.info(f'[设备-平台] 仅后台运行: {self.config.script.device.run_background_only}')
+            logger.warning('[设备-平台] run_background_only 不会显示任何界面，模拟器将纯后台运行')
             if not state.window_hidden:
                 target_window_name = self.config.script.device.handle
                 self._log_emulator_watch_once(
@@ -554,6 +598,29 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         )
         self.execute(cmd, show_window=show_window)
 
+    def _wait_emulator_stop(self, instance: EmulatorInstance, handler) -> bool:
+        """等待选择了关闭确认能力的 Handler 报告目标实例已停止。"""
+        confirm_timer = handler.build_stop_confirm_timer(instance)
+        if confirm_timer is None:
+            return True
+
+        logger.info(f'[模拟器停止] 等待关闭确认: serial={instance.serial}')
+        last_state = None
+        while True:
+            current_state = handler.check_stop_state(instance, self)
+            if current_state != last_state:
+                logger.info(f'[模拟器停止] 确认状态: serial={instance.serial}, state={current_state}')
+                last_state = current_state
+            if current_state == 'stopped':
+                logger.info(f'[模拟器停止] 确认已停止: serial={instance.serial}')
+                return True
+            if confirm_timer.reached():
+                logger.warning(
+                    f'[模拟器停止] 等待关闭确认超时: serial={instance.serial}, state={current_state}'
+                )
+                return False
+            Timer(1).wait()
+
     def _emulator_stop(self, instance: EmulatorInstance):
         """
         Stop a emulator without error handling (delegates to Handler)
@@ -571,7 +638,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         if cmd is None:
             raise EmulatorUnknown(f'Handler returned no stop command for: {instance}')
         self.execute(cmd)
-        return True
+        return self._wait_emulator_stop(instance, handler)
 
     def _emulator_function_wrapper(self, func: callable, instance: EmulatorInstance = None):
         """
@@ -620,7 +687,20 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             if not self._wait_emulator_watch_tick(state):
                 return False
 
-            self._hide_emulator_window_if_needed(state)
+            launch_state, player_info = self._check_handler_launch_state(instance, state)
+            if launch_state == 'fail':
+                return False
+            if launch_state == 'wait':
+                continue
+                if launch_state == 'unknown':
+                    self._log_emulator_watch_once(
+                        state,
+                        'launch_state_unknown',
+                        'warning',
+                        f'[模拟器启动] 启动状态未知，回退到通用就绪检查: serial={state.serial}'
+                    )
+
+            self._hide_emulator_window_if_needed(instance, state, player_info)
             self._track_emulator_focus_window(state)
             if not self._ensure_emulator_device_ready(state):
                 continue
@@ -702,20 +782,40 @@ class PlatformWindows(PlatformBase, EmulatorManager):
 
     def emulator_stop(self):
         logger.hr('停止模拟器', level=1)
-        logger.info('[模拟器停止] 等待锁')
-        with self.emulator_lifecycle_lock():
-            logger.info('[模拟器停止] 已获取锁')
-            instance = self.refresh_target_instance(reason='停止前刷新')
-            if instance is None:
-                logger.info('[模拟器停止] 释放锁: 未找到目标实例')
-                return False
-            if not self._emulator_function_wrapper(self._emulator_stop, instance):
-                logger.info('[模拟器停止] 释放锁: 停止失败')
+        max_attempts = 3
+        for i in range(max_attempts):
+            attempt = i + 1
+            logger.info(f'[模拟器停止] 等待锁: 第{attempt}/{max_attempts}次')
+            with self.emulator_lifecycle_lock():
+                logger.info(f'[模拟器停止] 已获取锁: 第{attempt}/{max_attempts}次')
+                instance = self.refresh_target_instance(reason='停止前刷新')
+                if instance is None:
+                    logger.info('[模拟器停止] 释放锁: 未找到目标实例')
+                    return False
+                # 停止
+                if self._emulator_function_wrapper(self._emulator_stop, instance):
+                    logger.info(f'[模拟器停止] 停止命令已提交: serial={instance.serial}')
+                    logger.info('[模拟器停止] 释放锁: 停止成功')
+                    return True
+                if attempt >= max_attempts:
+                    logger.warning(
+                        f'[模拟器停止] 最后一次尝试失败，跳过恢复性启动: serial={instance.serial}'
+                    )
+                    logger.info('[模拟器停止] 释放锁: 最后一次尝试失败')
+                    break
+                # 停止失败，重新启动后再次尝试停止
+                if self._emulator_function_wrapper(self._emulator_start, instance):
+                    logger.warning(
+                        f'[模拟器停止] 停止失败，重新启动后重试: serial={instance.serial}, '
+                        f'next_attempt={attempt + 1}/{max_attempts}'
+                    )
+                    logger.info('[模拟器停止] 释放锁: 准备重试')
+                    continue
+                logger.info('[模拟器停止] 释放锁: 停止/启动均失败')
                 return False
 
-            logger.info(f'[模拟器停止] 停止命令已提交: serial={instance.serial}')
-            logger.info('[模拟器停止] 释放锁: 停止命令已提交')
-            return True
+        logger.error(f'[设备-平台] 模拟器停止失败 {max_attempts} 次')
+        return False
 
 
 if __name__ == '__main__':

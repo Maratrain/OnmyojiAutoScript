@@ -336,6 +336,15 @@ def retry(func):
             self (Minitouch):
         """
         init = None
+        local_reset_attempted = False
+
+        def reset_minitouch_connection():
+            """仅重建失效的控制连接，不主动断开整个 ADB 设备。"""
+            client = getattr(self, '_minitouch_client', None)
+            if client is not None:
+                client.close()
+            del_cached_property(self, 'minitouch_builder')
+
         for _ in range(RETRY_TRIES):
             try:
                 if callable(init):
@@ -345,18 +354,21 @@ def retry(func):
             # Can't handle
             except RequestHumanTakeover:
                 break
-            # When adb server was killed
-            except ConnectionResetError as e:
-                logger.error(e)
-
-                def init():
-                    self.adb_reconnect()
-            # Emulator closed
-            except ConnectionAbortedError as e:
-                logger.error(e)
-
-                def init():
-                    self.adb_reconnect()
+            # 长时间战斗后常见的是 minitouch socket 被关闭，并非 ADB
+            # 服务失效。首次仅重建控制连接；再次失败才升级为 ADB 重连。
+            except (ConnectionResetError, ConnectionAbortedError) as e:
+                if not local_reset_attempted:
+                    logger.warning(
+                        f'[设备-控制] minitouch 控制连接被重置，仅本地重建连接: '
+                        f'{e}'
+                    )
+                    local_reset_attempted = True
+                    init = reset_minitouch_connection
+                else:
+                    logger.error(e)
+                    def init():
+                        self.adb_reconnect()
+                        reset_minitouch_connection()
             # MinitouchNotInstalledError: Received empty data from minitouch
             except MinitouchNotInstalledError as e:
                 logger.error(e)
@@ -384,9 +396,7 @@ def retry(func):
                     break
             except BrokenPipeError as e:
                 logger.error(e)
-
-                def init():
-                    del_cached_property(self, 'minitouch_builder')
+                init = reset_minitouch_connection
             # Unknown, probably a trucked image
             except Exception as e:
                 logger.exception(e)

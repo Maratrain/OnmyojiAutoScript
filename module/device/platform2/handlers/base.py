@@ -94,6 +94,39 @@ class EmulatorHandler(ABC):
         return True
 
     # ------------------------------------------------------------------
+    # 启动监视扩展点（特殊模拟器可覆盖）
+    # ------------------------------------------------------------------
+
+    def query_player_info(self, instance, platform) -> dict:
+        """查询模拟器实例运行信息，默认返回空 dict。"""
+        return {}
+
+    def try_hide_window(self, instance, platform, info=None) -> bool:
+        """尝试隐藏模拟器窗口，默认不支持，返回 False。"""
+        return False
+
+    def check_launch_state(self, instance, state) -> tuple:
+        """
+        检查启动流程是否已经真正拉起。
+        Returns:
+            (result, player_info): result 为 'ready'/'wait'/'fail'/'unknown'；
+                'unknown' 表示交由通用就绪检查继续确认
+        """
+        return 'ready', None
+
+    def build_launch_confirm_timer(self, instance):
+        """返回启动确认 Timer，默认返回 None（无需额外确认）。"""
+        return None
+
+    def build_stop_confirm_timer(self, instance) -> t.Any:
+        """返回关闭确认 Timer，默认返回 None（提交命令后立即完成）。"""
+        return None
+
+    def check_stop_state(self, instance, platform) -> str:
+        """返回 'stopped'/'running'/'unknown'，仅供启用关闭确认的 Handler 使用。"""
+        return 'unknown'
+
+    # ------------------------------------------------------------------
     # 通用 adb 兜底
     # ------------------------------------------------------------------
 
