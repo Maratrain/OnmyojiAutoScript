@@ -104,7 +104,9 @@ class ScriptTask(GameUi, GuildBanquetAssets):
                 if success or now >= target_dt + timedelta(hours=1):
                     return target_dt + timedelta(days=7)
                 if now <= target_dt + timedelta(hours=1):  # 1小时内则自动加上失败间隔
-                    return now + scheduler.failure_interval
+                    # 开席时间被狭间等长任务占住调度错过时, 当晚 20 分钟后重试,
+                    # 而不是 +24 小时导致整场宴会错过
+                    return now + timedelta(minutes=20)
             return target_dt
 
         day_1_dt = get_candidate(bt.day_1, bt.run_time_1)
