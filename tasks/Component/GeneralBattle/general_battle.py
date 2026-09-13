@@ -123,6 +123,10 @@ class BattleContext:
     quick_exit: bool = False
     # quick_exit 的退出按钮等待窗口；用于容忍页面尚未加载完成时的短暂失败。
     quick_exit_timer: Timer | None = None
+    # 结算页人手节奏点击计时器；点击间隔按正态分布随机化, 随页面重进重置。
+    result_click_timer: Timer | None = None
+    # 奖励页人手节奏点击计时器；点击间隔按正态分布随机化, 随页面重进重置。
+    reward_click_timer: Timer | None = None
     # 最近一次结算页解析出的胜负结果；用于退出时返回最终布尔值。
     is_win: bool = False
 
@@ -662,6 +666,11 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             self.random_click_swipt()
         return BattleAction.CONTINUE
 
+    @staticmethod
+    def _humanized_click_interval() -> float:
+        """人手点击节奏: 赶进度点结算的速度, 以 0.4 秒为中心的正态分布间隔, 限幅 0.15~0.8 秒。"""
+        return float(min(0.8, max(0.15, random.gauss(0.4, 0.12))))
+
     @cached_property
     def _exclude_button_stage_1(self) -> list[str]:
         """结算页需要排除的控件区域资产名。"""
@@ -709,10 +718,16 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         context.is_win = not self.appear(self.I_FALSE, threshold=0.8)
         if context.last_page != page_battle_result:
             self.device.click_record_clear()
+            context.result_click_timer = None
         if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
             # 误触奖励物品弹出了详情窗口, 先点击空白处关闭
             self.click(self.C_REWARD_2, interval=1.5)
-        self.click(self._result_exclude_click, interval=0.8)
+        if context.result_click_timer is None:
+            context.result_click_timer = Timer(self._humanized_click_interval()).start()
+        if context.result_click_timer.reached():
+            context.result_click_timer.limit = self._humanized_click_interval()
+            context.result_click_timer.reset()
+            self.click(self._result_exclude_click)
         return BattleAction.CONTINUE
 
     def _handle_reward(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
@@ -735,14 +750,20 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             self.click(self.C_REWARD_2, interval=1.5)
         if context.last_page != page_reward:
             self.device.click_record_clear()
-        if random.random() < 0.02:
-            # 小概率专门点击某个具体的奖励物品(与人类翻看奖励的行为一致)
-            x, y = self._reward_exclude_click.coord_in_excluded(
-                ['C_END_1_1', 'C_END_1_2', 'C_END_1_3',
-                 'C_END_1_4', 'C_END_1_5', 'C_END_1_6'])
-            self.device.click(x=x, y=y, control_name='reward_item')
-        else:
-            self.click(self._reward_exclude_click, interval=0.8)
+            context.reward_click_timer = None
+        if context.reward_click_timer is None:
+            context.reward_click_timer = Timer(self._humanized_click_interval()).start()
+        if context.reward_click_timer.reached():
+            context.reward_click_timer.limit = self._humanized_click_interval()
+            context.reward_click_timer.reset()
+            if random.random() < 0.02:
+                # 小概率专门点击某个具体的奖励物品(与人类翻看奖励的行为一致)
+                x, y = self._reward_exclude_click.coord_in_excluded(
+                    ['C_END_1_1', 'C_END_1_2', 'C_END_1_3',
+                     'C_END_1_4', 'C_END_1_5', 'C_END_1_6'])
+                self.device.click(x=x, y=y, control_name='reward_item')
+            else:
+                self.click(self._reward_exclude_click)
         return BattleAction.CONTINUE
 
     def _handle_missing_battle_page(self, context: BattleContext, config: GeneralBattleConfig,
