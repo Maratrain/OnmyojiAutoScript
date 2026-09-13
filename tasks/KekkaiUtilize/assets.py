@@ -82,8 +82,8 @@ class KekkaiUtilizeAssets:
 	# Ocr Rule Assets
 	# 式神育成 
 	O_R_SHIKIGAMI = RuleOcr(roi=(556,174,191,437), area=(556,174,191,437), mode="Full", method="Default", keyword="式神", name="r_shikigami")
-	# 结界卡 
-	O_R_REALM = RuleOcr(roi=(802,158,291,442), area=(802,158,291,442), mode="Full", method="Default", keyword="结界", name="r_realm")
+	# 结界卡(竖排艺术字整词「结界」易误读为「韩发卡」等, 末字「卡」各皮肤识别稳定, 交由单字兜底命中)
+	O_R_REALM = RuleOcr(roi=(802,158,291,442), area=(802,158,291,442), mode="Full", method="Default", keyword="卡", name="r_realm")
 	# 好友结界标识 
 	O_R_FRIEND_REALM = RuleOcr(roi=(443,14,426,55), area=(443,14,426,55), mode="Full", method="Default", keyword="结界", name="r_friend_realm")
 
