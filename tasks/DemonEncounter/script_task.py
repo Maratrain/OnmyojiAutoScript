@@ -76,40 +76,48 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         logger.hr('开始首领战斗', 1)
 
         def find_boss():
-            find_btn_clicked = False
-            timer_find_boss = Timer(10 * 60)
-            timer_find_boss.start()
-            while 1:
+            search_button = self.I_DE_BOSS_BEST if self.best_demon_enable else self.I_DE_BOSS
+            boss_name = '极首领' if self.best_demon_enable else '普通首领'
+
+            # 最多重新执行两轮"点击搜寻按钮 -> 点击地图中央集结区域"的完整搜寻流程
+            for search_attempt in range(1, 3):
+                self.device.click_record_clear()
                 self.screenshot()
                 if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
-                    break
-                if timer_find_boss.reached():
-                    logger.warning('[逢魔] 寻找首领超时')
+                    return True
+                if not self.appear_then_click(search_button, interval=0):
+                    logger.warning(f'[逢魔] 未找到{boss_name}搜寻按钮')
                     self.set_next_run(task='DemonEncounter', success=False, finish=True, server=False)
                     raise TaskEnd('DemonEncounter')
-                if self.appear(self.I_JADE_50):
-                    # 没找到boss但地图中央出现宝箱，导致点击宝箱出现50勾玉购买界面
-                    self.ui_click_until_smt_disappear(self.I_DE_FIND, self.I_JADE_50, interval=1)
-                    continue
-                if find_btn_clicked and self.click(self.C_DM_BOSS_CLICK, interval=5):
-                    find_btn_clicked = False
-                    continue
-                if self.best_demon_enable:
-                    self.device.click_record_clear()
-                    if self.appear(self.I_DE_BOSS_BEST) and (not find_btn_clicked):
-                        self.device.click_record_remove(self.I_DE_BOSS_BEST)
-                        if self.click(self.I_DE_BOSS_BEST, interval=4):
-                            logger.info("[逢魔] 正在寻找极首领...")
-                            find_btn_clicked = True
-                        continue
-                else:
-                    if self.appear(self.I_DE_BOSS) and (not find_btn_clicked):
-                        self.device.click_record_remove(self.I_DE_BOSS)
-                        if self.click(self.I_DE_BOSS, interval=4):
-                            logger.info("[逢魔] 正在寻找普通首领...")
-                            find_btn_clicked = True
-                        continue
-            return True
+                logger.info(f'[逢魔] 正在寻找{boss_name}，第 {search_attempt}/2 轮')
+                time.sleep(1)
+
+                # 每轮点击地图中央红色集结区域至多两次，每次等待集结挑战标志 5 秒
+                for center_attempt in range(1, 3):
+                    self.click(self.C_DM_BOSS_CLICK, interval=0)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        self.screenshot()
+                        if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
+                            logger.info(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后首领集结标志出现')
+                            return True
+                        time.sleep(0.2)
+                    logger.warning(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后未出现集结标志')
+
+                # 本轮失败，返回逢魔地图，重新点击逢魔入口进行下一轮搜寻
+                self.screenshot()
+                if self.appear(self.I_UI_BACK_RED):
+                    self.appear_then_click(self.I_UI_BACK_RED, interval=0)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        self.screenshot()
+                        if self.appear(search_button):
+                            break
+                        time.sleep(0.2)
+
+            logger.warning('[逢魔] 两轮搜寻后仍未找到首领')
+            self.set_next_run(task='DemonEncounter', success=False, finish=True, server=False)
+            raise TaskEnd('DemonEncounter')
 
         def enter_boss():
             logger.info('[逢魔] 正在尝试进入首领战斗...')
