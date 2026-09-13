@@ -60,8 +60,52 @@ class GeneralBattleAssets:
 	C_RANDOM_BOTTOM = RuleClick(roi_front=(462,599,492,78), roi_back=(462,599,492,78), name="random_bottom")
 	# 整体随机点击 
 	C_RANDOM_ALL = RuleClick(roi_front=(42,94,1207,543), roi_back=(42,94,1207,543), name="random_all")
-	# 结算/奖励页安全随机点击散点区域(避开左右两侧功能按钮) 
+	# 结算/奖励页安全随机点击散点区域(避开左右两侧功能按钮)
 	C_SAFE_RANDOM_CLICK_AREA = RuleScatter(roi_front=(5,61,1270,657), roi_back=(5,61,1270,657), polygon=[(1079, 63), (1081, 88), (1079, 115), (653, 115), (655, 150), (958, 152), (1186, 151), (1202, 207), (1208, 525), (1265, 527), (1262, 704), (1069, 708), (771, 704), (730, 696), (48, 691), (50, 610), (98, 608), (100, 158), (466, 150), (467, 121), (46, 128), (47, 109), (8, 109), (5, 717), (1274, 717), (1269, 180), (1270, 61), (1165, 63)], name="safe_random_click_area")
+	# description
+	C_REWARD_1 = RuleClick(roi_front=(606,603,325,87), roi_back=(606,603,325,87), name="reward_1")
+	# description
+	C_REWARD_2 = RuleClick(roi_front=(25,134,224,472), roi_back=(25,134,224,472), name="reward_2")
+	# description
+	C_REWARD_3 = RuleClick(roi_front=(1092,156,168,437), roi_back=(1092,156,168,437), name="reward_3")
+	# 右上角的聊天信息
+	C_END_MESSAGE_RIGHT_TOP = RuleClick(roi_front=(848,0,399,46), roi_back=(849,0,397,45), name="end_message_right_top")
+	# description
+	C_END_BUFF_AREA_1 = RuleClick(roi_front=(150,638,295,41), roi_back=(150,638,295,41), name="end_buff_area_1")
+	# description
+	C_END_BUFF_AREA_2 = RuleClick(roi_front=(457,635,273,43), roi_back=(457,635,273,43), name="end_buff_area_2")
+	# 給地鬼的
+	C_END_AREA_BOSS = RuleClick(roi_front=(1093,550,127,120), roi_back=(1093,550,127,120), name="end_area_boss")
+	# description
+	C_END_BUFF_AREA_3 = RuleClick(roi_front=(764,636,282,42), roi_back=(764,636,282,42), name="end_buff_area_3")
+	# 记录通关时间的按钮
+	C_END_SOUL_RECORD = RuleClick(roi_front=(317,561,53,49), roi_back=(317,561,53,49), name="end_soul_record")
+	# 战斗数据详细
+	C_END_SOUL_DETAILS = RuleClick(roi_front=(383,559,52,49), roi_back=(383,559,52,49), name="end_soul_details")
+	# description
+	C_END_1_1 = RuleClick(roi_front=(266,175,100,100), roi_back=(266,175,100,100), name="end_1_1")
+	# description
+	C_END_1_2 = RuleClick(roi_front=(400,174,100,100), roi_back=(400,174,100,100), name="end_1_2")
+	# description
+	C_END_1_3 = RuleClick(roi_front=(536,173,100,100), roi_back=(536,173,100,100), name="end_1_3")
+	# description
+	C_END_1_4 = RuleClick(roi_front=(671,173,100,100), roi_back=(671,173,100,100), name="end_1_4")
+	# description
+	C_END_1_5 = RuleClick(roi_front=(805,174,100,100), roi_back=(805,174,100,100), name="end_1_5")
+	# description
+	C_END_1_6 = RuleClick(roi_front=(942,175,100,100), roi_back=(942,175,100,100), name="end_1_6")
+	# description
+	C_END_2_1 = RuleClick(roi_front=(266,310,100,100), roi_back=(266,310,100,100), name="end_2_1")
+	# description
+	C_END_2_2 = RuleClick(roi_front=(401,310,100,100), roi_back=(401,310,100,100), name="end_2_2")
+	# description
+	C_END_2_3 = RuleClick(roi_front=(536,309,100,100), roi_back=(536,309,100,100), name="end_2_3")
+	# description
+	C_END_2_4 = RuleClick(roi_front=(671,311,100,100), roi_back=(671,311,100,100), name="end_2_4")
+	# description
+	C_END_2_5 = RuleClick(roi_front=(806,310,100,100), roi_back=(806,310,100,100), name="end_2_5")
+	# description
+	C_END_2_6 = RuleClick(roi_front=(942,312,100,100), roi_back=(942,312,100,100), name="end_2_6")
 
 
 	# Image Rule Assets
@@ -123,8 +167,12 @@ class GeneralBattleAssets:
 	I_GB_SKIN_CONFIRM = RuleImage(roi_front=(594,447,90,55), roi_back=(594,447,90,55), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_gb_skin_confirm.png")
 	# 战斗组队退出页面标志 
 	I_GB_CHECK_TEAM_EXIT = RuleImage(roi_front=(507,288,270,54), roi_back=(411,233,452,247), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_gb_check_team_exit.png")
-	# 御魂溢出 
+	# 御魂溢出
 	I_OVER_GHOST = RuleImage(roi_front=(697,409,89,32), roi_back=(697,409,89,32), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_over_ghost.png")
+	# description
+	I_END_FIX_1 = RuleImage(roi_front=(721,119,89,58), roi_back=(119,66,1136,620), threshold=0.85, method="Template matching", file="./tasks/Component/GeneralBattle/gw/gw_end_fix_1.png")
+	# description
+	I_END_FIX_2 = RuleImage(roi_front=(800,251,100,33), roi_back=(32,90,1137,547), threshold=0.85, method="Template matching", file="./tasks/Component/GeneralBattle/gw/gw_end_fix_2.png")
 
 
 	# Image Rule Assets

@@ -8,12 +8,13 @@ import random
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from tasks.GameUi.default_pages import random_click
 from typing import Callable, Union
 
 from module.atom.gif import RuleGif
+from module.atom.click import RuleClickExclude
 from module.atom.image import RuleImage
 from module.atom.ocr import RuleOcr
+from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import color_similar, get_color
 from module.exception import GameStuckError
@@ -661,6 +662,39 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             self.random_click_swipt()
         return BattleAction.CONTINUE
 
+    @cached_property
+    def _exclude_button_stage_1(self) -> list[str]:
+        """结算页需要排除的控件区域资产名。"""
+        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
+                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS']
+
+    @cached_property
+    def _exclude_button_stage_2(self) -> list[str]:
+        """奖励页需要排除的控件区域资产名(额外排除首行奖励物品)。"""
+        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
+                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS',
+                'C_END_1_1', 'C_END_1_2', 'C_END_1_3', 'C_END_1_4', 'C_END_1_5', 'C_END_1_6']
+
+    def _build_exclude_click(self, areas: list[str], name: str) -> RuleClickExclude:
+        """根据资产名列表构建排除区域随机点击规则。"""
+        inputs = []
+        for area in areas:
+            click = getattr(self, area, None)
+            if click is None:
+                raise ValueError(f'Unknown exclusion click: {area!r}')
+            inputs.append(click)
+        return RuleClickExclude(inputs, name=name)
+
+    @cached_property
+    def _result_exclude_click(self) -> RuleClickExclude:
+        """结算页排除控件后的全屏随机点击。"""
+        return self._build_exclude_click(self._exclude_button_stage_1, name='result_exclude_click')
+
+    @cached_property
+    def _reward_exclude_click(self) -> RuleClickExclude:
+        """奖励页排除控件与首行奖励物品后的全屏随机点击。"""
+        return self._build_exclude_click(self._exclude_button_stage_2, name='reward_exclude_click')
+
     def _handle_result(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
         """处理结算页面逻辑。
 
@@ -675,7 +709,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         context.is_win = not self.appear(self.I_FALSE, threshold=0.8)
         if context.last_page != page_battle_result:
             self.device.click_record_clear()
-        self.click(random_click(), interval=0.8)
+        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
+            # 误触奖励物品弹出了详情窗口, 先点击空白处关闭
+            self.click(self.C_REWARD_2, interval=1.5)
+        self.click(self._result_exclude_click, interval=0.8)
         return BattleAction.CONTINUE
 
     def _handle_reward(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
@@ -693,9 +730,19 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         context.is_win = True
         self.appear_then_click(self.I_OVER_GHOST, interval=0.8)
         self.appear_then_click(self.I_GB_SKIN_CONFIRM, interval=0.8)
+        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
+            # 误触奖励物品弹出了详情窗口, 先点击空白处关闭
+            self.click(self.C_REWARD_2, interval=1.5)
         if context.last_page != page_reward:
             self.device.click_record_clear()
-        self.click(random_click(), interval=0.8)
+        if random.random() < 0.02:
+            # 小概率专门点击某个具体的奖励物品(与人类翻看奖励的行为一致)
+            x, y = self._reward_exclude_click.coord_in_excluded(
+                ['C_END_1_1', 'C_END_1_2', 'C_END_1_3',
+                 'C_END_1_4', 'C_END_1_5', 'C_END_1_6'])
+            self.device.click(x=x, y=y, control_name='reward_item')
+        else:
+            self.click(self._reward_exclude_click, interval=0.8)
         return BattleAction.CONTINUE
 
     def _handle_missing_battle_page(self, context: BattleContext, config: GeneralBattleConfig,

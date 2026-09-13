@@ -14,6 +14,7 @@ from typing import Union
 """GameUi 全局页面定义。"""
 
 import random
+import time
 
 from module.atom.click import RuleClick
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
@@ -43,6 +44,8 @@ def random_click(
     Returns:
         单个 `RuleClick`，或一个由多个 `RuleClick` 组成的列表。
     """
+    # 生成点击前加入以 0.35 秒为中心的正态分布随机延迟，避免固定节奏连点
+    time.sleep(random.gauss(0.35, 0.1))
 
     click_area_list = [GeneralBattleAssets.C_RANDOM_LEFT, GeneralBattleAssets.C_RANDOM_TOP,
                        GeneralBattleAssets.C_RANDOM_RIGHT, GeneralBattleAssets.C_RANDOM_BOTTOM]
