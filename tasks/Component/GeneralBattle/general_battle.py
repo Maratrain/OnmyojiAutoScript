@@ -719,7 +719,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if context.last_page != page_battle_result:
             self.device.click_record_clear()
             context.result_click_timer = None
-        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
+        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2) or self.appear(self.I_END_FIX_3):
             # 误触奖励物品弹出了详情窗口, 先点击空白处关闭
             self.click(self.C_REWARD_2, interval=1.5)
         if context.result_click_timer is None:
@@ -745,7 +745,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         context.is_win = True
         self.appear_then_click(self.I_OVER_GHOST, interval=0.8)
         self.appear_then_click(self.I_GB_SKIN_CONFIRM, interval=0.8)
-        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
+        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2) or self.appear(self.I_END_FIX_3):
             # 误触奖励物品弹出了详情窗口, 先点击空白处关闭
             self.click(self.C_REWARD_2, interval=1.5)
         if context.last_page != page_reward:

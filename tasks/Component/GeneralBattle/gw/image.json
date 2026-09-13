@@ -16,5 +16,14 @@
     "method": "Template matching",
     "threshold": 0.85,
     "description": "description"
+  },
+  {
+    "itemName": "end_fix_3",
+    "imageName": "gw_end_fix_3.png",
+    "roiFront": "871,278,150,49",
+    "roiBack": "119,66,1136,620",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "结算物品详情"
   }
 ]
