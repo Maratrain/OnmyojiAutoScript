@@ -1146,15 +1146,18 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             break
         self.click(tmp)
         logger.info("[通用战斗] 点击预设确认")
-        wait_ensure_timer = Timer(4).start()
-        while 1:
+        wait_ensure_timer = Timer(3).start()
+        preset_clicked = False
+        while True:
             if wait_ensure_timer.reached():
                 logger.warning(timeout_warning)
                 return
             self.screenshot()
-            if not self.appear(self.I_PRESET_ENSURE):
-                break
+            if preset_clicked and not self.appear(self.I_PRESET_ENSURE):
+                logger.info("[通用战斗] 预设确认成功")
+                return
             if self.appear_then_click(self.I_PRESET_ENSURE, interval=1):
+                preset_clicked = True
                 continue
 
     def random_click_swipt(self):
