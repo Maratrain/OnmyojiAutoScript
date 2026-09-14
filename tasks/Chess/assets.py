@@ -69,7 +69,7 @@ class ChessAssets:
 	#  
 	I_SKIP = RuleImage(roi_front=(1148,39,77,22), roi_back=(1148,39,77,22), threshold=0.8, method="Template matching", file="./tasks/Chess/c/c_skip.png")
 	#  
-	I_SHIKIGAMI_SPECIFICS = RuleImage(roi_front=(939,223,310,32), roi_back=(939,223,310,32), threshold=0.8, method="Template matching", file="./tasks/Chess/c/c_shikigami_specifics.png")
+	I_SHIKIGAMI_SPECIFICS = RuleImage(roi_front=(939,250,310,32), roi_back=(939,250,310,32), threshold=0.8, method="Template matching", file="./tasks/Chess/c/c_shikigami_specifics.png")
 	#  
 	I_CHECK_MARKET = RuleImage(roi_front=(1206,319,35,31), roi_back=(1206,319,35,31), threshold=0.8, method="Template matching", file="./tasks/Chess/c/c_check_market.png")
 	#  
