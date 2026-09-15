@@ -10,7 +10,9 @@ param(
     # 本机 oasx（Flutter GUI）所在目录，要求其中包含 oasx.exe
     [string]$OasxPath = "D:\oasx_new_ui",
     # 打包输出目录，默认为仓库的上一级目录
-    [string]$OutRoot = ""
+    [string]$OutRoot = "",
+    # 保留中间解包目录（默认在 zip 校验通过后删除，发布只需上传 zip）
+    [switch]$KeepBuild
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,7 +49,7 @@ $PkgDir = Join-Path $BuildDir $PkgName
 New-Item -ItemType Directory -Path $PkgDir -Force | Out-Null
 
 # ---- 1. 克隆仓库源码（个人配置、log、toolkit 均不在 git 追踪内，天然隔离） ----
-Write-Host "[1/4] 克隆仓库源码..."
+Write-Host "[1/5] 克隆仓库源码..."
 git clone --single-branch --branch $Branch -q $RepoRoot $PkgDir
 if ($LASTEXITCODE -ne 0) { throw "git clone 失败" }
 # origin 指向 GitHub 仓库，保证用户端界面里的“更新”按钮可用
@@ -58,12 +60,12 @@ if ($LASTEXITCODE -ne 0) { throw "设置 origin 失败" }
 Copy-Item (Join-Path $RepoRoot "config\deploy.yaml") (Join-Path $PkgDir "config\deploy.yaml")
 
 # ---- 2. 复制 toolkit 运行时（内嵌 Python + Git + 依赖 + adb） ----
-Write-Host "[2/4] 复制 toolkit 运行时（约 800MB，需要几分钟）..."
+Write-Host "[2/5] 复制 toolkit 运行时（约 800MB，需要几分钟）..."
 robocopy (Join-Path $RepoRoot "toolkit") (Join-Path $PkgDir "toolkit") /E /NFL /NDL /NJH /NJS /MT:16 | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "复制 toolkit 失败，robocopy 退出码 $LASTEXITCODE" }
 
 # ---- 3. 复制根目录启动器（未被 git 追踪，需从本机复制）与 oasx ----
-Write-Host "[3/4] 复制启动器与 oasx..."
+Write-Host "[3/5] 复制启动器与 oasx..."
 foreach ($f in @("oas.exe", "oas-launcher.exe", "oas-backend.bat", "console.bat")) {
     Copy-Item (Join-Path $RepoRoot $f) (Join-Path $PkgDir $f)
 }
@@ -84,7 +86,7 @@ OnmyojiAutoScript 整合包
 "@ | Out-File -FilePath (Join-Path $PkgDir "使用说明.txt") -Encoding utf8
 
 # ---- 4. 压缩 zip ----
-Write-Host "[4/4] 压缩 zip（需要几分钟）..."
+Write-Host "[4/5] 压缩 zip（需要几分钟）..."
 $ZipPath = Join-Path $BuildDir ("OnmyojiAutoScript-easy-install-" + $Version + ".zip")
 # 优先用系统自带的 bsdtar（Git Bash 环境下 PATH 里的 GNU tar 不支持打包 zip）
 $Tar = Join-Path $env:WINDIR "System32\tar.exe"
@@ -96,10 +98,33 @@ if (Test-Path $Tar) {
 }
 
 $size = "{0:N0} MB" -f ((Get-Item $ZipPath).Length / 1MB)
+
+# ---- 5. 清理中间解包目录（zip 自包含，发布只传 zip，避免 1GB+ 副本长期滞留） ----
+if ($KeepBuild) {
+    Write-Host "[5/5] 已指定 -KeepBuild，保留解包目录: $PkgDir"
+} else {
+    Write-Host "[5/5] 校验 zip 并清理中间解包目录..."
+    # bsdtar -tf 只读索引不解压，可确认 zip 完整可读；校验失败宁可保留目录也不删
+    if (Test-Path $Tar) {
+        # tar 的 stderr 不得在 Stop 偏好下升级为终止错误，临时切 Continue 再取退出码
+        $eap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        & $Tar -tf $ZipPath 2>$null | Out-Null
+        $tarCode = $LASTEXITCODE
+        $ErrorActionPreference = $eap
+        if ($tarCode -ne 0) { throw "zip 校验失败，保留构建目录供排查: $BuildDir" }
+    }
+    Remove-Item -LiteralPath $PkgDir -Recurse -Force
+}
+
 $gh = "C:\Program Files\GitHub CLI\gh.exe"
 Write-Host ""
 Write-Host "打包完成: $ZipPath ($size)"
-Write-Host "构建目录（确认发布成功后可手动删除）: $BuildDir"
+if ($KeepBuild) {
+    Write-Host "构建目录（含解包目录，确认发布成功后可手动删除）: $BuildDir"
+} else {
+    Write-Host "解包目录已清理，构建目录仅剩 zip，确认发布成功后可手动删除: $BuildDir"
+}
 Write-Host ""
 Write-Host "发布方式二选一:"
 Write-Host "  网页: 仓库 Releases -> Draft a new release -> 新建标签 $Version -> 上传 zip -> Publish"
