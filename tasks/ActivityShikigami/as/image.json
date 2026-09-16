@@ -2,7 +2,7 @@
   {
     "itemName": "lock",
     "imageName": "as_lock.png",
-    "roiFront": "872,652,23,24",
+    "roiFront": "897,646,23,24",
     "roiBack": "685,612,330,86",
     "method": "Template matching",
     "threshold": 0.7,
@@ -11,7 +11,7 @@
   {
     "itemName": "unlock",
     "imageName": "as_unlock.png",
-    "roiFront": "870,655,28,25",
+    "roiFront": "897,646,28,25",
     "roiBack": "686,610,313,92",
     "method": "Template matching",
     "threshold": 0.7,
