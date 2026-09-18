@@ -24,6 +24,8 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
             self._share_area_boss()
         if con.share_secret:
             self._share_secret()
+        if con.save_touch_fish:
+            self._save_touch_fish()
         if con.broken_amulet:
             self._broken_amulet(con.broken_amulet)
 
