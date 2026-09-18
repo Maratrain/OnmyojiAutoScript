@@ -48,7 +48,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             # trigger click protection before that deadline is evaluated.
             self.device.click_record_clear()
         else:
-            raise RequestHumanTakeover('999 battle result could not be closed')
+            raise RequestHumanTakeover('999战斗结算无法关闭')
         self.dismiss_supply_popups()
 
     def dismiss_supply_popups(self):
@@ -65,13 +65,13 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
     @staticmethod
     def wait_after_activity_battle():
         delay = lognormal_delay(**BATTLE_SETTLEMENT_DELAY)
-        logger.info(f'999 battle ended; wait {delay:.1f}s before returning to challenge page')
+        logger.info(f'999战斗结束；等待 {delay:.1f}s 后返回挑战页')
         time.sleep(delay)
 
     @staticmethod
     def wait_before_next_challenge():
         delay = lognormal_delay(**FIRST_OPERATION_DELAY)
-        logger.info(f'Wait {delay:.1f}s before next 999 challenge')
+        logger.info(f'等待 {delay:.1f}s 后进行下一次999挑战')
         time.sleep(delay)
 
     def wait_or_raise(self, target, message, timeout=None):
@@ -93,10 +93,10 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             if self.appear(self.I_ACTIVITY_999_ECHO_HOME):
                 return 'map'
             if self.is_in_prepare(False) or self.is_in_real_battle(False):
-                logger.info('999 battle started before echo map appeared')
+                logger.info('999战斗在回响地图出现前已开始')
                 return 'battle'
             time.sleep(0.5)
-        raise RequestHumanTakeover('999 battle map did not appear')
+        raise RequestHumanTakeover('999战斗地图未出现')
 
     def open_elite_page_from_activity(self):
         """Move from the activity home/echo page to the elite challenge page."""
@@ -105,7 +105,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             return
 
         if self.appear(self.I_ACTIVITY_999_HOME):
-            logger.info('999 activity home detected')
+            logger.info('检测到999活动首页')
             self.click(self.C_ACTIVITY_999_BATTLE)
             result = self.wait_echo_map_or_battle()
             if result == 'battle':
@@ -115,7 +115,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             self.screenshot()
 
         if not self.appear(self.I_ACTIVITY_999_ECHO_HOME):
-            raise RequestHumanTakeover('999 activity page state is unknown')
+            raise RequestHumanTakeover('999活动页面状态未知')
 
         # 地图入场动画可能吞掉第一次点击，循环重试直到精锐页出现。
         timer = Timer(self.PAGE_WAIT_TIMEOUT).start()
@@ -126,7 +126,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             self.click(self.C_ACTIVITY_999_ELITE_MENU, interval=1.5)
             # 该循环有自己的超时兜底，重试点击不应在此之前触发点击保护。
             self.device.click_record_clear()
-        raise RequestHumanTakeover('999 elite page did not appear')
+        raise RequestHumanTakeover('999精锐页未出现')
 
     def _entry_visible(self) -> bool:
         """活动入口各庭院皮肤样式与位置不同, 任一已采集模板命中即可。"""
@@ -140,17 +140,17 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             self.goto_page(page_main)
             self.screenshot()
         if not self._entry_visible():
-            raise RequestHumanTakeover('999 activity entrance not found in courtyard')
+            raise RequestHumanTakeover('庭院中未找到999活动入口')
 
         # 命中哪个模板就点哪个, 避免跨皮肤点击错误位置
         if self.appear(self.I_ACTIVITY_999_ENTRY):
             self.click(self.I_ACTIVITY_999_ENTRY)
         else:
             self.click(self.I_ACTIVITY_999_ENTRY_MAIN1)
-        logger.info('Click 999 activity entrance')
+        logger.info('点击999活动入口')
         self.wait_or_raise(
             self.I_ACTIVITY_999_HOME,
-            '999 activity home did not appear after clicking entrance',
+            '点击入口后999活动首页未出现',
         )
         self.open_elite_page_from_activity()
 
@@ -163,11 +163,11 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
                 return
             if (self.appear(self.I_ACTIVITY_999_ECHO_HOME)
                     or self.appear(self.I_ACTIVITY_999_HOME)):
-                logger.warning('999 settlement returned to an upper activity page; recovering')
+                logger.warning('999结算后回到上级活动页；正在恢复')
                 self.open_elite_page_from_activity()
                 return
             time.sleep(0.4)
-        raise RequestHumanTakeover('999 elite page did not return after battle settlement')
+        raise RequestHumanTakeover('999战斗结算后精锐页未返回')
 
     def confirm_challenge_started(self) -> bool:
         """确认挑战点击生效；被残留弹窗吞掉时清理后重试。
@@ -193,16 +193,16 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
                 return True
             if attempt > 0:
                 # 关闭弹窗后再次点击挑战仍弹出引导窗，判定为票已耗尽。
-                logger.info('999 challenge tickets exhausted; activity finished')
+                logger.info('999挑战票已耗尽；活动完成')
                 self.click(self.C_ACTIVITY_999_POPUP_GAP)
                 time.sleep(1.0)
                 return False
-            logger.warning('999 challenge click did not start a battle; closing leftover popup and retrying')
+            logger.warning('点击999挑战未开始战斗；关闭残留弹窗并重试')
             self.click(self.C_ACTIVITY_999_POPUP_GAP)
             time.sleep(1.0)
             self.screenshot()
             if not self.appear(self.I_ACTIVITY_999_CHALLENGE):
-                raise RequestHumanTakeover('999 challenge button unavailable after popup cleanup')
+                raise RequestHumanTakeover('清理弹窗后999挑战按钮不可用')
             self.click(self.C_ACTIVITY_999_CHALLENGE)
         return False
 
@@ -211,7 +211,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         result = self.run_general_battle(
             self.config.activity_999.general_battle_config)
         if not result:
-            raise RequestHumanTakeover('999 elite battle failed')
+            raise RequestHumanTakeover('999精锐战斗失败')
         self.wait_after_activity_battle()
         self.restore_elite_page()
 
@@ -245,20 +245,20 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             state = self.get_start_state()
             if state != 'activity_unknown':
                 return state
-            logger.info('999 unknown subpage, clicking back to recover')
+            logger.info('999子页未知，点击返回恢复')
             self.click(self.C_ACTIVITY_999_BACK, interval=1.5)
             self.device.click_record_clear()
             time.sleep(1.0)
         return self.get_start_state()
 
     def run(self):
-        logger.hr('999 ACTIVITY', level=1)
+        logger.hr('999活动', level=1)
         self.screenshot()
         state = self.get_start_state()
         if state == 'activity_unknown':
             # 游戏重启后可能恢复在活动深层界面, 先点返回恢复到已知子页
             state = self.recover_unknown_subpage()
-        logger.info(f'999 startup state: {state}')
+        logger.info(f'999启动状态: {state}')
 
         if state == 'settlement':
             self.dismiss_activity_battle_result()
@@ -267,7 +267,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             return
         if state == 'battle_unknown':
             raise RequestHumanTakeover(
-                'Battle detected at 999 startup, but it cannot be verified as an activity battle')
+                '999启动时检测到战斗，但无法确认属于本活动')
         if state == 'elite':
             self.run_elite_loop()
             return
@@ -278,7 +278,7 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         else:
             # 恢复后仍是未知状态(返回链上出现了不认识的界面), 交给人工处理
             raise RequestHumanTakeover(
-                '999 is inside the activity, but the current subpage is unknown')
+                '999处于活动内，但当前子页未知')
         self.run_elite_loop()
 
     def run_elite_loop(self):
@@ -295,11 +295,11 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         started_at = time.monotonic()
         completed_count = 0
         logger.info(
-            f'999 battle count limit: '
+            f'999战斗次数上限: '
             f'{battle_count_limit if battle_count_limit > 0 else "unlimited"}'
         )
         logger.info(
-            f'999 run time limit: '
+            f'999运行时间上限: '
             f'{run_time_limit if run_time_limit_seconds > 0 else "unlimited"}'
         )
         while True:
@@ -307,13 +307,14 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
                 run_time_limit_seconds > 0
                 and time.monotonic() - started_at >= run_time_limit_seconds
             ):
-                logger.info('999 run time limit reached, task finished')
+                logger.info('999运行时间已达上限，任务结束')
+                self.set_next_run(task='Activity999', success=True, finish=True)
                 return
             self.screenshot()
             if not self.appear(self.I_ACTIVITY_999_ELITE_PAGE):
-                raise RequestHumanTakeover('999 elite page not found before challenge')
+                raise RequestHumanTakeover('挑战前未找到999精锐页')
             if not self.appear(self.I_ACTIVITY_999_CHALLENGE):
-                raise RequestHumanTakeover('999 challenge button unavailable; resources may be exhausted')
+                raise RequestHumanTakeover('999挑战按钮不可用；资源可能已耗尽')
             self.wait_before_next_challenge()
             # BOSS 展示页的粒子动画会瞬时拉低按钮匹配分，单帧误判率高；
             # 在 3 秒窗口内多帧确认，页面真变了才放弃。
@@ -327,9 +328,9 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
                     break
                 time.sleep(0.4)
             if not page_ok:
-                raise RequestHumanTakeover('999 challenge page changed during random delay')
+                raise RequestHumanTakeover('随机延时期间999挑战页发生变化')
             self.click(self.C_ACTIVITY_999_CHALLENGE)
-            logger.info('Click 999 elite challenge')
+            logger.info('点击999精锐挑战')
             if not self.confirm_challenge_started():
                 # 挑战票耗尽，今日活动打完，按正常完成顺延下次运行。
                 self.set_next_run(task='Activity999', success=True, finish=True)
@@ -337,15 +338,17 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
             self.finish_battle()
             completed_count += 1
             logger.info(
-                f'999 completed battles: {completed_count}'
+                f'999已完成战斗: {completed_count}'
                 f'/{battle_count_limit if battle_count_limit > 0 else "unlimited"}'
             )
             if 0 < battle_count_limit <= completed_count:
-                logger.info('999 battle count limit reached, task finished')
+                logger.info('999战斗次数已达上限，任务结束')
+                self.set_next_run(task='Activity999', success=True, finish=True)
                 return
             if (
                 run_time_limit_seconds > 0
                 and time.monotonic() - started_at >= run_time_limit_seconds
             ):
-                logger.info('999 run time limit reached, task finished')
+                logger.info('999运行时间已达上限，任务结束')
+                self.set_next_run(task='Activity999', success=True, finish=True)
                 return
