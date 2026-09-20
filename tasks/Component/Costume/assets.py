@@ -243,3 +243,49 @@ class CostumeAssets:
 	I_PET_HOUSE_9 = RuleImage(roi_front=(888,327,40,35), roi_back=(730,316,440,57), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main9/main9_pet_house_9.png")
 
 
+
+	# Image Rule Assets
+	# 庭院判定 a 
+	I_CHECK_MAIN_18_A = RuleImage(roi_front=(260,168,80,54), roi_back=(180,100,240,180), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_check_main_18_a.png")
+	# Image Rule Assets
+	# 庭院判定 b 
+	I_CHECK_MAIN_18_B = RuleImage(roi_front=(260,168,80,54), roi_back=(180,100,240,180), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_check_main_18_b.png")
+	# Image Rule Assets
+	# 庭院判定 c 
+	I_CHECK_MAIN_18_C = RuleImage(roi_front=(260,168,80,54), roi_back=(180,100,240,180), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_check_main_18_c.png")
+	# Image Rule Assets
+	# 探索 a 
+	I_MAIN_GOTO_EXPLORATION_18_A = RuleImage(roi_front=(714,224,43,40), roi_back=(680,180,130,150), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_exploration_18_a.png")
+	# Image Rule Assets
+	# 探索 b 
+	I_MAIN_GOTO_EXPLORATION_18_B = RuleImage(roi_front=(719,216,41,42), roi_back=(667,180,143,106), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_exploration_18_b.png")
+	# Image Rule Assets
+	# 探索 c 
+	I_MAIN_GOTO_EXPLORATION_18_C = RuleImage(roi_front=(717,222,43,42), roi_back=(680,180,125,110), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_exploration_18_c.png")
+	# Image Rule Assets
+	# 召唤屋 a 
+	I_MAIN_GOTO_SUMMON_18_A = RuleImage(roi_front=(981,218,40,41), roi_back=(930,170,130,150), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_summon_18_a.png")
+	# Image Rule Assets
+	# 召唤屋 b 
+	I_MAIN_GOTO_SUMMON_18_B = RuleImage(roi_front=(981,218,39,38), roi_back=(930,170,130,150), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_summon_18_b.png")
+	# Image Rule Assets
+	# 召唤屋 c 
+	I_MAIN_GOTO_SUMMON_18_C = RuleImage(roi_front=(981,218,39,37), roi_back=(930,170,130,150), threshold=0.55, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_summon_18_c.png")
+	# Image Rule Assets
+	# 町中 a 
+	I_MAIN_GOTO_TOWN_18_A = RuleImage(roi_front=(1004,336,35,49), roi_back=(960,300,100,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_town_18_a.png")
+	# Image Rule Assets
+	# 町中 b 
+	I_MAIN_GOTO_TOWN_18_B = RuleImage(roi_front=(1007,346,26,31), roi_back=(960,300,100,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_town_18_b.png")
+	# Image Rule Assets
+	# 町中 c 
+	I_MAIN_GOTO_TOWN_18_C = RuleImage(roi_front=(1008,343,29,43), roi_back=(960,300,100,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_town_18_c.png")
+	# Image Rule Assets
+	# 宠物屋 a 
+	I_PET_HOUSE_18_A = RuleImage(roi_front=(1226,423,34,37), roi_back=(1191,340,89,152), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_a.png")
+	# Image Rule Assets
+	# 宠物屋 b 
+	I_PET_HOUSE_18_B = RuleImage(roi_front=(1221,422,33,39), roi_back=(1191,366,89,116), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_b.png")
+	# Image Rule Assets
+	# 宠物屋 c 
+	I_PET_HOUSE_18_C = RuleImage(roi_front=(1226,417,42,45), roi_back=(1210,340,70,140), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_c.png")

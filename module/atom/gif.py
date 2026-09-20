@@ -14,11 +14,13 @@ class RuleGif:
 
     @property
     def name(self) -> str:
-        return self.appear_target.name
+        return self.targets[0].name
 
     def __init__(self, targets: list[RuleImage]):
         self.targets = targets
         self.roi_front: list = [0, 0, 0, 0]
+        self.roi_back: list = targets[0].roi_back
+        self._match_init = False
         self.appear_target = targets[0]
 
     def pre_process(self, image):

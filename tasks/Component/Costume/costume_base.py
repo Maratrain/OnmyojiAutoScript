@@ -3,6 +3,7 @@
 # github https://github.com/runhey
 
 from module.atom.image import RuleImage
+from module.atom.gif import RuleGif
 from module.logger import logger
 
 from tasks.Component.Costume.config import (
@@ -36,6 +37,15 @@ main_costume_model = {
         'I_HARVEST_GUILD_REWARD': f'I_HARVEST_GUILD_REWARD_{i}',
     }
     for i in range(1, 18)
+}
+
+# 玉岚狐庭（issue #1824，时变皮肤，a/b/c 三态）
+main_costume_model[getattr(MainType, "COSTUME_MAIN_18")] = {
+    'I_CHECK_MAIN': ['I_CHECK_MAIN_18_A', 'I_CHECK_MAIN_18_B', 'I_CHECK_MAIN_18_C'],
+    'I_MAIN_GOTO_EXPLORATION': ['I_MAIN_GOTO_EXPLORATION_18_A', 'I_MAIN_GOTO_EXPLORATION_18_B', 'I_MAIN_GOTO_EXPLORATION_18_C'],
+    'I_MAIN_GOTO_SUMMON': ['I_MAIN_GOTO_SUMMON_18_A', 'I_MAIN_GOTO_SUMMON_18_B', 'I_MAIN_GOTO_SUMMON_18_C'],
+    'I_MAIN_GOTO_TOWN': ['I_MAIN_GOTO_TOWN_18_A', 'I_MAIN_GOTO_TOWN_18_B', 'I_MAIN_GOTO_TOWN_18_C'],
+    'I_PET_HOUSE': ['I_PET_HOUSE_18_A', 'I_PET_HOUSE_18_B', 'I_PET_HOUSE_18_C'],
 }
 
 # 鲤鱼旗皮肤，覆盖结界页的育成/结界卡/防守按钮识别
@@ -125,16 +135,23 @@ class CostumeBase:
         asset_before_object.threshold = asset_after.threshold
         asset_before_object.file = asset_after.file
 
+    def set_asset(self, asset_before: str, rule: RuleImage | RuleGif) -> None:
+        setattr(self, asset_before, rule)
+
     def check_costume_main(self, main_type: MainType):
         if main_type == MainType.COSTUME_MAIN:
             return
         logger.info(f'[皮肤] 切换庭院皮肤为 {main_type}')
         costume_assets = CostumeAssets()
         for key, value in main_costume_model[main_type].items():
-            assert_value: RuleImage = getattr(costume_assets, value, None)
-            if assert_value is None:
-                continue
-            self.replace_img(key, assert_value)
+            if isinstance(value, list):
+                rules: list[RuleImage] = [getattr(costume_assets, item) for item in value]
+                self.set_asset(key, RuleGif(rules))
+            else:
+                assert_value: RuleImage = getattr(costume_assets, value, None)
+                if assert_value is None:
+                    continue
+                self.replace_img(key, assert_value)
 
     def check_costume_carpbanner(self, carpbanner_type: CarpBannerType):
         if carpbanner_type == CarpBannerType.COSTUME_CARPBANNER_DEFAULT:
