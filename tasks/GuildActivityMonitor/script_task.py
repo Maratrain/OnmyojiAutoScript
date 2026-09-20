@@ -12,6 +12,9 @@ from tasks.GuildActivityMonitor.assets import GuildActivityMonitorAssets
 
 class ScriptTask(GameUi, GuildActivityMonitorAssets):
 
+    # 通知新鲜度窗口: 超过此秒数的推送视为陈旧, 不触发, 避免历史推送在首次运行时被误触发
+    NOTIFY_FRESHNESS_SECONDS = 30 * 60
+
     def run(self):
         """阴阳寮活动监控主函数"""
         if not self.check_run_days():
@@ -75,8 +78,8 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
         if use_ocr:
             init_keyword = self.get_notification_info_ocr(keywords)
             logger.info(f"初始通知关键字: {init_keyword or '无'}")
-        else:
-            init_time, _ = self.get_notification_info(keywords)
+        # ADB 模式无需启动快照: 系统通知列表是持久累积, 启动前已到达的推送
+        # 会因 when 未超过 last_triggered_when 被跳过, 同一推送只触发一次
 
         stuck_interval = Timer(280)
         while True:
@@ -101,11 +104,7 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
                 if notification_text and notification_text != init_keyword:
                     self.trigger_activity_task(notification_text, keyword_map[notification_text])
             else:
-                current_time, notification_text = self.get_notification_info(keywords)
-                if current_time > init_time and notification_text:
-                    task_name = keyword_map.get(notification_text)
-                    if task_name:
-                        self.trigger_activity_task(notification_text, task_name)
+                self.check_adb_notifications(keywords, keyword_map, monitor_config)
 
             time.sleep(interval)
 
@@ -118,26 +117,47 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
                           target=datetime.now() + timedelta(minutes=monitor_config.recheck_interval))
         raise TaskEnd('GuildActivityMonitor')
 
-    def get_notification_info(self, keywords: list) -> tuple:
-        """通过adb读取系统通知，返回最新活动通知的时间戳和关键字"""
+    def check_adb_notifications(self, keywords: list, keyword_map: dict, monitor_config):
+        """ADB模式: 遍历当前通知, 命中关键字且新鲜且未触发过则拉起对应任务
+
+        通过 last_triggered_when 跨周期去重, 同一推送只触发一次, 修复宴会推送在
+        监控启动前已到达时被全局最新 when 门控吞掉的问题; 通过新鲜度窗口跳过
+        陈旧通知, 避免历史推送在首次运行时被误触发。
+        """
+        now_ms = time.time() * 1000
+        last_triggered = monitor_config.last_triggered_when
+        for keyword, when in self.get_keyword_notifications(keywords):
+            if (now_ms - when) / 1000 > self.NOTIFY_FRESHNESS_SECONDS:
+                continue
+            if when > float(last_triggered.get(keyword, 0)):
+                logger.info(f"[寮活动-ADB] 命中关键字 '{keyword}'"
+                            f"（通知时间 {datetime.fromtimestamp(when / 1000).strftime('%H:%M:%S')}），"
+                            f"新鲜度内且未触发过")
+                # 先持久化去重标记再触发任务(trigger 内会 raise TaskEnd),
+                # 否则下次重进监控会因标记未落盘而重复触发
+                self.config.lock_config.acquire()
+                try:
+                    last_triggered[keyword] = when
+                    self.config.save()
+                finally:
+                    self.config.lock_config.release()
+                self.trigger_activity_task(keyword, keyword_map[keyword])
+
+    def get_keyword_notifications(self, keywords: list) -> list:
+        """通过adb读取系统通知，返回所有命中关键字的 (关键字, when) 列表"""
         try:
             output = self.device.adb_shell(['dumpsys', 'notification', '--noredact'])
-            notification_blocks = re.findall(r'(when=(\d+)[\s\S]*?(?=when=|\Z))', output)
-            if not notification_blocks:
-                return 0, ""
-            latest_time = 0
-            latest_text = ""
-            for block, time_str in notification_blocks:
-                current_time = float(time_str)
+            results = []
+            for block, time_str in re.findall(r'(when=(\d+)[\s\S]*?(?=when=|\Z))', output):
+                when = float(time_str)
                 for keyword in keywords:
-                    if keyword in block and current_time > latest_time:
-                        latest_time = current_time
-                        latest_text = keyword
+                    if keyword in block:
+                        results.append((keyword, when))
                         break
-            return latest_time, latest_text
+            return results
         except Exception as e:
             logger.warning(f"获取通知失败: {e}")
-            return 0, ""
+            return []
 
     def get_notification_info_ocr(self, keywords: list) -> str:
         """通过OCR识别屏幕通知区域，返回活动关键字"""

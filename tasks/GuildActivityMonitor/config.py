@@ -10,6 +10,10 @@ class GuildActivityMonitorCombatTime(BaseModel):
     recheck_interval: int = Field(default=5, description="拉起对应活动后，间隔多久再次开启检测（分）\n若监控时间内未检测到活动，则按调度器设置下次运行时间")
     run_days: str = Field(default="1,2,3,4,5,6,7", description="运行日期，1-7 对应周一到周日；例如 5,6,7")
     use_ocr: bool = Field(default=False, description="启用OCR检测模式\n勾选: 通过OCR识别屏幕通知区域文字\n不勾选: 通过adb读取系统通知(默认)\n启用此项建议检测间隔改为1-5s左右")
+    last_triggered_when: dict = Field(
+        default_factory=dict,
+        description='（内部状态，无需手动配置）各活动关键字最近一次触发对应任务时的通知 when 时间戳（毫秒），跨周期去重避免同一推送重复触发',
+    )
 
 class GuildActivity(BaseModel):
     # 道馆
