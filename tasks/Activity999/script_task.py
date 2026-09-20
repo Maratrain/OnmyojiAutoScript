@@ -23,6 +23,8 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
     PAGE_WAIT_TIMEOUT = 15
     # 从活动首页点"战斗"到回响地图加载完成, 中间要过鬼王出场动画, 放宽到 30 秒
     BATTLE_MAP_TIMEOUT = 30
+    # 战斗入口点击被入场动画吞掉时, 回响地图等待超时后再点一次战斗入口的次数
+    BATTLE_MAP_RETRY = 2
 
     def is_activity_battle_win(self):
         """Recognize both normal and reward-covered activity settlement pages."""
@@ -80,13 +82,34 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
         if not self.wait_until_appear(target, wait_time=timeout):
             raise RequestHumanTakeover(message)
 
-    def wait_echo_map_or_battle(self):
+    def wait_echo_map_or_battle(self) -> str:
         """点击战斗入口后等待回响地图出现。
 
         加载动画过长时地图锚点会晚到; 若期间检测到已进入准备页或战斗中,
         说明这次点击直接生效开打了, 返回 'battle' 交给调用方接战斗流程,
         避免把进行中的战斗留在现场后请求人工接管。
+
+        等待超时说明这次点击被入场动画吞掉或画面停在活动首页, 退回首页
+        重新点击战斗入口, 最多再试 BATTLE_MAP_RETRY 次。
+
+        Returns:
+            'map' 表示已到达回响地图; 'battle' 表示战斗已经开始。
         """
+        for attempt in range(self.BATTLE_MAP_RETRY + 1):
+            result = self._wait_echo_map_once()
+            if result is not None:
+                return result
+            if attempt < self.BATTLE_MAP_RETRY:
+                logger.warning(
+                    f'999战斗地图未出现; 第 {attempt + 1}/{self.BATTLE_MAP_RETRY} '
+                    f'次重试进入战斗'
+                )
+                self.reenter_battle_entry()
+            else:
+                raise RequestHumanTakeover('999战斗地图未出现')
+
+    def _wait_echo_map_once(self):
+        """单次等待回响地图; 超时返回 None, 由调用方决定重试还是人工接管。"""
         timer = Timer(self.BATTLE_MAP_TIMEOUT).start()
         while not timer.reached():
             self.screenshot()
@@ -96,7 +119,24 @@ class ScriptTask(GeneralBattle, GameUi, Activity999Assets):
                 logger.info('999战斗在回响地图出现前已开始')
                 return 'battle'
             time.sleep(0.5)
-        raise RequestHumanTakeover('999战斗地图未出现')
+        return None
+
+    def reenter_battle_entry(self):
+        """战斗入口重试: 已停在活动首页就直接重点击, 否则先点返回退回首页。"""
+        self.screenshot()
+        if self.appear(self.I_ACTIVITY_999_HOME):
+            self.click(self.C_ACTIVITY_999_BATTLE)
+            # 该重试有自己的次数上限, 重试点击不应在此之前触发点击保护。
+            self.device.click_record_clear()
+            return
+        logger.info('999战斗地图未出现且未停留在活动首页; 点击返回后重试')
+        self.click(self.C_ACTIVITY_999_BACK, interval=1.5)
+        self.device.click_record_clear()
+        time.sleep(1.0)
+        self.screenshot()
+        if self.appear(self.I_ACTIVITY_999_HOME):
+            self.click(self.C_ACTIVITY_999_BATTLE)
+            self.device.click_record_clear()
 
     def open_elite_page_from_activity(self):
         """Move from the activity home/echo page to the elite challenge page."""
