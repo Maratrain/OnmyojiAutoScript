@@ -714,6 +714,12 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             logger.info(f"{enemy_type.name} 的预设为 -1,-1，跳过御魂切换")
             return
 
+        # 上一目标找怪失败时，残留的怪物分布弹窗会遮挡式神录入口
+        self.screenshot()
+        if self.appear(self.I_ABYSS_MAP_EXIT):
+            logger.info("残留的怪物分布弹窗遮挡式神录入口，正在关闭")
+            self.click(self.I_ABYSS_MAP_EXIT, interval=2)
+
         # 检查预设是否与当前相同
         if self.cur_soul_preset == preset_str:
             logger.info(f"{enemy_type.name} 的预设 {preset_str} 与当前相同，跳过切换")
