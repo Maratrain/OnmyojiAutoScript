@@ -51,6 +51,8 @@ openspec/
 .agents/
 skills-lock.json
 .codegraph/
+.workbuddy/
+.zcode/
 
 
 # Created by .ignore support plugin (hsz.mobi)
