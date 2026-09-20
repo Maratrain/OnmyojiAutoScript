@@ -121,7 +121,8 @@ class ScriptTask(GameUi, DelegationAssets):
                 continue
             if check_timer.reached():
                 break
-            if self.ocr_appear_click(self.O_D_DONE, interval=1):
+            if self.ocr_appear(self.O_D_DONE, interval=1):
+                self.click(self.C_D_DONE, interval=1)
                 check_timer.reset()
                 continue
 

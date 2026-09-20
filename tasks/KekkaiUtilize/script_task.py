@@ -95,7 +95,10 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         if con.utilize_harvest:
             self.check_utilize_harvest()
         # 收体力盒子或者是经验盒子
-        self.check_box_ap_or_exp(con.box_ap_enable, con.box_exp_enable, con.box_exp_waste)
+        if con.box_ap_enable:
+            self.check_ap_box()
+        if con.box_exp_enable:
+            self.check_exp_jug(con.box_exp_waste)
 
         self.receive_guild_assets(con.harvest_guild_max_times)
         if not con.utilize_enable:
@@ -261,74 +264,57 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                 continue
         self.appear_then_click(self.I_UI_BACK_YELLOW)
 
-    def check_box_ap_or_exp(self, ap_enable: bool = True, exp_enable: bool = True, exp_waste: bool = True) -> bool:
-        """
-        顺路检查盒子
-        :param exp_waste:
-        :param ap_enable:
-        :param exp_enable:
-        :return:
-        """
-
-        def _harvest_ap_box():
-            """收取体力"""
-            timer_ap = Timer(6)
-            timer_ap.start()
-            while True:
-                if timer_ap.reached():
-                    logger.warning('[结界蹭卡] 体力食盒收取结束')
-                    break
-                self.screenshot()
-                if self.appear(self.I_UI_REWARD):
-                    self.ui_click_until_smt_disappear(self.C_UI_REWARD, self.I_UI_REWARD, interval=1)
-                    logger.info('[结界蹭卡] 收取奖励成功')
-                    break
-                if self.appear_then_click(self.I_AP_EXTRACT, interval=2):
-                    continue
-            return True
-
-        def _harvest_exp_jug():
-            time_exp = Timer(12)
-            time_exp.start()
-            max_tries = random.randint(2, 3)
-            while True:
-                if time_exp.reached():
-                    logger.warning('[结界蹭卡] 经验酒杯收取结束')
-                    break
-                if max_tries <= 0:
-                    logger.info('[结界蹭卡] 经验酒杯可能已满或识别失败，退出')
-                    break
-                self.screenshot()
-                # 如果出现结界皮肤， 表示收取好了
-                if self.get_current_page() == page_guild_realm:
-                    break
-                # 如果出现收取确认，表明进入到了有满级的
-                if self.appear(self.I_UI_CONFIRM) and self.appear(self.I_UI_CANCEL):
-                    target_button = self.I_UI_CONFIRM if exp_waste else self.I_UI_CANCEL
-                    self.ui_click_until_disappear(target_button)
-                    break
-                if self.appear(self.I_EXP_EXTRACT, interval=1):
-                    # 如果达到今日领取的最大，就不领取了
-                    cur, res, total = self.O_BOX_EXP.ocr(self.device.image)
-                    if total <= 0:
-                        logger.warning('[结界蹭卡] 经验酒杯识别无数据，重试')
-                        continue
-                    if cur == total:
-                        logger.info('[结界蹭卡] 经验酒杯已达上限，不再收取')
-                        break
-                    self.click(self.I_EXP_EXTRACT)
-                    max_tries -= 1
-            return True
-
+    def check_ap_box(self) -> bool:
+        """按独立开关检查并收取体力食盒。"""
         self.screenshot()
-        if ap_enable and self.appear(self.I_BOX_AP):
-            self.goto_page(page_gr_ap_box)
-            _harvest_ap_box()
-            self.goto_page(page_guild_realm)
-        if exp_enable and (self.appear(self.I_BOX_EXP) or self.appear(self.I_BOX_EXP_MAX)):
-            self.goto_page(page_gr_exp_jug)
-            _harvest_exp_jug()
-            self.goto_page(page_guild_realm)
+        if not self.appear(self.I_BOX_AP):
+            return False
+        self.goto_page(page_gr_ap_box)
+        timer_ap = Timer(6).start()
+        while not timer_ap.reached():
+            self.screenshot()
+            if self.appear(self.I_UI_REWARD):
+                self.ui_click_until_smt_disappear(self.C_UI_REWARD, self.I_UI_REWARD, interval=1)
+                logger.info('[结界蹭卡] 收取奖励成功')
+                break
+            self.appear_then_click(self.I_AP_EXTRACT, interval=2)
+        else:
+            logger.warning('[结界蹭卡] 体力食盒收取结束')
+        self.goto_page(page_guild_realm)
+        return True
+
+    def check_exp_jug(self, exp_waste: bool = True) -> bool:
+        """按独立开关检查并收取经验酒壶。"""
+        self.screenshot()
+        if not (self.appear(self.I_BOX_EXP) or self.appear(self.I_BOX_EXP_MAX)):
+            return False
+        self.goto_page(page_gr_exp_jug)
+        time_exp = Timer(12).start()
+        max_tries = random.randint(2, 3)
+        while not time_exp.reached():
+            if max_tries <= 0:
+                logger.info('[结界蹭卡] 经验酒杯可能已满或识别失败，退出')
+                break
+            self.screenshot()
+            if self.get_current_page() == page_guild_realm:
+                break
+            if self.appear(self.I_UI_CONFIRM) and self.appear(self.I_UI_CANCEL):
+                target_button = self.I_UI_CONFIRM if exp_waste else self.I_UI_CANCEL
+                self.ui_click_until_disappear(target_button)
+                break
+            if self.appear(self.I_EXP_EXTRACT, interval=1):
+                cur, _, total = self.O_BOX_EXP.ocr(self.device.image)
+                if total <= 0:
+                    logger.warning('[结界蹭卡] 经验酒杯识别无数据，重试')
+                    continue
+                if cur == total:
+                    logger.info('[结界蹭卡] 经验酒杯已达上限，不再收取')
+                    break
+                self.click(self.I_EXP_EXTRACT)
+                max_tries -= 1
+        else:
+            logger.warning('[结界蹭卡] 经验酒杯收取结束')
+        self.goto_page(page_guild_realm)
         return True
 
     def check_utilize_harvest(self) -> bool:
