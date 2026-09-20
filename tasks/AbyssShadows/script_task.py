@@ -299,6 +299,11 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         # 前往当前区域 的某个 敌人
         logger.info(f"[狭间暗域] 前往敌人: {item_code}")
         click_area = item_code.get_enemy_click()
+        enemy_number = int(item_code.split('-')[1])
+        defeated_ocr = (
+            self.O_1_DIED, self.O_2_DIED, self.O_3_DIED,
+            self.O_4_DIED, self.O_5_DIED, self.O_6_DIED,
+        )[enemy_number - 1]
         logger.info(f"[狭间暗域] 点击攻打区域: {click_area.name}")
         # 点击前往按钮的次数，阴阳师BUG:点击后不动，
         # 所以如果失败了，在点击前，尝试使用左下方的摇杆移动一点点
@@ -326,6 +331,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
                 if self.appear(self.I_ABYSS_GOTO_ENEMY):
                     logger.info(f"[狭间暗域] {self.I_ABYSS_GOTO_ENEMY} 出现")
                     break
+                # 导航图中该位置标有“已击破”时直接跳过；漏识别仍由原有三次点击兜底
+                if defeated_ocr.match(defeated_ocr.ocr(self.device.image), included=True):
+                    logger.info(f"[狭间暗域] {item_code} 已被击破，跳过")
+                    return False
                 if self.click(click_area, interval=1.5):
                     click_times += 1
                     continue
@@ -714,6 +723,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             logger.info(f"{enemy_type.name} 的预设为 -1,-1，跳过御魂切换")
             return
 
+        # 预设按逗号归一化，避免配置里的空格影响重复装配判断
+        preset_key = ','.join(part.strip() for part in preset_str.split(','))
+
         # 上一目标找怪失败时，残留的怪物分布弹窗会遮挡式神录入口
         self.screenshot()
         if self.appear(self.I_ABYSS_MAP_EXIT):
@@ -721,7 +733,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             self.click(self.I_ABYSS_MAP_EXIT, interval=2)
 
         # 检查预设是否与当前相同
-        if self.cur_soul_preset == preset_str:
+        if self.cur_soul_preset == preset_key:
             logger.info(f"{enemy_type.name} 的预设 {preset_str} 与当前相同，跳过切换")
             return
 
@@ -730,7 +742,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
         # 切换御魂
         try:
-            l = preset_str.split(',')
+            l = preset_key.split(',')
             if len(l) != 2:
                 logger.error(f"无效的预设格式: {preset_str}")
                 raise RequestHumanTakeover
@@ -739,7 +751,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             self.run_switch_soul((int(l[0]), int(l[1])))
 
             # 更新当前御魂预设
-            self.cur_soul_preset = preset_str
+            self.cur_soul_preset = preset_key
 
             logger.info(f"成功在狭间中切换至 {enemy_type.name} 预设 {preset_str}")
         except Exception as e:

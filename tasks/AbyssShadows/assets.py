@@ -137,6 +137,18 @@ class AbyssShadowsAssets:
 	O_FOX_DONE = RuleOcr(roi=(680,160,180,360), area=(680,160,180,360), mode="Single", method="CF_RGB(CCCCCC,FFFFFF)", keyword="封印", name="fox_done")
 	# 黑豹暗域已完成 
 	O_LEOPARD_DONE = RuleOcr(roi=(1000,160,180,360), area=(1000,160,180,360), mode="Single", method="CF_RGB(CCCCCC,FFFFFF)", keyword="封印", name="leopard_done")
+	# 首领 已击破
+	O_1_DIED = RuleOcr(roi=(674,168,91,45), area=(674,168,91,45), mode="Single", method="Default", keyword="已击破", name="1_died")
+	# 副将1 已击破
+	O_2_DIED = RuleOcr(roi=(526,309,91,45), area=(526,309,91,45), mode="Single", method="Default", keyword="已击破", name="2_died")
+	# 副将2 已击破
+	O_3_DIED = RuleOcr(roi=(839,309,91,45), area=(839,309,91,45), mode="Single", method="Default", keyword="已击破", name="3_died")
+	# 精英1 已击破
+	O_4_DIED = RuleOcr(roi=(435,432,91,45), area=(435,432,91,45), mode="Single", method="Default", keyword="已击破", name="4_died")
+	# 精英2 已击破
+	O_5_DIED = RuleOcr(roi=(678,432,91,45), area=(678,432,91,45), mode="Single", method="Default", keyword="已击破", name="5_died")
+	# 精英3 已击破
+	O_6_DIED = RuleOcr(roi=(920,431,91,45), area=(920,431,91,45), mode="Single", method="Default", keyword="已击破", name="6_died")
 
 
 	# List Rule Assets
