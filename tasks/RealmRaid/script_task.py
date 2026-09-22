@@ -97,16 +97,22 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             # 检查票数
             if not self.check_ticket(con.raid_config.number_base):
                 break
-            # 卡级：每轮进攻前复查等级，覆盖手动刷新与系统自动换批
-            if not self.ensure_level_cap():
-                break
             # ----------------------------------------开始进攻
             medal, index = self.find_one(False)
             if not medal and not index:
-                # 已经没有可以挑战的了，只能刷新
+                # 打完一轮所有结界后扫描等级
+                if con.raid_config.level_cap:
+                    logger.info('[个人突破] 已打完一轮，扫描等级')
+                    if not self.ensure_level_cap():
+                        break
+                    # 卡级重置可能已撤退+刷新了新对手，检查是否有新目标
+                    medal, index = self.find_one(False)
+                    if medal and index:
+                        continue
+                # 没有新目标 → 正常刷新
                 if con.raid_config.when_attack_fail == WhenAttackFail.CONTINUE:
                     logger.info('[个人突破] 没有可进攻的结界，执行刷新')
-                    if self.check_refresh():
+                    if self._refresh_and_scan():
                         continue
                     else:
                         success = False
@@ -152,7 +158,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             # 刷新 >> 如果勾选了三次刷新并且到达了三次，就刷新
             if con.raid_config.three_refresh and self.appear(self.I_RR_THREE, threshold=0.8):
                 logger.info('[个人突破] 三胜已满，执行刷新')
-                if self.check_refresh():
+                if self._refresh_and_scan():
                     continue
                 else:
                     success = False
@@ -160,7 +166,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             # 刷新 >> 如果上一轮的失败并且勾选了失败刷新，就刷新
             if not last_battle and con.raid_config.when_attack_fail == WhenAttackFail.REFRESH:
                 logger.info('[个人突破] 战斗失败，执行刷新')
-                if self.check_refresh():
+                if self._refresh_and_scan():
                     continue
                 else:
                     success = False
@@ -419,6 +425,18 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             logger.info('[个人突破] 刷新冷却中，等待重试')
             time.sleep(FRESH_POLL_INTERVAL)
         return self.check_refresh()
+
+    def _refresh_and_scan(self) -> bool:
+        """刷新对手列表并在刷新后扫描等级。
+        返回 True = 刷新成功且卡级达标，可继续循环。
+        返回 False = 刷新失败或突破券已耗尽，调用方应退出。
+        """
+        if not self.check_refresh():
+            return False
+        if self.config.realm_raid.raid_config.level_cap:
+            if not self.ensure_level_cap():
+                return False
+        return True
 
     @cached_property
     def order_medal(self) -> ImageGrid:
