@@ -213,7 +213,9 @@
       "exit_four": true,
       "order_attack": "5 > 4 > 3 > 2 > 1 > 0",
       "three_refresh": false,
-      "when_attack_fail": "Refresh"
+      "when_attack_fail": "Refresh",
+      "level_cap": false,
+      "cap_level": 57
     },
     "general_battle_config": {
       "lock_team_enable": false,

@@ -25,6 +25,8 @@ class RaidConfig(BaseModel):
     order_attack: str = Field(title='Order Attack', default='5 > 4 > 3 > 2 > 1 > 0', description='order_attack_help')
     three_refresh: bool = Field(title='Three Refresh', default=False, description='three_refresh_help')
     when_attack_fail: WhenAttackFail = Field(title='WhenAttackFail', default=WhenAttackFail.REFRESH, description='when_attack_fail_help')
+    level_cap: bool = Field(title='卡级', default=False, description='level_cap_help')
+    cap_level: int = Field(title='卡级目标等级', default=57, le=60, ge=1, description='cap_level_help')
 
 class RealmRaid(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)

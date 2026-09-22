@@ -591,6 +591,8 @@ Continue：挑战其他的直至没有可挑战的才刷新
 Refresh：直接刷新，如果刷新操作进入CD，将标记为失败并退出</translation></message>
 	<message><source>three_refresh_help</source><translation>挑战进度到三，领取奖励后就刷新，如果刷新操作进入CD，将标记为失败并退出</translation></message>
 	<message><source>number_base_help</source><translation>旨在检查突破卷数量，如果当前的数量没有大于等于这个值，将标记为成功并退出</translation></message>
+	<message><source>level_cap_help</source><translation>卡级：读取九个结界的对手等级，牌面只会是相邻两档；目标等级消失且场上更高时，连续撤退九场再刷新，直到目标等级重新出现</translation></message>
+	<message><source>cap_level_help</source><translation>卡级目标等级，突破稳定卡在 57 级收益最好；场上仍有该等级即视为达标，此时对手最高只会到 58 级</translation></message>
 </context>	
 <context>
     <name>Args</name>

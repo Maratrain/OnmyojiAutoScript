@@ -93,6 +93,24 @@ class RealmRaidAssets:
 	O_FROG_9 = RuleOcr(roi=(825,440,33,33), area=(825,440,33,33), mode="Digit", method="Default", keyword="", name="frog_9")
 	# text 
 	O_TEXT = RuleOcr(roi=(1143,13,80,39), area=(0,0,100,100), mode="Single", method="Default", keyword="", name="text")
+	# 位置1结界的对手等级 
+	O_LEVEL_1 = RuleOcr(roi=(166,174,26,18), area=(166,174,26,18), mode="Digit", method="Default", keyword="", name="level_1")
+	# 位置2结界的对手等级 
+	O_LEVEL_2 = RuleOcr(roi=(495,175,26,18), area=(495,175,26,18), mode="Digit", method="Default", keyword="", name="level_2")
+	# 位置3结界的对手等级 
+	O_LEVEL_3 = RuleOcr(roi=(828,175,26,18), area=(828,175,26,18), mode="Digit", method="Default", keyword="", name="level_3")
+	# 位置4结界的对手等级 
+	O_LEVEL_4 = RuleOcr(roi=(164,310,26,18), area=(164,310,26,18), mode="Digit", method="Default", keyword="", name="level_4")
+	# 位置5结界的对手等级 
+	O_LEVEL_5 = RuleOcr(roi=(494,310,26,18), area=(494,310,26,18), mode="Digit", method="Default", keyword="", name="level_5")
+	# 位置6结界的对手等级 
+	O_LEVEL_6 = RuleOcr(roi=(828,310,26,18), area=(828,310,26,18), mode="Digit", method="Default", keyword="", name="level_6")
+	# 位置7结界的对手等级 
+	O_LEVEL_7 = RuleOcr(roi=(162,444,26,18), area=(162,444,26,18), mode="Digit", method="Default", keyword="", name="level_7")
+	# 位置8结界的对手等级 
+	O_LEVEL_8 = RuleOcr(roi=(496,446,26,18), area=(496,446,26,18), mode="Digit", method="Default", keyword="", name="level_8")
+	# 位置9结界的对手等级 
+	O_LEVEL_9 = RuleOcr(roi=(828,446,26,18), area=(828,446,26,18), mode="Digit", method="Default", keyword="", name="level_9")
 
 
 	# Click Rule Assets

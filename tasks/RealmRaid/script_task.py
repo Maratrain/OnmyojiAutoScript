@@ -22,6 +22,16 @@ from module.exception import TaskEnd
 from module.atom.image_grid import ImageGrid
 from module.atom.image import RuleImage
 from module.atom.click import RuleClick
+from module.atom.ocr import RuleOcr
+from module.base.timer import Timer
+
+
+# 卡级重置：一轮撤退场数、最多轮数、返回列表与等待刷新可用的上限
+DEMOTE_RETREAT_TIMES = 9
+DEMOTE_MAX_ROUNDS = 3
+BACK_TO_LIST_TIMEOUT = 30
+FRESH_WAIT_TIMEOUT = 600
+FRESH_POLL_INTERVAL = 30
 
 
 class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
@@ -86,6 +96,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             self.screenshot()
             # 检查票数
             if not self.check_ticket(con.raid_config.number_base):
+                break
+            # 卡级：每轮进攻前复查等级，覆盖手动刷新与系统自动换批
+            if not self.ensure_level_cap():
                 break
             # ----------------------------------------开始进攻
             medal, index = self.find_one(False)
@@ -289,6 +302,123 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
                         f'上限 {self.config.realm_raid.raid_config.number_attack} 次')
             return False
         return True
+
+    @cached_property
+    def level_ocr(self) -> list[RuleOcr]:
+        return [self.O_LEVEL_1, self.O_LEVEL_2, self.O_LEVEL_3, self.O_LEVEL_4, self.O_LEVEL_5,
+                self.O_LEVEL_6, self.O_LEVEL_7, self.O_LEVEL_8, self.O_LEVEL_9]
+
+    def read_levels(self) -> list[int]:
+        """
+        按位置 1~9 读取对手结界的等级，识别不到的记为 0
+        :return:
+        """
+        self.screenshot()
+        return [ocr.ocr(self.device.image) for ocr in self.level_ocr]
+
+    def ensure_level_cap(self) -> bool:
+        """
+        卡级重置：对手等级只会以相邻两档出现（卡在 57 时牌面是 57/58 混合），
+        所以场上还有目标等级就说明没有越线；目标等级消失且最高等级高于目标，
+        即已经滑到更高一档，此时连续撤退九场再刷新，直到目标等级重新出现
+        牌面整体低于目标等级时不处理，否则会朝一个方向一直退下去
+        :return: False 表示突破券已不可用，调用方应该收工
+        """
+        con = self.config.realm_raid.raid_config
+        if not con.level_cap:
+            return True
+        target = con.cap_level
+        for round_ in range(1, DEMOTE_MAX_ROUNDS + 1):
+            if not self.check_ticket(con.number_base):
+                return False
+            levels = [level for level in self.read_levels() if level]
+            if not levels:
+                logger.warning('[个人突破] 未识别到结界等级，跳过卡级')
+                return True
+            highest = max(levels)
+            if target in levels:
+                logger.info(f'[个人突破] 卡级达标，场上已出现 {target} 级结界，最高 {highest} 级')
+                return True
+            if highest <= target:
+                logger.info(f'[个人突破] 场上最高 {highest} 级未超过目标，无需重置')
+                return True
+            # 场上结界不满 = 当前批推进中把目标等级打光，不是系统换批漂移，走正常逻辑
+            if len(levels) < len(self.level_ocr):
+                logger.info(f'[个人突破] 场上仅剩 {len(levels)} 个结界，目标 {target} 级已被打光，'
+                            f'正常推进不重置')
+                return True
+            logger.info(f'[个人突破] 场上已无 {target} 级且最高 {highest} 级，'
+                        f'第 {round_} 轮重置：连续撤退 {DEMOTE_RETREAT_TIMES} 场')
+            if not self.retreat_battles(DEMOTE_RETREAT_TIMES):
+                logger.warning('[个人突破] 重置撤退未完成，跳过卡级')
+                return True
+            if not self.wait_fresh():
+                logger.warning('[个人突破] 未能刷新对手，跳过卡级')
+                return True
+        logger.warning(f'[个人突破] 连续重置 {DEMOTE_MAX_ROUNDS} 轮仍压不住等级，继续正常进攻')
+        return True
+
+    def retreat_battles(self, times: int) -> bool:
+        """
+        对同一个结界连续撤退指定场次，用于卡级时整体重置突破难度
+        撤退进不了结算，不消耗突破券也不计入每日进攻次数；但撤退量超过「打九退四」的平衡点会掉级
+        :param times: 撤退场数
+        :return: 是否打满了指定场数并回到结界列表
+        """
+        con = self.config.realm_raid
+        medal, index = self.find_one()
+        if not index:
+            logger.info('[个人突破] 没有可撤退的结界，执行刷新')
+            if not self.check_refresh():
+                return False
+            medal, index = self.find_one()
+            if not index:
+                logger.warning('[个人突破] 刷新后仍没有可撤退的结界')
+                return False
+        if not self.fire(index):
+            return False
+        for n in range(times):
+            self.run_general_battle(config=self.build_quick_exit_config(con.general_battle_config))
+            if n == times - 1:
+                break
+            if not self.fire_again():
+                return False
+        logger.info(f'[个人突破] 已撤退 {times} 场')
+        return self.back_to_list()
+
+    def back_to_list(self) -> bool:
+        """
+        从撤退后的结算页回到结界突破列表
+        :return: 是否已经回到列表
+        """
+        timer = Timer(BACK_TO_LIST_TIMEOUT).start()
+        while 1:
+            self.screenshot()
+            if self.appear(self.I_BACK_RED):
+                return True
+            if timer.reached():
+                logger.warning('[个人突破] 返回结界列表超时')
+                return False
+            # 结算页点空白即可关闭，排除按钮区域避免误点再次挑战
+            self.click(self._result_exclude_click, interval=1)
+
+    def wait_fresh(self) -> bool:
+        """
+        等刷新按钮冷却结束，然后刷新对手列表
+        :return: 是否完成了一次刷新
+        """
+        timer = Timer(FRESH_WAIT_TIMEOUT).start()
+        while 1:
+            self.screenshot()
+            if self.appear(self.I_FRESH):
+                break
+            if timer.reached():
+                logger.warning('[个人突破] 等待刷新可用超时')
+                return False
+            self.device.stuck_record_clear()
+            logger.info('[个人突破] 刷新冷却中，等待重试')
+            time.sleep(FRESH_POLL_INTERVAL)
+        return self.check_refresh()
 
     @cached_property
     def order_medal(self) -> ImageGrid:

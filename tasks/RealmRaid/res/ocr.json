@@ -106,5 +106,86 @@
     "method": "Default",
     "keyword": "",
     "description": "text"
-    }
+    },
+  {
+    "itemName": "level_1",
+    "roiFront": "166,174,26,18",
+    "roiBack": "166,174,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置1结界的对手等级"
+  },
+  {
+    "itemName": "level_2",
+    "roiFront": "495,175,26,18",
+    "roiBack": "495,175,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置2结界的对手等级"
+  },
+  {
+    "itemName": "level_3",
+    "roiFront": "828,175,26,18",
+    "roiBack": "828,175,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置3结界的对手等级"
+  },
+  {
+    "itemName": "level_4",
+    "roiFront": "164,310,26,18",
+    "roiBack": "164,310,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置4结界的对手等级"
+  },
+  {
+    "itemName": "level_5",
+    "roiFront": "494,310,26,18",
+    "roiBack": "494,310,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置5结界的对手等级"
+  },
+  {
+    "itemName": "level_6",
+    "roiFront": "828,310,26,18",
+    "roiBack": "828,310,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置6结界的对手等级"
+  },
+  {
+    "itemName": "level_7",
+    "roiFront": "162,444,26,18",
+    "roiBack": "162,444,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置7结界的对手等级"
+  },
+  {
+    "itemName": "level_8",
+    "roiFront": "496,446,26,18",
+    "roiBack": "496,446,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置8结界的对手等级"
+  },
+  {
+    "itemName": "level_9",
+    "roiFront": "828,446,26,18",
+    "roiBack": "828,446,26,18",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "位置9结界的对手等级"
+  }
 ]
