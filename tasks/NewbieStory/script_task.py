@@ -7,7 +7,11 @@ import cv2
 import numpy as np
 from module.exception import TaskEnd
 from module.logger import logger
-from module.base.random_delay import CONTINUOUS_CONFIRM_DELAY, FIRST_OPERATION_DELAY
+from module.base.random_delay import (
+    CONTINUOUS_CONFIRM_DELAY,
+    FIRST_OPERATION_DELAY,
+    lognormal_delay,
+)
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.GameUi.game_ui import GameUi
@@ -20,6 +24,10 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
     minimum_click_interval = CONTINUOUS_CONFIRM_DELAY
     recognition_click_delay = FIRST_OPERATION_DELAY
+
+    def _wait_before_recognition_click(self):
+        """识别点击前按对数正态采样拟人等待，等待后需重新截图复验。"""
+        sleep(lognormal_delay(**self.recognition_click_delay))
 
     DANMAKU_FORBIDDEN_AREA = (300, 45, 1100, 140)
     QUESTION_SCALES = tuple(round(value / 100, 2) for value in range(65, 136, 5))
