@@ -11,7 +11,7 @@ from module.base.random_delay import CONTINUOUS_CONFIRM_DELAY, FIRST_OPERATION_D
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.GameUi.game_ui import GameUi
-from tasks.GameUi.page import page_exploration, page_main
+from tasks.GameUi.page import page_main
 from tasks.NewbieStory.assets import NewbieStoryAssets
 
 
@@ -80,7 +80,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         # cv2.imread 在 Windows 下无法稳定读取含中文的绝对路径。
         template = cv2.imdecode(np.fromfile(file, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
         if template is None:
-            logger.warning(f'Unable to load question icon template: {file}')
+            logger.warning(f'[新手剧情] 无法加载问号图标模板: {file}')
         return template
 
     @cached_property
@@ -97,7 +97,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             template = cv2.imdecode(
                 np.fromfile(file, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
             if template is None:
-                logger.warning(f'Unable to load question icon template: {file}')
+                logger.warning(f'[新手剧情] 无法加载问号图标模板: {file}')
                 continue
             templates.append((name, template))
         return templates
@@ -135,8 +135,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                     core_best_scale = scale
             if core_best_score >= 0.72:
                 logger.info(
-                    f'Question icon core score={core_best_score:.3f} '
-                    f'at {core_best_center}, scale={core_best_scale:.2f}'
+                    f'[新手剧情] 问号核心匹配得分: {core_best_score:.3f}, '
+                    f'位置: {core_best_center}, 缩放: {core_best_scale:.2f}'
                 )
                 return core_best_center
 
@@ -162,8 +162,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         # so this fallback can use a lower score than the full-template rules.
         if best_score >= 0.54:
             logger.info(
-                f'Question icon fallback score={best_score:.3f} at {best_center}, '
-                f'template={best_name}, scale={best_scale:.2f}'
+                f'[新手剧情] 问号图标兜底匹配得分: {best_score:.3f}, 位置: {best_center}, '
+                f'模板: {best_name}, 缩放: {best_scale:.2f}'
             )
             return best_center
         return None
@@ -175,7 +175,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         self._wait_before_recognition_click()
         self.screenshot()
         if not self.appear(target, interval=None):
-            logger.info(f'{target.name} moved or disappeared while waiting; skip stale click')
+            logger.info(f'[新手剧情] 等待后 {target.name} 已移动或消失，跳过失效点击')
             return False
         self.click(action or target)
         self.device.click_record_clear()
@@ -190,14 +190,14 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         self._wait_before_recognition_click()
         self.screenshot()
         if not self.appear(target, interval=None):
-            logger.info('Danmaku eye moved or disappeared while waiting; skip stale click')
+            logger.info('[新手剧情] 等待后弹幕遮挡的眼睛已移动或消失，跳过失效点击')
             return False
         x, y = target.coord()
         _, _, _, forbidden_bottom = self.DANMAKU_FORBIDDEN_AREA
         safe_y = max(forbidden_bottom + 8, y + 12)
         self.device.click(x, safe_y, control_name=target.name)
         self.device.click_record_clear()
-        logger.info(f'Click partially covered eye icon below danmaku area at {(x, safe_y)}')
+        logger.info(f'[新手剧情] 点击弹幕下方露出的眼睛图标: ({x}, {safe_y})')
         return True
 
     def _click_visible_skip_now(self):
@@ -205,11 +205,11 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         if self._click_round_story_skip():
             return True
         skip_controls = (
-            (self.I_SKIP_BUTTON, 'Click story skip (priority recheck)'),
-            (self.I_CONFIRM_SKIP, 'Confirm story skip (priority recheck)'),
-            (self.I_STORY_SKIP_DIALOG, 'Click dialogue story skip (priority recheck)'),
+            (self.I_SKIP_BUTTON, '[新手剧情] 优先复查点击剧情跳过'),
+            (self.I_CONFIRM_SKIP, '[新手剧情] 优先复查确认跳过'),
+            (self.I_STORY_SKIP_DIALOG, '[新手剧情] 优先复查点击对白跳过'),
             (self.I_STORY_SKIP_DIALOG_PINK,
-             'Click dialogue story skip, pink scene (priority recheck)'),
+             '[新手剧情] 优先复查点击对白跳过（粉色场景）'),
         )
         for target, message in skip_controls:
             if not self.appear(target, interval=None):
@@ -234,7 +234,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             return False
         self.click(self.I_STORY_SKIP_ROUND)
         self.device.click_record_clear()
-        logger.info('Click round story skip with playback context')
+        logger.info('[新手剧情] 播放控件在场，点击圆形跳过')
         return True
 
     def _find_exploration_battle(self):
@@ -273,12 +273,12 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                     # announcement strip when the icon is near its edge.
                     self.device.click(int(x), int(y),
                                       control_name='newbie_story_exploration_sword')
-                    logger.info(f'Click revalidated story sword: {old_center} -> {(x, y)}')
+                    logger.info(f'[新手剧情] 复验后点击剧情关卡剑图标: {old_center} -> {(x, y)}')
                     sleep(0.4)
                     return True
             if attempt < 3:
                 sleep(0.15)
-        logger.info('Story sword moved or disappeared; skip stale battle click')
+        logger.info('[新手剧情] 剧情关卡剑图标已移动或消失，跳过失效点击')
         # A target was handled even if it disappeared. Do not fall through to
         # a less-specific icon or a blank-area click in this same frame.
         return True
@@ -289,8 +289,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
         # 探索章节面板中的问号和眼睛属于关卡单位，不是剧情控件。
         # 自动接力时先返回主页，再由下一帧判断是否出现真正的剧情交互。
-        if self.appear(page_exploration.check_button):
-            logger.info('Exploration page detected; return to main before running newbie story')
+        if self.appear(self.I_CHECK_EXPLORATION):
+            logger.info('[新手剧情] 检测到探索页面，先返回主页再运行新手剧情')
             self.goto_page(page_main)
             sleep(2.0)
             return True
@@ -298,35 +298,35 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         # 战斗状态优先于剧情图标。战斗画面中的特效、文字可能与问号模板相似，
         # 若先处理剧情图标，会持续误点而无法交给通用战斗流程。
         if self.is_in_prepare(False) or self.is_in_real_battle(False):
-            logger.info('Newbie story battle detected')
+            logger.info('[新手剧情] 检测到新手战斗，接管通用战斗')
             self.run_general_battle(self._config.general_battle_config)
             return True
 
         controls = (
-            (self.I_SKIP_BUTTON, 'Click story skip', None),
-            (self.I_CONFIRM_SKIP, 'Confirm story skip', None),
-            (self.I_STORY_SKIP_DIALOG, 'Click dialogue story skip', None),
+            (self.I_SKIP_BUTTON, '[新手剧情] 点击剧情跳过', None),
+            (self.I_CONFIRM_SKIP, '[新手剧情] 点击确认跳过', None),
+            (self.I_STORY_SKIP_DIALOG, '[新手剧情] 点击对白跳过', None),
             (self.I_STORY_SKIP_DIALOG_PINK,
-             'Click dialogue story skip (pink scene)', None),
-            (self.I_STORY_NEXT_TRACK, 'Click story next track', None),
-            (self.I_STORY_BATTLE_ICON, 'Click newbie story battle icon', None),
+             '[新手剧情] 点击对白跳过（粉色场景）', None),
+            (self.I_STORY_NEXT_TRACK, '[新手剧情] 点击剧情下一曲', None),
+            (self.I_STORY_BATTLE_ICON, '[新手剧情] 点击新手剧情战斗图标', None),
             (self.I_STORY_BATTLE_ICON_ALT,
-             'Click newbie story battle icon (alternate style)', None),
+             '[新手剧情] 点击新手剧情战斗图标（备选样式）', None),
             (self.I_STORY_BATTLE_ICON_PURPLE,
-             'Click newbie story battle icon (purple scene)', None),
+             '[新手剧情] 点击新手剧情战斗图标（紫色场景）', None),
             (self.I_STORY_BATTLE_ICON_DANMAKU,
-             'Click partially covered battle icon above danmaku area',
+             '[新手剧情] 点击弹幕遮挡的战斗图标',
              self.C_STORY_BATTLE_DANMAKU_SAFE),
             (self.I_STORY_EYE_ICON_DANMAKU,
-             'Click partially covered eye icon below danmaku area', None),
-            (self.I_STORY_EYE_ICON, 'Click newbie story eye icon', None),
+             '[新手剧情] 点击弹幕遮挡的眼睛图标', None),
+            (self.I_STORY_EYE_ICON, '[新手剧情] 点击眼睛剧情图标', None),
             (self.I_STORY_EYE_ICON_CORE,
-             'Click newbie story eye icon (background independent)', None),
-            (self.I_STORY_QUESTION_ICON, 'Click newbie story question icon', None),
+             '[新手剧情] 点击眼睛剧情图标（背景无关）', None),
+            (self.I_STORY_QUESTION_ICON, '[新手剧情] 点击问号剧情图标', None),
             (self.I_STORY_QUESTION_ICON_ALT,
-             'Click newbie story question icon (alternate style)', None),
+             '[新手剧情] 点击问号剧情图标（备选样式）', None),
             (self.I_STORY_QUESTION_ICON_GOLD,
-             'Click newbie story question icon (gold ring style)', None),
+             '[新手剧情] 点击问号剧情图标（金环样式）', None),
         )
 
         if self._click_story_control(*controls[0]):
@@ -337,7 +337,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
         if self.ocr_appear_click(self.O_STORY_SKIP, interval=0.8):
             self.device.click_record_clear()
-            logger.info('Click story skip (OCR)')
+            logger.info('[新手剧情] OCR 识别点击剧情跳过')
             return True
 
         # 确认跳过与对白跳过同样优先于主页结束判断。
@@ -355,22 +355,22 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                 return True
             if self.ocr_appear_click(self.O_STORY_SKIP, interval=0.8):
                 self.device.click_record_clear()
-                logger.info('Click story skip by OCR (priority recheck)')
+                logger.info('[新手剧情] 优先复查 OCR 点击剧情跳过')
                 return True
             refreshed_ellipsis = self.find_ellipsis_center(self.device.image)
             if refreshed_ellipsis is None:
-                logger.info('Story ellipsis moved or disappeared while waiting; skip stale click')
+                logger.info('[新手剧情] 等待后剧情三点气泡已移动或消失，跳过失效点击')
                 return False
             self.device.click(*refreshed_ellipsis, control_name='newbie_story_ellipsis_dots')
             self.device.click_record_clear()
             logger.info(
-                f'Click story ellipsis dots at refreshed position {refreshed_ellipsis} '
-                f'(was {ellipsis})'
+                f'[新手剧情] 点击剧情三点气泡，刷新后位置: {refreshed_ellipsis}'
+                f'（原 {ellipsis}）'
             )
             return True
 
         if self._click_story_control(self.I_STORY_ELLIPSIS,
-                                     'Click story ellipsis bubble'):
+                                     '[新手剧情] 点击剧情三点气泡'):
             return True
 
         if self._click_exploration_battle():
@@ -378,8 +378,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
         # 沿用探索任务的 page_main 页面标志。剧情气泡和跳过均不存在时，
         # 返回主页代表本轮新手剧情已经结束，不再执行空白区域点击。
-        if self.appear(page_main.check_button):
-            logger.info('Main page detected without story bubble or skip; finish newbie story')
+        if self.appear(self.I_CHECK_MAIN):
+            logger.info('[新手剧情] 已回到主页且无剧情控件，新手剧情结束')
             self.set_next_run(task='NewbieStory', success=True, finish=True)
             raise TaskEnd('NewbieStory returned to main page')
 
@@ -410,34 +410,31 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                         refreshed_question = candidate
                         break
                     logger.warning(
-                        f'Story question candidate jumped {movement:.1f}px '
-                        f'from {question} to {candidate}; retry fresh frame'
+                        f'[新手剧情] 问号候选位置偏移 {movement:.1f}px: '
+                        f'{question} -> {candidate}，换新帧重试'
                     )
                 if attempt < 4:
                     sleep(0.15)
             if refreshed_question is None:
-                logger.info(
-                    'Story question moved or disappeared during 5-frame '
-                    'revalidation; skip stale click'
-                )
+                logger.info('[新手剧情] 五帧复验期间问号已移动或消失，跳过失效点击')
                 return False
             self.device.click(*refreshed_question, control_name='newbie_story_question_multiscale')
             self.device.click_record_clear()
             logger.info(
-                f'Click newbie story question icon at refreshed position {refreshed_question} '
-                f'(was {question})'
+                f'[新手剧情] 点击问号图标，刷新后位置: {refreshed_question}'
+                f'（原 {question}）'
             )
             return True
 
         if self.click(self.C_STORY_BLANK, interval=1.2):
             self.device.click_record_clear()
-            logger.info('No story control found; click blank area and inspect next frame')
+            logger.info('[新手剧情] 未识别到剧情控件，点击空白区域并检查下一帧')
             return True
 
         return False
 
     def run(self):
-        logger.hr('newbie story')
+        logger.hr('新手剧情')
         limit = self._config.newbie_story_config.run_time
         deadline = datetime.now() + timedelta(
             hours=limit.hour, minutes=limit.minute, seconds=limit.second
