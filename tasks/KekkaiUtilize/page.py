@@ -13,7 +13,18 @@ page_guild.connect(page_guild_realm, KekkaiUtilizeAssets.I_GUILD_REALM, key="pag
 # 放置结界卡界面
 page_guild_card = Page(KekkaiUtilizeAssets.I_CHECK_GUILD_CARD)
 page_guild_card.connect(page_guild_realm, GlobalGameAssets.I_UI_BACK_RED, key="page_guild_card->page_guild_realm")
-page_guild_realm.connect(page_guild_card, KekkaiUtilizeAssets.O_R_REALM, key="page_guild_realm->page_guild_card")
+
+
+def _enter_card(task) -> bool:
+    """进入挂卡界面: 招牌为竖排书法字, OCR 命中率低会导致反复进出结界; 依次尝试招牌模板、多尺度按钮模板, OCR 找「卡」字兜底"""
+    if task.appear_then_click(task.I_REALM_CARD_SIGN, interval=1):
+        return True
+    if task.appear_then_click(task.I_SHI_CARD, interval=1):
+        return True
+    return task.ocr_appear_click(task.O_R_REALM, interval=1)
+
+
+page_guild_realm.connect(page_guild_card, _enter_card, key="page_guild_realm->page_guild_card")
 # 结界育成界面
 page_guild_realm_growth = Page(ReplaceShikigamiAssets.I_RS_RECORDS_SHIKI)
 page_guild_realm_growth.connect(page_guild_realm, GlobalGameAssets.I_UI_BACK_BLUE, key="page_guild_realm_growth->page_guild_realm")

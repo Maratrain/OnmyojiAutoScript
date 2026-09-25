@@ -54,6 +54,15 @@
     "description": "结界卡按钮（多尺度适配结界皮肤缩放）"
   },
   {
+    "itemName": "realm_card_sign",
+    "imageName": "realm_realm_card_sign.png",
+    "roiFront": "883,357,26,43",
+    "roiBack": "823,210,252,297",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "结界卡按钮（竖排招牌补充模板, 与当前结界外观逐像素同源, 优先于多尺度模板与 OCR）"
+  },
+  {
     "itemName": "shi_defense",
     "imageName": "realm_shi_defense.png",
     "roiFront": "303,308,34,52",
