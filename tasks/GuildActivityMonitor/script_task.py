@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from module.base.timer import Timer
 from module.exception import TaskEnd
 from module.logger import logger
+from tasks.Component.GeneralInvite.assets import GeneralInviteAssets
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main
 from tasks.GuildActivityMonitor.assets import GuildActivityMonitorAssets
@@ -106,7 +107,49 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
             else:
                 self.check_adb_notifications(keywords, keyword_map, monitor_config)
 
-            time.sleep(interval)
+            # 游戏内邀请弹窗兜底: 命中监控活动关键字则接受并拉起对应任务
+            if self.appear(GeneralInviteAssets.I_I_ACCEPT):
+                self._accept_guild_invite(keyword_map)
+
+            self._sleep_with_invite_watch(keyword_map, interval)
+
+    def _sleep_with_invite_watch(self, keyword_map: dict, seconds: int):
+        """分片睡眠期间持续快查邀请弹窗, 避免邀请在检测间隔内超时消失"""
+        deadline = time.time() + seconds
+        tried = False
+        while time.time() < deadline:
+            self.screenshot()
+            if self.appear(GeneralInviteAssets.I_I_ACCEPT):
+                if not tried:
+                    tried = True
+                    self._accept_guild_invite(keyword_map)
+            else:
+                tried = False
+            time.sleep(10)
+
+    def _accept_guild_invite(self, keyword_map: dict):
+        """处理庭院左侧邀请弹窗: OCR弹窗文本命中监控活动关键字则接受并拉起对应任务
+
+        命中后点击接受, 尽力返回庭院, 再走现有trigger机制拉起任务并结束监控;
+        未命中关键字的邀请不处理, 保持原状由游戏自行超时。
+        """
+        for keyword, task_name in keyword_map.items():
+            if self.O_GUILD_INVITE_TEXT.ocr(self.device.image, keyword=keyword) != (0, 0, 0, 0):
+                logger.info(f"[寮活动-邀请] 检测到 '{keyword}' 邀请弹窗，自动接受")
+                for _ in range(2):
+                    if not self.appear(GeneralInviteAssets.I_I_ACCEPT):
+                        break
+                    self.appear_then_click(GeneralInviteAssets.I_I_ACCEPT, interval=0.8)
+                    time.sleep(1.5)
+                # 点击接受后立即传送进场景, 留足加载时间再返回庭院
+                time.sleep(10)
+                try:
+                    self.goto_page(page_main)
+                except Exception as e:
+                    logger.warning(f"[寮活动-邀请] 接受后返回庭院失败，交由任务自行恢复: {e}")
+                self.trigger_activity_task(keyword, task_name)
+                return
+        logger.info("[寮活动-邀请] 邀请弹窗未命中监控活动关键字，忽略")
 
     def trigger_activity_task(self, keyword, task_name):
         """检测到活动关键字后拉起对应任务并结束监控"""

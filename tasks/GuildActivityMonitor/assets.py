@@ -11,7 +11,9 @@ class GuildActivityMonitorAssets:
 
 
 	# Ocr Rule Assets
-	# 寮活动通知检测区域 
+	# 寮活动通知检测区域
 	O_GUILD_ACTIVITY_NOTIFY = RuleOcr(roi=(13,213,457,86), area=(13,213,457,86), mode="Full", method="Default", keyword="", name="guild_activity_notify")
+	# 游戏内邀请弹窗文本区域(纵向覆盖三个弹窗变体, 用于识别邀请对应的寮活动)
+	O_GUILD_INVITE_TEXT = RuleOcr(roi=(180,215,530,300), area=(180,215,530,300), mode="Full", method="Default", keyword="", name="guild_invite_text")
 
 
