@@ -88,6 +88,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         if frog:
             logger.info(f'[个人突破] 呱太活动')
 
+        # 卡级：任务开始时扫描等级
+        if con.raid_config.level_cap:
+            logger.info('[个人突破] 任务开始，扫描等级')
+            if not self.ensure_level_cap():
+                self.goto_page(page_exploration)
+                self.set_next_run(task='RealmRaid', success=False, finish=True)
+                raise TaskEnd
+
         # 开始循环
         success = True
         last_battle = True  # 记录上一次战斗的结果
@@ -366,22 +374,15 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
 
     def retreat_battles(self, times: int) -> bool:
         """
-        对同一个结界连续撤退指定场次，用于卡级时整体重置突破难度
-        撤退进不了结算，不消耗突破券也不计入每日进攻次数；但撤退量超过「打九退四」的平衡点会掉级
+        对第一个结界连续撤退指定场次，用于卡级时整体重置突破难度
+        与打九退四一致：进攻第一个结界，再战撤退，不消耗突破券也不计入每日进攻次数
         :param times: 撤退场数
         :return: 是否打满了指定场数并回到结界列表
         """
         con = self.config.realm_raid
-        medal, index = self.find_one()
-        if not index:
-            logger.info('[个人突破] 没有可撤退的结界，执行刷新')
-            if not self.check_refresh():
-                return False
-            medal, index = self.find_one()
-            if not index:
-                logger.warning('[个人突破] 刷新后仍没有可撤退的结界')
-                return False
-        if not self.fire(index):
+        # 进攻第一个结界（与打九退四一致）
+        if not self.fire(1):
+            logger.warning('[个人突破] 无法进攻第一个结界进行撤退')
             return False
         for n in range(times):
             self.run_general_battle(config=self.build_quick_exit_config(con.general_battle_config))
