@@ -2,6 +2,7 @@
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
+import difflib
 import numpy as np
 
 from enum import Enum
@@ -330,6 +331,9 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
     def friend_class(self) -> list[str]:
         return ['好友', '最近', '跨区', '寮友', '蔡友', '路区', '察友', '区']
 
+    # 模糊匹配兜底的最低相似度，取值需避免误选同页相似名的好友
+    FUZZY_MATCH_MIN_RATIO = 0.75
+
     @staticmethod
     def _normalize_friend_name_text(text: str) -> str:
         if text is None:
@@ -345,22 +349,41 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         if not boxed_results:
             return None
 
-        for result in boxed_results:
-            ocr_text = self._normalize_friend_name_text(result.ocr_text)
-            if ocr_text != target_name:
-                continue
+        def area_of(result) -> tuple[int, int, int, int]:
             box = result.box
             rec_x = box[0, 0]
             rec_y = box[0, 1]
             rec_w = box[1, 0] - box[0, 0]
             rec_h = box[2, 1] - box[0, 1]
-            area = (
+            return (
                 int(rec_x + rule.roi[0]),
                 int(rec_y + rule.roi[1]),
                 int(rec_w),
                 int(rec_h)
             )
+
+        # 精确匹配优先
+        for result in boxed_results:
+            ocr_text = self._normalize_friend_name_text(result.ocr_text)
+            if ocr_text != target_name:
+                continue
+            area = area_of(result)
             logger.info(f'[通用邀请] 精确匹配到好友 "{name}"，识别规则 {rule.name}，坐标 {area}')
+            return area
+        # 精确失败后按相似度兜底，容忍 OCR 形近字（如「迴」被误读为「迎/逼/过」）
+        best_result, best_ratio = None, 0.0
+        for result in boxed_results:
+            ocr_text = self._normalize_friend_name_text(result.ocr_text)
+            if len(ocr_text) != len(target_name):
+                continue
+            ratio = difflib.SequenceMatcher(None, ocr_text, target_name).ratio()
+            if ratio >= self.FUZZY_MATCH_MIN_RATIO and ratio > best_ratio:
+                best_result, best_ratio = result, ratio
+        if best_result is not None:
+            area = area_of(best_result)
+            logger.info(f'[通用邀请] 未精确匹配，按相似度 {best_ratio:.2f} 匹配到好友 "{name}"，'
+                        f'识别文本 "{self._normalize_friend_name_text(best_result.ocr_text)}"，'
+                        f'识别规则 {rule.name}，坐标 {area}')
             return area
         return None
 
