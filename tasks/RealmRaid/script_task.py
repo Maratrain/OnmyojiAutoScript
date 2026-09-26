@@ -32,6 +32,8 @@ DEMOTE_MAX_ROUNDS = 3
 BACK_TO_LIST_TIMEOUT = 30
 FRESH_WAIT_TIMEOUT = 600
 FRESH_POLL_INTERVAL = 30
+# fire() 对格子连续点击的上限，防止点到已攻破的格子时死循环
+FIRE_CLICK_LIMIT = 10
 
 
 class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
@@ -374,15 +376,25 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
 
     def retreat_battles(self, times: int) -> bool:
         """
-        对第一个结界连续撤退指定场次，用于卡级时整体重置突破难度
-        与打九退四一致：进攻第一个结界，再战撤退，不消耗突破券也不计入每日进攻次数
+        连续撤退指定场次，用于卡级时整体重置突破难度
+        与打九退四一致：进攻后靠再次挑战连续撤退，不消耗突破券也不计入每日进攻次数
+        撤退降级只看场次、不看打第几个，所以目标由 find_one 选可进攻的结界；
+        1 号位已被攻破（等级 OCR 会读出假值导致满场误判）时绝不能点它，否则卡死
         :param times: 撤退场数
         :return: 是否打满了指定场数并回到结界列表
         """
         con = self.config.realm_raid
-        # 进攻第一个结界（与打九退四一致）
-        if not self.fire(1):
-            logger.warning('[个人突破] 无法进攻第一个结界进行撤退')
+        medal, index = self.find_one()
+        if not index:
+            logger.info('[个人突破] 没有可撤退的结界，执行刷新')
+            if not self.check_refresh():
+                return False
+            medal, index = self.find_one()
+            if not index:
+                logger.warning('[个人突破] 刷新后仍没有可撤退的结界')
+                return False
+        if not self.fire(index):
+            logger.warning(f'[个人突破] 进攻结界 {index} 未进入战斗，放弃撤退')
             return False
         for n in range(times):
             self.run_general_battle(config=self.build_quick_exit_config(con.general_battle_config))
@@ -593,15 +605,21 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         click = self.partition[order - 1]
         self.wait_until_appear(self.I_RR_PERSON)
         self.device.click_record_clear()
+        click_count = 0
         while True:
             self.screenshot()
             if not self.appear(self.I_RR_PERSON):
+                logger.info(f'[个人突破] 点击进攻 {order} 成功')
                 return True
             if self.appear_then_click(self.I_FIRE, interval=1):
                 continue
+            if click_count >= FIRE_CLICK_LIMIT:
+                logger.warning(f'[个人突破] 进攻 {order} 连续点击 {click_count} 次仍未进入战斗，'
+                               f'该结界可能已被攻破')
+                return False
             if self.click(click, interval=2):
+                click_count += 1
                 continue
-        logger.info(f'[个人突破] 点击进攻 {order} 成功')
         return False
 
     def fire_again(self) -> bool:
