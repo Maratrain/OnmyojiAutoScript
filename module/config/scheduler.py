@@ -36,7 +36,10 @@ class TaskScheduler:
         # 第一种
         if rule == ScheduleRule.FILTER:
             pending_task = TaskScheduler.filter.apply(pending)
-            return pending_task
+            # 优先级名单未收录的任务按到期顺序排到末尾，避免被过滤后永不执行
+            listed_ids = set(id(task) for task in pending_task)
+            unlisted = [task for task in pending if id(task) not in listed_ids]
+            return pending_task + unlisted
 
         # 第二种
         if rule == ScheduleRule.FIFO:
