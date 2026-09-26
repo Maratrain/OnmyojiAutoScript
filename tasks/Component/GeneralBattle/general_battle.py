@@ -28,6 +28,7 @@ from tasks.GameUi.matcher import Matcher, ensure_matcher
 from tasks.GameUi.navigator import GameUi
 from tasks.GameUi.page import page_battle, page_battle_prepare, page_battle_result, page_reward
 from tasks.GameUi.page_definition import Page
+from tasks.GlobalGame.assets import GlobalGameAssets
 
 # 战斗结束后用于确认“已经回到任务自身页面”的识别条件。
 # 推荐优先复用调用方战后原本就会 `wait_until_appear(...)` 的稳定特征。
@@ -673,9 +674,9 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
 
     @cached_property
     def _exclude_button_stage_1(self) -> list[str]:
-        """结算页需要排除的控件区域资产名。"""
+        """结算页需要排除的控件区域资产名(含玩家名片, 防止拟人点击误开个人主页)。"""
         return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
-                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS']
+                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD']
 
     @cached_property
     def _exclude_button_stage_2(self) -> list[str]:
@@ -897,6 +898,12 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         try:
             while True:
                 self.screenshot()
+                # 拟人随机点击可能误开新版个人主页弹层(该弹层无返回键), 识别到就点其下方空白关闭
+                if self.appear(GlobalGameAssets.I_PROFILE_CARD_NEW):
+                    logger.info('[通用战斗] 识别到新版个人主页弹层, 点击空白处关闭')
+                    self.click(GlobalGameAssets.C_PROFILE_CARD_CLOSE, interval=1.5)
+                    self.device.stuck_record_add('BATTLE_STATUS_S')
+                    continue
                 # 活动 hook: 探索等任务可定义 close_chat_window 在战斗等待期间关闭聊天抽屉
                 close_chat_window = getattr(self, 'close_chat_window', None)
                 if close_chat_window is not None and close_chat_window():

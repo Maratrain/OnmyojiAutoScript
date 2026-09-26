@@ -61,7 +61,11 @@ class GlobalGameAssets:
 	I_UI_UNCHECK = RuleImage(roi_front=(567,343,33,36), roi_back=(497,303,216,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_uncheck.png")
 	# 勾选 
 	I_UI_CHECK = RuleImage(roi_front=(564,341,40,38), roi_back=(512,329,164,78), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_check.png")
-	# 弯曲返回按钮 
+	# 弯曲返回按钮
 	I_UI_BACK_CIRCLE = RuleImage(roi_front=(24,21,36,39), roi_back=(0,0,95,101), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_back_circle.png")
+	# 新版个人主页弹层左侧按钮列(发送消息/个人空间/友人帐), 弹层无返回键需专门识别关闭
+	I_PROFILE_CARD_NEW = RuleImage(roi_front=(165,222,135,183), roi_back=(120,180,240,280), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_profile_card_new.png")
+	# 新版个人主页弹层下方的空白背板, 点击关闭弹层
+	C_PROFILE_CARD_CLOSE = RuleClick(roi_front=(780,625,320,70), roi_back=(780,625,320,70), name="profile_card_close")
 
 

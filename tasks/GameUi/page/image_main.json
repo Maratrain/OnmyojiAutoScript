@@ -250,5 +250,23 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "阴阳寮前往神社"
+  },
+  {
+    "itemName": "check_demon_retreat",
+    "imageName": "page_check_demon_retreat.png",
+    "roiFront": "575,8,150,58",
+    "roiBack": "560,0,180,75",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "首领退治集结页标志"
+  },
+  {
+    "itemName": "demon_retreat_back",
+    "imageName": "page_demon_retreat_back.png",
+    "roiFront": "10,5,50,50",
+    "roiBack": "0,0,120,100",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "首领退治集结页返回按钮"
   }
 ]

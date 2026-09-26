@@ -145,8 +145,12 @@ class GameUiAssets:
 	I_CHECK_MALL = RuleImage(roi_front=(231,455,131,78), roi_back=(201,432,185,121), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall.png")
 	# 商店推荐页面标志 
 	I_CHECK_MALL_RECOMMEND = RuleImage(roi_front=(930,12,42,37), roi_back=(905,0,100,100), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall_recommend.png")
-	# 阴阳寮页面标志 
+	# 阴阳寮页面标志
 	I_CHECK_GUILD = RuleImage(roi_front=(1072,630,49,46), roi_back=(1072,630,49,46), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_guild.png")
+	# 首领退治集结页标志
+	I_CHECK_DEMON_RETREAT = RuleImage(roi_front=(575,8,150,58), roi_back=(560,0,180,75), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_demon_retreat.png")
+	# 首领退治集结页返回按钮
+	I_DEMON_RETREAT_BACK = RuleImage(roi_front=(10,5,50,50), roi_back=(0,0,120,100), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_demon_retreat_back.png")
 	# 组队页面标志 
 	I_CHECK_TEAM = RuleImage(roi_front=(32,585,82,65), roi_back=(0,563,148,139), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_team.png")
 	# 图鉴页面标志 

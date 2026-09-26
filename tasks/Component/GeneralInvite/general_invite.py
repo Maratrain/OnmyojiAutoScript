@@ -16,6 +16,7 @@ from tasks.base_task import BaseTask
 from tasks.Component.GeneralInvite.assets import GeneralInviteAssets
 from tasks.Component.GeneralInvite.config_invite import InviteConfig, FindMode
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
+from tasks.GlobalGame.assets import GlobalGameAssets
 from module.logger import logger
 
 
@@ -444,6 +445,10 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
             self.device.click(x=click_x, y=click_y, control_name=rule.name)
             if self._wait_selected_appear(pre_cnt):
                 return True
+            # 点击好友名可能误开新版个人主页弹层, 识别到就先关闭再重试
+            if self.appear(GlobalGameAssets.I_PROFILE_CARD_NEW):
+                logger.info('[通用邀请] 识别到新版个人主页弹层, 点击空白处关闭')
+                self.click(GlobalGameAssets.C_PROFILE_CARD_CLOSE, interval=1.5)
         logger.warning(f'[通用邀请] 找到好友 "{name}" 但选中失败')
         return False
 

@@ -76,5 +76,11 @@
     "roiFront": "0,0,100,100",
     "roiBack": "0,0,100,100",
     "description": "description"
+  },
+  {
+    "itemName": "end_player_card",
+    "roiFront": "540,370,170,235",
+    "roiBack": "540,370,170,235",
+    "description": "结算页玩家名片(头像/名字/点赞), 拟人随机点击误触会打开个人主页"
   }
 ]

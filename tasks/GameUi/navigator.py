@@ -685,6 +685,14 @@ class GameUi(BaseTask, GameUiAssets):
 
         self.maybe_screenshot(skip_first_screenshot)
         logger.warning("[界面] 尝试切换到已知页面")
+        # 新版个人主页弹层没有任何标准关闭控件, 优先识别并点击其下方空白关闭
+        if self.appear(GlobalGameAssets.I_PROFILE_CARD_NEW):
+            logger.warning('[界面] 识别到新版个人主页弹层, 点击空白处关闭')
+            self.click(GlobalGameAssets.C_PROFILE_CARD_CLOSE, interval=1.5)
+            self._record_unknown_close_event("profile_card_close")
+            # 关掉弹层后等待页面变化, 防止多次识别到同一弹层
+            time.sleep(random.randrange(8, 16, 1) / 10)
+            return True
         for action in [*self.navigator.local_unknown_closers, *self.DEFAULT_UNKNOWN_CLOSERS]:
             action_name = self._action_name(action)
             # 若最后3次执行的都是该动作，则跳过该动作尝试其他动作

@@ -94,6 +94,8 @@ class GeneralBattleAssets:
 	C_END_1_5 = RuleClick(roi_front=(805,174,100,100), roi_back=(805,174,100,100), name="end_1_5")
 	# description
 	C_END_1_6 = RuleClick(roi_front=(942,175,100,100), roi_back=(942,175,100,100), name="end_1_6")
+	# 结算页玩家名片(头像/名字/点赞按钮), 拟人随机点击误触会打开个人主页
+	C_END_PLAYER_CARD = RuleClick(roi_front=(540,370,170,235), roi_back=(540,370,170,235), name="end_player_card")
 	# description
 	C_END_2_1 = RuleClick(roi_front=(266,310,100,100), roi_back=(266,310,100,100), name="end_2_1")
 	# description

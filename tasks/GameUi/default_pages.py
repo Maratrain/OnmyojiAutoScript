@@ -148,6 +148,10 @@ page_shirin = Page(GameUiAssets.I_CHECK_SHRIN, category="global")
 page_guild.connect(page_shirin, GameUiAssets.I_GUILD_TO_SHRIN, key="page_guild->page_shirin")
 page_shirin.connect(page_guild, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_shirin->page_guild")
 
+# 首领退治集结页: 任务自行经神社进入, 此处仅注册识别与返回边, 供导航恢复使用
+page_demon_retreat = Page(GameUiAssets.I_CHECK_DEMON_RETREAT, category="global")
+page_demon_retreat.connect(page_guild, GameUiAssets.I_DEMON_RETREAT_BACK, key="page_demon_retreat->page_guild")
+
 page_team = Page(GameUiAssets.I_CHECK_TEAM, category="global")
 page_team.add_enter_failure_hooks(conditional_action(condition=GameUiAssets.I_CHECK_MAIN,
                                                      action=RestartAssets.C_LOGIN_SCROLL_CLOSE_AREA))
