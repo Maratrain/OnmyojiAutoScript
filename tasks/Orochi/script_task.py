@@ -12,7 +12,8 @@ from tasks.Component.GeneralBuff.general_buff import GeneralBuff
 from tasks.Component.GeneralRoom.general_room import GeneralRoom
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.GameUi.game_ui import GameUi
-from tasks.GameUi.page import any_of, page_main, page_reward, page_shikigami_records, page_soul_zones
+from tasks.GameUi.page import any_of, page_exploration, page_main, page_reward, page_shikigami_records, page_soul_zones
+from tasks.Exploration.assets import ExplorationAssets
 from tasks.Orochi.assets import OrochiAssets
 from tasks.Orochi.config import Orochi, UserStatus, Layer
 from tasks.TrueOrochi.assets import TrueOrochiAssets
@@ -54,6 +55,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
         config: Orochi = self.config.orochi
         if not self.is_in_battle(True):
+            # 绘卷模式：突破票达到阈值时暂停御魂，先去打结界突破和绘卷
+            self.check_scrolls()
             self.goto_page(page_main)
             if config.orochi_config.soul_buff_enable:
                 self.open_buff()
@@ -102,6 +105,30 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                                          self.config.orochi.switch_soul.team_name)
         # 根据选层切换御魂
         self.orochi_switch_soul()
+
+    def check_scrolls(self) -> None:
+        """绘卷模式：检测结界突破票数量，达到阈值时暂停御魂并立即安排结界突破、绘卷任务
+
+        检测点放在御魂开跑前：御魂会话期间突破票不会变化，无需战斗中途反复识别。
+        触发后本任务按间隔时间延后，结界突破与绘卷任务立即执行，行为与探索绘卷模式一致。
+        """
+        con_scrolls = self.config.orochi.scrolls
+        if not con_scrolls.scrolls_enable:
+            return
+        # 突破票数量显示在探索地图右上角，先导航过去识别
+        self.goto_page(page_exploration)
+        self.screenshot()
+        cu, res, total = ExplorationAssets.O_REALM_RAID_NUMBER.ocr(self.device.image)
+        logger.attr('RealmRaidTicket', cu)
+        if cu < con_scrolls.scrolls_threshold:
+            logger.info('[御魂] 突破票未达绘卷模式阈值，继续御魂任务')
+            return
+        logger.info('[御魂] 突破票达到绘卷模式阈值，暂停御魂并立即安排结界突破、绘卷任务')
+        next_run = datetime.now() + con_scrolls.scrolls_cd
+        self.set_next_run(task='Orochi', success=False, finish=False, target=next_run)
+        self.set_next_run(task='RealmRaid', success=False, finish=False, server=False, target=datetime.now())
+        self.set_next_run(task='MemoryScrolls', success=False, finish=False, target=datetime.now())
+        raise TaskEnd
 
     def check_layer(self, layer: str) -> bool:
         """
