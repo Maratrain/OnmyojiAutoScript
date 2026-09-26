@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from tasks.Component.config_scheduler import Scheduler
-from tasks.Component.config_base import ConfigBase
+from tasks.Component.config_base import ConfigBase, dynamic_hide
 
 class GuildActivityMonitorCombatTime(BaseModel):
     # 设置检测时间
@@ -14,6 +14,9 @@ class GuildActivityMonitorCombatTime(BaseModel):
         default_factory=dict,
         description='（内部状态，无需手动配置）各活动关键字最近一次触发对应任务时的通知 when 时间戳（毫秒），跨周期去重避免同一推送重复触发',
     )
+
+    # 内部状态字段不进前端参数页；default_factory 字段的 schema 无 default 键，会令 /args 接口 KeyError
+    hide_fields = dynamic_hide('last_triggered_when')
 
 class GuildActivity(BaseModel):
     # 道馆
