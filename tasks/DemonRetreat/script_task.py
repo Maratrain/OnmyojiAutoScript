@@ -31,10 +31,15 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
             logger.warning("[首领退治] 当前不可挑战首领退治")
             self.set_next_run(task='DemonRetreat', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
-        if cfg.switch_soul_config.enable:
+        # 接受寮活动邀请后客户端会被直接拉进首领退治场景，该场景不在页面识别库内
+        # 先探测入场状态：已在场景内则跳过切换御魂，避免换御魂导航识别失败触发重启
+        already_in_scene = self.in_demon_retreat_scene()
+        if already_in_scene and (cfg.switch_soul_config.enable or cfg.switch_soul_config.enable_switch_by_name):
+            logger.info("[首领退治] 已在首领退治场景，跳过切换御魂")
+        if cfg.switch_soul_config.enable and not already_in_scene:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(cfg.switch_soul_config.switch_group_team)
-        if cfg.switch_soul_config.enable_switch_by_name:
+        if cfg.switch_soul_config.enable_switch_by_name and not already_in_scene:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul_by_name(cfg.switch_soul_config.group_name, cfg.switch_soul_config.team_name)
 
@@ -72,12 +77,28 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
         self.set_next_run(task='DemonRetreat', server=False, target=self.get_next_dt(datetime.now(), success))
         raise TaskEnd
 
+    def in_demon_retreat_scene(self) -> bool:
+        """
+        探测当前是否已在首领退治场景
+        寮活动邀请会把客户端直接拉进该场景，而该场景不在页面识别库内
+        """
+        for _ in range(3):
+            self.screenshot()
+            if self.appear(self.I_HUNT_CHECK):
+                return True
+            sleep(0.5)
+        return False
+
     def goto_demon_retreat(self) -> bool:
         """
         进入首领退治
         """
         cfg: DemonRetreat = self.config.demon_retreat
         logger.info("[首领退治] 正在进入首领退治")
+        # 已在场景内（如接受寮活动邀请被直接拉入）则跳过页面跳转
+        if self.in_demon_retreat_scene():
+            logger.info("[首领退治] 已在首领退治场景，跳过页面跳转")
+            return True
         self.goto_page(page_guild)
 
         goto_demon_retreat_num = 0
