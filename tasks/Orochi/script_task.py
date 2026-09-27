@@ -55,8 +55,6 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
         config: Orochi = self.config.orochi
         if not self.is_in_battle(True):
-            # 绘卷模式：突破票达到阈值时暂停御魂，先去打结界突破和绘卷
-            self.check_scrolls()
             self.goto_page(page_main)
             if config.orochi_config.soul_buff_enable:
                 self.open_buff()
@@ -84,6 +82,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.open_buff()
             self.soul(is_open=False)
             self.close_buff()
+        # 绘卷模式：御魂跑完后检测突破票，达到阈值时立即安排结界突破、绘卷
+        self.check_scrolls()
         # 下一次运行时间
         if success:
             self.set_next_run('Orochi', finish=True, success=True)
@@ -107,10 +107,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         self.orochi_switch_soul()
 
     def check_scrolls(self) -> None:
-        """绘卷模式：检测结界突破票数量，达到阈值时暂停御魂并立即安排结界突破、绘卷任务
+        """绘卷模式：御魂跑完后检测结界突破票数量，达到阈值时立即安排结界突破、绘卷任务
 
-        检测点放在御魂开跑前：御魂会话期间突破票不会变化，无需战斗中途反复识别。
-        触发后本任务按间隔时间延后，结界突破与绘卷任务立即执行，行为与探索绘卷模式一致。
+        检测点放在御魂跑完之后：组队时双方都能先完整跑完御魂会话，避免跑前检测导致
+        一边先去打结界突破、另一边还在等邀请，两个账号的调度时间对不上。
         """
         con_scrolls = self.config.orochi.scrolls
         if not con_scrolls.scrolls_enable:
@@ -121,9 +121,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         cu, res, total = ExplorationAssets.O_REALM_RAID_NUMBER.ocr(self.device.image)
         logger.attr('RealmRaidTicket', cu)
         if cu < con_scrolls.scrolls_threshold:
-            logger.info('[御魂] 突破票未达绘卷模式阈值，继续御魂任务')
+            logger.info('[御魂] 突破票未达绘卷模式阈值，按原计划调度御魂')
             return
-        logger.info('[御魂] 突破票达到绘卷模式阈值，暂停御魂并立即安排结界突破、绘卷任务')
+        logger.info('[御魂] 突破票达到绘卷模式阈值，立即安排结界突破、绘卷任务')
         next_run = datetime.now() + con_scrolls.scrolls_cd
         self.set_next_run(task='Orochi', success=False, finish=False, target=next_run)
         self.set_next_run(task='RealmRaid', success=False, finish=False, server=False, target=datetime.now())
