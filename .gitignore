@@ -278,3 +278,4 @@ console.bat
 .vs/
 tasks/AutoCheckinBigGod/frida-server-17.6.2-android-x86_64
 oas.bat
+/data/frog_oas/
