@@ -1,4 +1,6 @@
 from module.atom.image import RuleImage
+from module.base.timer import Timer
+from module.exception import ScriptError
 from tasks.Component.SwitchOnmyoji.assets import SwitchOnmyojiAssets
 from tasks.Component.SwitchOnmyoji.config import Onmyoji
 from tasks.base_task import BaseTask
@@ -6,6 +8,10 @@ from module.logger import logger
 
 
 class SwitchOnmyoji(BaseTask, SwitchOnmyojiAssets):
+    # 两个循环的兜底上限：资产坐标过期或页面不对时不再无限点击，
+    # 改为抛出带上下文的 ScriptError，让上层决定重启还是人工接管
+    SWITCH_TAB_TIMEOUT = 20
+    SWITCH_BATTLE_TIMEOUT = 20
 
     def switch_onmyoji(self, onmyoji: Onmyoji):
         """
@@ -29,7 +35,11 @@ class SwitchOnmyoji(BaseTask, SwitchOnmyojiAssets):
         :param battle_dict: 角色与战斗图标的映射
         :param check_img: 检查是否回到主界面的图标
         """
+        tab_timer = Timer(self.SWITCH_TAB_TIMEOUT).start()
         while True:
+            if tab_timer.reached():
+                raise ScriptError(f'[切换阴阳师] 等待 {self.SWITCH_TAB_TIMEOUT} 秒仍未打开角色列表，'
+                                  f'请检查阴阳师/英杰页签资产是否匹配当前游戏界面')
             self.screenshot()
             if any(self.appear(battle_icon) for battle_icon in battle_dict.values()):
                 break
@@ -37,7 +47,11 @@ class SwitchOnmyoji(BaseTask, SwitchOnmyojiAssets):
         battle_img = battle_dict.get(role, None)
         if not battle_img:
             raise ValueError('Incorrect role type')
+        battle_timer = Timer(self.SWITCH_BATTLE_TIMEOUT).start()
         while True:
+            if battle_timer.reached():
+                raise ScriptError(f'[切换阴阳师] 等待 {self.SWITCH_BATTLE_TIMEOUT} 秒仍未确认角色 '
+                                  f'{role.name}[{role.value}]，角色列表可能未响应点击')
             self.screenshot()
             if self.appear(check_img, interval=0.8):
                 break
