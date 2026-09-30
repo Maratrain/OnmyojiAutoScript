@@ -58,6 +58,8 @@ class FrogBossAssets:
 	I_FROG_LAST_LOSE = RuleImage(roi_front=(178,210,61,49), roi_back=(148,147,114,123), threshold=0.8, method="Template matching", file="./tasks/FrogBoss/fb/fb_frog_last_lose.png")
 	# 关闭记录
 	I_FROG_LOG_CLOSE = RuleImage(roi_front=(1188,99,43,41), roi_back=(1166,73,83,89), threshold=0.8, method="Template matching", file="./tasks/FrogBoss/fb/fb_frog_log_close.png")
+	# 获胜奖励弹窗关闭
+	I_REWARD_CLOSE = RuleImage(roi_front=(1172,152,43,41), roi_back=(1120,110,160,140), threshold=0.8, method="Template matching", file="./tasks/FrogBoss/fb/fb_reward_close.png")
 	# 上一局选择红色
 	I_FROG_LAST_SELECT_RED = RuleImage(roi_front=(342,149,36,38), roi_back=(327,120,70,77), threshold=0.8, method="Template matching", file="./tasks/FrogBoss/fb/fb_frog_last_select_red.png")
 	# 上一局选择蓝色

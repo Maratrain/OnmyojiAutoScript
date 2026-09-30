@@ -180,9 +180,24 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
         self.set_next_run(task='FrogBoss', target=time_set - time_delta)
 
+    def close_reward_popup(self):
+        """关闭获胜奖励弹窗：该弹窗为模态，不关闭会吞掉下注阶段的所有点击"""
+        if not self.appear(self.I_REWARD_CLOSE):
+            return
+        logger.info('[对弈竞猜] 检测到获胜奖励弹窗，先关闭')
+        timer = Timer(6).start()
+        while not timer.reached():
+            self.screenshot()
+            if not self.appear(self.I_REWARD_CLOSE):
+                break
+            self.appear_then_click(self.I_REWARD_CLOSE, interval=2)
+        else:
+            logger.warning('[对弈竞猜] 获胜奖励弹窗关闭超时，继续下注流程')
+
     def do_bet(self):
         logger.hr('下注', level=2)
         self.screenshot()
+        self.close_reward_popup()
         flag_glod_30 = 0
         count_left = self.O_LEFT_COUNT.ocr(self.device.image)
         count_right = self.O_RIGHT_COUNT.ocr(self.device.image)
@@ -238,6 +253,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         while 1:
             self.screenshot()
             if self.appear(self.I_GOLD_30_CHECK):
+                flag_glod_30 = 1
                 break
             if gold_30_timer.reached():
                 logger.info('未出现金币30')
@@ -246,13 +262,18 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 continue
         # 正式下注
         logger.info('正式下注')
+        confirm_timer = Timer(9).start()
         while 1:
             self.screenshot()
             if self.appear(self.I_BETTED):
                 break
+            if confirm_timer.reached():
+                raise GameStuckError('下注确认无响应，本场押注可能已截止')
+            if self.appear_then_click(self.I_REWARD_CLOSE, interval=2):
+                continue
             if self.appear_then_click(self.I_BET_SURE, interval=2) and flag_glod_30 == 1:
                 continue
-            if self.appear_then_click(self.I_GOLD_30, interval=2):
+            if flag_glod_30 == 0 and self.appear_then_click(self.I_GOLD_30, interval=2):
                 flag_glod_30 = 1
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM, interval=2):

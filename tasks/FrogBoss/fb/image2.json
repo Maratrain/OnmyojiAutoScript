@@ -80,6 +80,16 @@
     "description": "关闭记录"
   },
   {
+    "itemName": "reward_close",
+    "imageName": "fb_reward_close.png",
+    "roiFront": "1172,152,43,41",
+    "roiBack": "1120,110,160,140",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "获胜奖励弹窗关闭"
+  },
+  {
     "itemName": "frog_last_select_red",
     "imageName": "fb_frog_last_select_red.png",
     "roiFront": "342,149,36,38",
