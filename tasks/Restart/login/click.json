@@ -16,5 +16,11 @@
     "roiFront": "580,300,120,120",
     "roiBack": "580,300,120,120",
     "description": "登录动画点击屏幕中央区域"
+  },
+  {
+    "itemName": "login_enter_game",
+    "roiFront": "550,567,176,56",
+    "roiBack": "550,567,176,56",
+    "description": "进入游戏点击位置(OCR识别失效时的保底点击)"
   }
 ]

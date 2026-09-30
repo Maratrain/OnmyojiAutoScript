@@ -29,6 +29,7 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
         orientation_timer = Timer(10)
         skip_login_animation = True
         skip_click_mx_cnt = 5
+        enter_game_fallback_used = False
         login_success = False
 
         while 1:
@@ -125,6 +126,19 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
                 skip_login_animation = False  # 进入登录页面后不再处理登录动画逻辑
                 self.wait_until_appear(self.I_LOGIN_SPECIFIC_SERVE, True, wait_time=5)
                 continue
+            # OCR 未识别到进入游戏且确认仍在登录页时，每次登录仅备用点击一次。
+            # appear 不带 interval 复核，避免把 OCR 的冷却期误当作识别失败。
+            if (
+                not enter_game_fallback_used
+                and self.appear(self.I_LOGIN_8)
+                and not self.ocr_appear(self.O_LOGIN_ENTER_GAME)
+            ):
+                if self.click(self.C_LOGIN_ENTER_GAME, interval=3):
+                    enter_game_fallback_used = True
+                    skip_login_animation = False
+                    logger.info('[登录] 进入游戏 OCR 识别失效，使用保底点击')
+                    self.wait_until_appear(self.I_LOGIN_SPECIFIC_SERVE, True, wait_time=5)
+                    continue
 
         return login_success
 

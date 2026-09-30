@@ -66,6 +66,8 @@ class RestartAssets:
 	C_LOGIN_SCROLL_CLOSE_AREA = RuleClick(roi_front=(1181,634,28,39), roi_back=(1162,595,77,112), name="login_scroll_close_area")
 	# 登录动画点击屏幕中央区域 
 	C_LOGIN_ANIMATION_CENTER = RuleClick(roi_front=(580,300,120,120), roi_back=(580,300,120,120), name="login_animation_center")
+	# 进入游戏点击位置(OCR识别失效时的保底点击)
+	C_LOGIN_ENTER_GAME = RuleClick(roi_front=(550,567,176,56), roi_back=(550,567,176,56), name="login_enter_game")
 
 
 	# Image Rule Assets
