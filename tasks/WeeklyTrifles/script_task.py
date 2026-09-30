@@ -9,9 +9,9 @@ from module.logger import logger
 from module.base.timer import Timer
 
 from tasks.GameUi.game_ui import GameUi
-from tasks.GameUi.page import page_main, page_area_boss, page_secret_zones, page_summon, random_click
+from tasks.GameUi.page import page_main, page_area_boss, page_secret_zones, page_summon, page_guild, random_click
 from tasks.WeeklyTrifles.assets import WeeklyTriflesAssets
-from tasks.WeeklyTrifles.page import page_shikigami_share
+from tasks.WeeklyTrifles.page import page_shikigami_share, page_touch_fish
 
 
 class ScriptTask(GameUi, WeeklyTriflesAssets):
@@ -161,6 +161,64 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         if not obtained:
             self.click_share(self.I_WT_SE_WECHAT)
         # 返回
+        self.goto_page(page_main)
+
+    def _save_touch_fish(self):
+        """
+        惠比寿的摸鱼行动
+        :return:
+        """
+        logger.hr('摸鱼行动')
+        self.goto_page(page_guild)
+        # 防止入口被折叠
+        fold_timer = Timer(15).start()
+        while 1:
+            if fold_timer.reached():
+                logger.warning('[每周琐事] 摸鱼入口折叠窗口等待超时，跳过摸鱼')
+                self.goto_page(page_main)
+                return
+            # 等待折叠窗口展开动画
+            sleep(1)
+            self.screenshot()
+            if self.appear_then_click(self.I_WT_OPEN_FOLD_WINDOW):
+                continue
+            if self.appear(self.I_WT_FOLD_WINDOW):
+                break
+        # 保存次数，后续做了也会邮件返还福运御守
+        self.goto_page(page_touch_fish)
+        self.screenshot()
+        if self.appear(self.I_WT_SAVE_ALL):
+            cu_tickts, _, _ = self.O_WT_LUCKY_TICKETS.ocr(self.device.image)
+            logger.info(f'[每周琐事] 当前福运御守数量: {cu_tickts}')
+            cost_tickts = self.O_WT_SAVE_COST.ocr(self.device.image)
+            logger.info(f'[每周琐事] 全部存储需花费福运御守数量: {cost_tickts}')
+            not_save_flag = True
+            get_timer = Timer(7)
+            get_timer.start()
+            while 1:
+                if get_timer.reached():
+                    logger.warning('[每周琐事] 摸鱼存储等待超时，退出')
+                    break
+                sleep(0.5)
+                self.screenshot()
+                if self.appear(self.I_WT_LAST_SAVE):
+                    self.click(random_click(ltrb=(True, False, False, False)), interval=1.5)
+                    continue
+                if self.appear_then_click(self.I_WT_HAPPY_GET):
+                    continue
+                if cu_tickts >= cost_tickts and not_save_flag:
+                    self.appear_then_click(self.I_WT_SAVE_ALL)
+                    not_save_flag = False
+                    continue
+                if self.appear_then_click(self.I_WT_TF_CONFIRM):
+                    continue
+                if self.appear(self.I_WT_TF_SAVE_SUCCESS) and not self.appear(self.I_WT_SAVE_ALL):
+                    logger.info('[每周琐事] 摸鱼存储完成')
+                    break
+                if cu_tickts < cost_tickts and not_save_flag:
+                    logger.warning('[每周琐事] 福运御守数量不足，退出')
+                    break
+        logger.hr('摸鱼行动完成')
         self.goto_page(page_main)
 
     def _broken_amulet(self, dest_num: int):
