@@ -21,6 +21,7 @@ from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.Component.config_base import TimeDelta
 from tasks.FrogBoss.assets import FrogBossAssets
 from tasks.FrogBoss.config import Strategy
+from tasks.FrogBoss.record_reader import read_record_rows
 from tasks.FrogBoss.frog_oas import (OasHistory, fetch_predictions, fingerprint,
                                      choose_follow, same_lineup, FOLLOW_POLL_INTERVAL)
 from tasks.FrogBoss.oas_sources import resolve_follow_list
@@ -32,28 +33,80 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         instance = re.sub(r'[^\w.-]', '_', self.config.config_name)
         return OasHistory(Path('data/frog_oas') / f'{instance}.jsonl')
 
-    def record_oas_result(self):
+    def record_oas_history_page(self):
         if self.config.model.frog_boss.frog_boss_config.strategy_frog != Strategy.Oas:
             return
-        winner = self.detect()
-        if winner is not None:
-            result = self.oas_history.settle(
-                fingerprint(self.device.image), 'LEFT' if winner else 'RIGHT')
-            logger.info(f'[对弈竞猜-加权投票] 记录结算结果: {result}')
+        timer = Timer(10).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_FROG_LOG_CHECK):
+                break
+            self.appear_then_click(self.I_FROG_LOG, interval=2)
+        else:
+            logger.warning('[对弈竞猜-加权投票] 记录页面打开超时，跳过历史补结算')
+            return
+        try:
+            # 只读取当前可见的记录行，绝不滚动记录页
+            readings = []
+            for _ in range(2):
+                self.screenshot()
+                if not self.appear(self.I_FROG_LOG_CHECK):
+                    break
+                readings.append(read_record_rows(self.device.image, self))
+            if len(readings) != 2 or readings[0] != readings[1]:
+                self.oas_history.append('unverified_result', reason='unstable_record_page')
+                logger.warning('[对弈竞猜-加权投票] 记录页面两次读取结果不稳定，跳过补结算')
+            else:
+                for stamp, won, side in dict.fromkeys(readings[0]):
+                    result = self.oas_history.settle_record(stamp, won, selected_side=side)
+                    logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {result}, 时间={stamp}, 胜负={won}, 押={side}')
+        finally:
+            timer = Timer(10).start()
+            while not timer.reached():
+                self.screenshot()
+                if not self.appear(self.I_FROG_LOG_CHECK) and self.appear(self.I_FROG_CHECK):
+                    break
+                self.appear_then_click(self.I_FROG_LOG_CLOSE, interval=2)
+            else:
+                # 关不上说明界面状态已异常，继续跑主循环会空转，必须抛错
+                raise GameStuckError('对弈竞猜记录页面关闭超时')
 
     def enter_frog_boss(self):
         self.screenshot()
-        if self.appear(self.I_FROG_CHECK):
+        if self.appear(self.I_FROG_CHECK) or self.appear(self.I_FROG_LOG_CHECK):
             return
         self.enter(self.I_FROG_BOSS_ENTER)
         if not self.wait_until_appear(self.I_FROG_CHECK, wait_time=10):
             raise GameStuckError('进入活动后未检测到对弈竞猜页面')
 
+    def _try_next_competition_fallback(self, idle_timer):
+        if not self.appear(self.I_FROG_CHECK):
+            idle_timer.reset()
+            return False
+        if idle_timer.reached() and self.appear_then_click(self.I_NEXT_COMPETITION, interval=1):
+            logger.info('[对弈竞猜] 界面无操作 5 秒，保底点击下一局')
+            idle_timer.reset()
+            return True
+        return False
+
     def run(self):
         self.enter_frog_boss()
+        history_checked = False
+        idle_timer = Timer(5).start()
         # 进入主界面
         while 1:
             self.screenshot()
+            if self._try_next_competition_fallback(idle_timer):
+                continue
+
+            if not history_checked and self.config.model.frog_boss.frog_boss_config.strategy_frog == Strategy.Oas:
+                if (self.appear(self.I_FROG_LOG_CHECK) or self.appear(self.I_BETTED)
+                        or self.appear(self.I_FROG_BOSS_REST)
+                        or (self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT))):
+                    self.record_oas_history_page()
+                    history_checked = True
+                    idle_timer.reset()
+                    continue
 
             # 已经下注
             if self.appear(self.I_BETTED):
@@ -66,29 +119,34 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             # 竞猜成功
             if self.appear(self.I_BET_SUCCESS):
                 logger.info('竞猜成功')
-                self.record_oas_result()
                 self.detect()
                 while 1:
                     self.screenshot()
+                    if self._try_next_competition_fallback(idle_timer):
+                        continue
                     if self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT):
                         break
                     if self.appear_then_click(self.I_BET_SUCCESS_BOX, interval=1):
+                        idle_timer.reset()
                         continue
                     if self.appear_then_click(self.I_REWARD, interval=2):
+                        idle_timer.reset()
                         continue
                     if self.appear_then_click(self.I_NEXT_COMPETITION, interval=4):
+                        idle_timer.reset()
                         continue
                 continue
             # 竞猜失败
             if self.appear(self.I_BET_FAILURE):
                 logger.info('竞猜失败')
-                self.record_oas_result()
-                self.ui_click_until_disappear(self.I_NEXT_COMPETITION)
+                if self.ui_click_until_disappear(self.I_NEXT_COMPETITION):
+                    idle_timer.reset()
                 self.detect()
                 continue
             # 正式竞猜
             if self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT):
                 self.do_bet()
+                idle_timer.reset()
                 continue
 
         logger.info('[对弈竞猜] 对弈竞猜结束')
