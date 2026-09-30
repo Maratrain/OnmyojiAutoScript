@@ -124,8 +124,9 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         # nemu_ipc 返回为RGB
         # 其他方式未知
         self.device.screenshot()
-        # 判断勾协
-        self._burst()
+        # 优先清理悬赏协作弹窗，处理后刷新画面并复核，避免连续弹窗时任务在被遮挡的帧上继续运行
+        while self._burst():
+            self.device.screenshot()
 
         # # 判断网络异常
         # if self.appear(self.I_NETWORK_ABNORMAL):
