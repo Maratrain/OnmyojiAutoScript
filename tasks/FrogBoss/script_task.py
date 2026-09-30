@@ -3,6 +3,7 @@
 # github https://github.com/runhey
 from cached_property import cached_property
 from datetime import datetime
+import time
 import requests
 import re
 import json
@@ -20,7 +21,9 @@ from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.Component.config_base import TimeDelta
 from tasks.FrogBoss.assets import FrogBossAssets
 from tasks.FrogBoss.config import Strategy
-from tasks.FrogBoss.frog_oas import OasHistory, fetch_predictions, fingerprint
+from tasks.FrogBoss.frog_oas import (OasHistory, fetch_predictions, fingerprint,
+                                     choose_follow, same_lineup, FOLLOW_POLL_INTERVAL)
+from tasks.FrogBoss.oas_sources import resolve_follow_list
 
 
 class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
@@ -141,7 +144,21 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 logger.info(f'[对弈竞猜-加权投票] 决策: {decision}')
                 # 拉取预测可能跨越轮次切换，绝不点击过期画面
                 self.screenshot()
-                from tasks.FrogBoss.frog_oas import same_lineup
+                if not same_lineup(signature, fingerprint(self.device.image)):
+                    raise GameStuckError('等待预测期间对局阵容发生变化')
+                if not (self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT)):
+                    raise GameStuckError('等待预测期间竞猜已关闭')
+                click_image = self.I_BET_LEFT if decision['side'] == 'LEFT' else self.I_BET_RIGHT
+            case Strategy.FollowBlogger:
+                uids = resolve_follow_list(self.config.model.frog_boss.frog_boss_config.follow_bloggers)
+                if not uids:
+                    raise GameStuckError('跟单博主列表为空或无法识别，请检查 follow_bloggers 配置')
+                signature = fingerprint(self.device.image)
+                decision = choose_follow(self.oas_history, signature, count_left, count_right, uids,
+                                         wait=self.wait_for_follow_poll)
+                logger.info(f'[对弈竞猜-跟单] 决策: {decision}')
+                # 等待发帖可能跨越轮次切换，绝不点击过期画面
+                self.screenshot()
                 if not same_lineup(signature, fingerprint(self.device.image)):
                     raise GameStuckError('等待预测期间对局阵容发生变化')
                 if not (self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT)):
@@ -181,6 +198,20 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=2):
                 continue
+
+    def wait_for_follow_poll(self, seconds_left):
+        """跟单轮询等待：等一段时间再让 choose_follow 重拉预测。
+
+        等待期间持续截图维持设备心跳；返回 False 表示到场已晚，不再等待。
+        """
+        interval = max(1.0, min(float(FOLLOW_POLL_INTERVAL), seconds_left))
+        logger.info(f'[对弈竞猜-跟单] 博主尚未发布本场预测，{interval:.0f} 秒后重试（本场剩余可等 {seconds_left:.0f} 秒）')
+        timer = Timer(interval)
+        timer.start()
+        while not timer.reached():
+            time.sleep(1)
+            self.screenshot()
+        return seconds_left - interval > 0
 
     def detect(self) -> bool:
         """
