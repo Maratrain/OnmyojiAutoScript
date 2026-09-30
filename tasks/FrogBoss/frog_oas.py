@@ -9,7 +9,7 @@ from uuid import uuid4
 import cv2
 import requests
 
-from tasks.FrogBoss.oas_sources import DASHEN_UIDS
+from tasks.FrogBoss.oas_sources import DASHEN_UIDS, blogger_name
 
 # 跟单等待：最高优先级博主未发帖时每 45 秒重试，场次结束前 2 分钟停止等待。
 FOLLOW_POLL_INTERVAL = 45
@@ -373,3 +373,53 @@ def choose_follow(history, signature, left, right, uids, now=None, wait=None):
                           left=left, right=right, votes={}, weights={},
                           scores={'LEFT': 0.0, 'RIGHT': 0.0}, side=side,
                           strategy_version=3, mode='follow_fallback_majority')
+
+
+_SIDE_NAMES = {'LEFT': '左(红)', 'RIGHT': '右(蓝)'}
+
+
+def side_name(side):
+    """把 LEFT/RIGHT 翻译成对弈竞猜界面的左(红)/右(蓝)。"""
+    return _SIDE_NAMES.get(side, str(side))
+
+
+def format_decision(decision):
+    """把决策事件翻译成一句人读日志；机器可读全文仍记录在 history。"""
+    date_text, _, slot_text = str(decision.get('slot', '')).rpartition(':')
+    try:
+        hour = int(slot_text) * 2
+    except ValueError:
+        hour = None
+    slot_view = f"{date_text} {hour:02d}:00-{hour + 2:02d}:00 场次" if hour is not None else str(decision.get('slot'))
+    counts = f"当前人数 左 {decision.get('left')} : 右 {decision.get('right')}"
+    mode = decision.get('mode')
+    side = side_name(decision.get('side'))
+    if mode == 'follow_blogger':
+        text = f"跟单 {blogger_name(decision.get('source_uid'))} 押 {side}"
+        if decision.get('confidence') is not None:
+            text += f"（预测胜率 {decision['confidence']}%）"
+        if decision.get('upset'):
+            text += '（翻盘局）'
+    elif mode == 'follow_fallback_majority':
+        text = f"跟单博主全部无预测，回退押人数多的一方 {side}"
+    elif mode == 'cold_start':
+        expert = decision.get('expert_side')
+        crowd = decision.get('crowd_side')
+        text = (f"冷启动投票 押 {side}"
+                f"（专家多数 {side_name(expert) if expert else '无'}，人群 {side_name(crowd) if crowd else '无'}）")
+    else:
+        scores = decision.get('scores') or {}
+        text = (f"按来源历史胜率加权 押 {side}"
+                f"（得分 左 {scores.get('LEFT', 0):.2f} : 右 {scores.get('RIGHT', 0):.2f}，"
+                f"{len(decision.get('weights') or {})} 个来源）")
+    if decision.get('random_tiebreak'):
+        text += '，平票随机'
+    return f"{slot_view}，{text}，{counts}"
+
+
+def format_result(result):
+    """把结算事件翻译成一句人读日志。"""
+    text = f"{side_name(result.get('winner'))} 获胜"
+    outcomes = result.get('outcomes') or {}
+    detail = '，'.join(f"{blogger_name(uid)}{'正确' if ok else '错误'}" for uid, ok in outcomes.items())
+    return f"{text}（{detail}）" if detail else text

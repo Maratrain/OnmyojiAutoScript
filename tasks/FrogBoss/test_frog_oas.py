@@ -6,8 +6,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tasks.FrogBoss.frog_oas import (OasHistory, choose_follow, fetch_blogger_prediction,
-                                     parse_follow_post, parse_follow_side, parse_side, same_lineup)
-from tasks.FrogBoss.oas_sources import DASHEN_BLOGGERS, resolve_follow_list
+                                     format_decision, format_result, parse_follow_post,
+                                     parse_follow_side, parse_side, same_lineup, side_name)
+from tasks.FrogBoss.oas_sources import DASHEN_BLOGGERS, blogger_name, resolve_follow_list
 
 
 class OasTests(unittest.TestCase):
@@ -313,6 +314,35 @@ class FollowTests(unittest.TestCase):
             self.assertAlmostEqual(waits[0], 13 * 60, delta=5)
             self.assertEqual(fetch_mock.call_count, 2)
             self.assertEqual(decision['mode'], 'follow_fallback_majority')
+
+    def test_format_decision_and_result(self):
+        follow = format_decision({'slot': '2026-09-30:11', 'left': 1792, 'right': 7019, 'side': 'RIGHT',
+                                  'mode': 'follow_blogger', 'source_uid': DASHEN_BLOGGERS['面灵气喵'],
+                                  'confidence': 58, 'upset': False})
+        self.assertIn('2026-09-30 22:00-24:00 场次', follow)
+        self.assertIn('跟单 面灵气喵 押 右(蓝)（预测胜率 58%）', follow)
+        self.assertIn('当前人数 左 1792 : 右 7019', follow)
+        fallback = format_decision({'slot': '2026-09-30:5', 'left': 1, 'right': 2, 'side': 'RIGHT',
+                                    'mode': 'follow_fallback_majority'})
+        self.assertIn('跟单博主全部无预测，回退押人数多的一方 右(蓝)', fallback)
+        weighted = format_decision({'slot': '2026-09-30:5', 'left': 3, 'right': 4, 'side': 'LEFT',
+                                    'mode': 'win_rate', 'scores': {'LEFT': 1.5, 'RIGHT': 0.5},
+                                    'weights': {'a': 1, 'b': .8}})
+        self.assertIn('按来源历史胜率加权 押 左(红)（得分 左 1.50 : 右 0.50，2 个来源）', weighted)
+        cold = format_decision({'slot': '2026-09-30:5', 'left': 3, 'right': 4, 'side': 'RIGHT',
+                                'mode': 'cold_start', 'expert_side': 'RIGHT', 'crowd_side': None,
+                                'random_tiebreak': False})
+        self.assertIn('冷启动投票 押 右(蓝)（专家多数 右(蓝)，人群 无）', cold)
+        tie = format_decision({'slot': '2026-09-30:5', 'left': 0, 'right': 0, 'side': 'RIGHT',
+                               'mode': 'follow_fallback_majority', 'random_tiebreak': True})
+        self.assertIn('平票随机', tie)
+        self.assertEqual(side_name('LEFT'), '左(红)')
+        self.assertEqual(blogger_name(DASHEN_BLOGGERS['面灵气喵']), '面灵气喵')
+        self.assertEqual(blogger_name('deadbeef' + '0' * 24), 'deadbeef')
+        self.assertEqual(format_result({'winner': 'RIGHT',
+                                        'outcomes': {DASHEN_BLOGGERS['面灵气喵']: True}}),
+                         '右(蓝) 获胜（面灵气喵正确）')
+        self.assertEqual(format_result({'winner': 'LEFT', 'outcomes': {}}), '左(红) 获胜')
 
     def test_fetch_blogger_prediction_guards(self):
         with tempfile.TemporaryDirectory() as directory:

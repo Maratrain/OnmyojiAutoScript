@@ -39,6 +39,14 @@ DASHEN_BLOGGERS = {
 
 _HEX_UID = re.compile(r'^[0-9a-fA-F]{32}$')
 
+# 反查表：UID → 昵称，仅用于日志展示；同名不同号的取后写进的昵称。
+_DASHEN_NICKNAMES = {uid: nick for nick, uid in DASHEN_BLOGGERS.items()}
+
+
+def blogger_name(uid):
+    """UID 转博主昵称用于日志展示，未知 UID 退回前 8 位。"""
+    return _DASHEN_NICKNAMES.get(uid or '', (uid or '')[:8])
+
 
 def resolve_follow_list(raw):
     """把跟单配置解析为有序去重的 UID 列表，从左到右即优先级从高到低。

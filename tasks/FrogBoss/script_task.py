@@ -23,7 +23,8 @@ from tasks.FrogBoss.assets import FrogBossAssets
 from tasks.FrogBoss.config import Strategy
 from tasks.FrogBoss.record_reader import read_record_rows
 from tasks.FrogBoss.frog_oas import (OasHistory, fetch_predictions, fingerprint,
-                                     choose_follow, same_lineup, FOLLOW_POLL_INTERVAL)
+                                     choose_follow, format_decision, format_result,
+                                     side_name, same_lineup, FOLLOW_POLL_INTERVAL)
 from tasks.FrogBoss.oas_sources import resolve_follow_list
 
 
@@ -34,7 +35,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         return OasHistory(Path('data/frog_oas') / f'{instance}.jsonl')
 
     def record_oas_history_page(self):
-        if self.config.model.frog_boss.frog_boss_config.strategy_frog != Strategy.Oas:
+        if self.config.model.frog_boss.frog_boss_config.strategy_frog not in (Strategy.Oas, Strategy.FollowBlogger):
             return
         timer = Timer(10).start()
         while not timer.reached():
@@ -59,7 +60,9 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             else:
                 for stamp, won, side in dict.fromkeys(readings[0]):
                     result = self.oas_history.settle_record(stamp, won, selected_side=side)
-                    logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {result}, 时间={stamp}, 胜负={won}, 押={side}')
+                    result_text = format_result(result) if result is not None else '未能归属到唯一决策，已记为未验证'
+                    logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {result_text}，时间={stamp}，'
+                                f"{'胜' if won else '负'}，本方押 {side_name(side)}")
         finally:
             timer = Timer(10).start()
             while not timer.reached():
@@ -99,7 +102,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             if self._try_next_competition_fallback(idle_timer):
                 continue
 
-            if not history_checked and self.config.model.frog_boss.frog_boss_config.strategy_frog == Strategy.Oas:
+            if not history_checked and self.config.model.frog_boss.frog_boss_config.strategy_frog in (Strategy.Oas, Strategy.FollowBlogger):
                 if (self.appear(self.I_FROG_LOG_CHECK) or self.appear(self.I_BETTED)
                         or self.appear(self.I_FROG_BOSS_REST)
                         or (self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT))):
@@ -199,7 +202,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                     decision = self.oas_history.choose(signature, count_left, count_right, predictions)
                 except ValueError as exc:
                     raise GameStuckError(str(exc)) from exc
-                logger.info(f'[对弈竞猜-加权投票] 决策: {decision}')
+                logger.info(f'[对弈竞猜-加权投票] 决策: {format_decision(decision)}')
                 # 拉取预测可能跨越轮次切换，绝不点击过期画面
                 self.screenshot()
                 if not same_lineup(signature, fingerprint(self.device.image)):
@@ -214,7 +217,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 signature = fingerprint(self.device.image)
                 decision = choose_follow(self.oas_history, signature, count_left, count_right, uids,
                                          wait=self.wait_for_follow_poll)
-                logger.info(f'[对弈竞猜-跟单] 决策: {decision}')
+                logger.info(f'[对弈竞猜-跟单] 决策: {format_decision(decision)}')
                 # 等待发帖可能跨越轮次切换，绝不点击过期画面
                 self.screenshot()
                 if not same_lineup(signature, fingerprint(self.device.image)):
