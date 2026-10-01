@@ -226,24 +226,9 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
         self.set_next_run(task='FrogBoss', target=time_set - time_delta)
 
-    def close_reward_popup(self):
-        """关闭获胜奖励弹窗：该弹窗为模态，不关闭会吞掉下注阶段的所有点击"""
-        if not self.appear(self.I_REWARD_CLOSE):
-            return
-        logger.info('[对弈竞猜] 检测到获胜奖励弹窗，先关闭')
-        timer = Timer(6).start()
-        while not timer.reached():
-            self.screenshot()
-            if not self.appear(self.I_REWARD_CLOSE):
-                break
-            self.appear_then_click(self.I_REWARD_CLOSE, interval=2)
-        else:
-            logger.warning('[对弈竞猜] 获胜奖励弹窗关闭超时，继续下注流程')
-
     def do_bet(self):
         logger.hr('下注', level=2)
         self.screenshot()
-        self.close_reward_popup()
         flag_glod_30 = 0
         count_left = self.O_LEFT_COUNT.ocr(self.device.image)
         count_right = self.O_RIGHT_COUNT.ocr(self.device.image)
@@ -322,8 +307,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 break
             if confirm_timer.reached():
                 raise GameStuckError('下注确认无响应，本场押注可能已截止')
-            if self.appear_then_click(self.I_REWARD_CLOSE, interval=2):
-                continue
+            # 注意：I_REWARD_CLOSE（右上角红×）实为下注界面的退出按钮，绝非奖励弹窗关闭键，
+            # 在此点击会直接退出下注界面导致下注失败，严禁加入确认循环
             if self.appear_then_click(self.I_BET_SURE, interval=2) and flag_glod_30 == 1:
                 continue
             if flag_glod_30 == 0 and self.appear_then_click(self.I_GOLD_30, interval=2):
