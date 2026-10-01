@@ -258,7 +258,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 click_image = self.get_dashen(count_left, count_right)
             case Strategy.Oas:
                 signature = fingerprint(self.device.image)
-                predictions = fetch_predictions(self.oas_history)
+                # 拉取预测为纯网络操作（28 位大神逐个请求），期间无点击，需维持设备心跳
+                predictions = fetch_predictions(self.oas_history, progress=self.device.stuck_record_clear)
                 try:
                     decision = self.oas_history.choose(signature, count_left, count_right, predictions)
                 except ValueError as exc:
@@ -272,6 +273,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                     raise GameStuckError('等待预测期间竞猜已关闭')
                 click_image = self.I_BET_LEFT if decision['side'] == 'LEFT' else self.I_BET_RIGHT
             case Strategy.FollowBlogger:
+                # 博主解析与预测抓取均为纯网络操作，期间无点击，先重置卡死检测
+                self.device.stuck_record_clear()
                 uids = resolve_follow_list(self.config.model.frog_boss.frog_boss_config.follow_bloggers)
                 if not uids:
                     raise GameStuckError('跟单博主列表为空或无法识别，请检查 follow_bloggers 配置')
@@ -343,6 +346,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         timer.start()
         while not timer.reached():
             time.sleep(1)
+            # 等待期间无任何点击操作，必须持续重置卡死检测，否则 60 秒即被误判为游戏卡死
+            self.device.stuck_record_clear()
             self.screenshot()
         return seconds_left - interval > 0
 

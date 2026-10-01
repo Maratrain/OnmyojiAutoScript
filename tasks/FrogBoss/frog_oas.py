@@ -226,13 +226,16 @@ class OasHistory:
                            expert_side=expert_side, crowd_side=crowd, random_tiebreak=tied)
 
 
-def fetch_predictions(history):
+def fetch_predictions(history, progress=None):
+    """拉取全部大神的当前场次预测；progress 在每个博主处理前调用一次，用于维持设备心跳。"""
     now = datetime.now()
     used = {(e.get('uid'), e.get('feed_id')) for e in history.events
             if e.get('kind') == 'fetch' and e.get('accepted')}
     predictions = []
     with requests.Session() as session:
         for uid in DASHEN_UIDS:
+            if progress is not None:
+                progress()
             feed_id = None
             try:
                 response = session.get('https://inf.ds.163.com/v1/web/feed/basic/getSomeOneFeeds',
