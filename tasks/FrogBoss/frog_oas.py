@@ -146,13 +146,7 @@ class OasHistory:
 
     def settle_record(self, time_text, bet_won, selected_side=None):
         """按「日期+整点场次」精确关联最新可见记录，绝不按阵容猜测。"""
-        match = re.fullmatch(r'\s*(\d{4})[./-](\d{1,2})[./-](\d{1,2})\s+(\d{1,2})[:：](\d{2})\s*', str(time_text))
-        played = None
-        if match:
-            try:
-                played = datetime(*map(int, match.groups()))
-            except ValueError:
-                pass
+        played = parse_record_stamp(time_text)
         if (played is None or played.hour not in range(10, 24, 2)
                 or played.minute != 0 or played > datetime.now()
                 or type(bet_won) is not bool):
@@ -400,30 +394,58 @@ def slot_hour_of(now):
     return h
 
 
-def slot_label(stamp):
-    """把记录页时间戳翻译成「MM-DD 第N场(HH:00)」；解析失败退回原文。
+def _slot_hour_after(rest):
+    """从日期之后的剩余文本识别场次小时（10/12/.../22）；识别不出返回 None。"""
+    hm = re.search(r'(\d{1,2})[:：](\d{2})', rest)
+    if hm:
+        if hm.group(2) != '00':
+            return None
+        hour = int(hm.group(1))
+        return hour if hour in SLOT_HOURS else None
+    digits = re.search(r'\d+', rest)
+    if not digits:
+        return None
+    d = digits.group()
+    if len(d) >= 4:
+        # 形如 1200/2000/2200：前两位为场次小时，后两位须为 00；按结构读而非找子串，
+        # 否则 1200 里的 "20"、2026 年份的 "20" 都会抢匹配
+        if d[2:4] != '00' or int(d[:2]) not in SLOT_HOURS:
+            return None
+        return int(d[:2])
+    if len(d) in (2, 3) and int(d[:2]) in SLOT_HOURS:
+        # 形如 22 或 100（丢一个 0 的 10:00）
+        return int(d[:2])
+    return None
 
-    记录页 OCR 时间戳格式不固定（含 2026.10.01.10:00 / 2026.09.3022:00 / 2026.09.302000 等粘连形态），
-    优先按 HH:00 精确匹配场次，再按场次小时从大到小兜底，避免 10 抢 20。
+
+def parse_record_stamp(text):
+    """把记录页 OCR 时间戳解析成场次开始时刻；无法识别返回 None。
+
+    记录页 OCR 常把日期与时间粘连并丢符号（实测 2026.09.301200 / 2026.09.3022:00 /
+    2026.09.302000 / 2026.09.30100 / 2026.10.01.10:00 / 2026.10.0112:00），
+    因此时间只在日期匹配结束之后的剩余文本中识别，避免误吃年份里的数字（如 2026 的 20）。
+    带冒号但分钟非整点的视为非场次时间戳直接拒绝，丢冒号的粘连按「场次小时+00」理解。
     """
-    s = str(stamp)
-    dm = re.search(r'\d{4}[./-](\d{1,2})[./-](\d{1,2})', s)
-    date_text = f'{int(dm.group(1)):02d}-{int(dm.group(2)):02d}' if dm else ''
-    h = None
-    m = re.search(r'(\d{1,2})[:：]00', s)
-    if m:
-        h = int(m.group(1))
-    if h not in SLOT_HOURS:
-        # OCR 粘连（如 2026.09.3022:00 / 2026.09.302000），从大到小匹配避免 10 抢 20
-        for cand in [22, 20, 18, 16, 14, 12, 10]:
-            if str(cand) in s:
-                h = cand
-                break
-    if h in SLOT_HOURS:
-        field = f'第{SLOT_HOURS.index(h) + 1}场({h:02d}:00)'
-    else:
-        field = s
-    return f'{date_text} {field}' if date_text else field
+    s = str(text)
+    dm = re.search(r'(\d{4})[./-](\d{1,2})[./-](\d{1,2})', s)
+    if not dm:
+        return None
+    hour = _slot_hour_after(s[dm.end():])
+    if hour is None:
+        return None
+    try:
+        return datetime(int(dm.group(1)), int(dm.group(2)), int(dm.group(3)), hour)
+    except ValueError:
+        return None
+
+
+def slot_label(stamp):
+    """把记录页时间戳翻译成「MM-DD 第N场(HH:00)」；解析失败退回原文。"""
+    played = parse_record_stamp(stamp)
+    if played is None:
+        return str(stamp)
+    field = f'第{SLOT_HOURS.index(played.hour) + 1}场({played.hour:02d}:00)'
+    return f'{played.month:02d}-{played.day:02d} {field}'
 
 
 def side_name(side):

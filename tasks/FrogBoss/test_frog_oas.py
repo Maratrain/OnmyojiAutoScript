@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 from tasks.FrogBoss.frog_oas import (OasHistory, choose_follow, fetch_blogger_prediction,
                                      format_decision, format_result, parse_follow_post,
-                                     parse_follow_side, parse_side, same_lineup, side_name,
-                                     slot_hour_of)
+                                     parse_follow_side, parse_record_stamp, parse_side,
+                                     same_lineup, side_name, slot_hour_of, slot_label)
 from tasks.FrogBoss.oas_sources import DASHEN_BLOGGERS, blogger_name, resolve_follow_list
 
 
@@ -125,6 +125,37 @@ class OasTests(unittest.TestCase):
             self.assertIsNotNone(store.settle_record('2026.09.30 12:00', True))
             self.assertIsNone(store.settle_record('2026.09.30 12:00', False))
             self.assertEqual(store.events[-1]['reason'], 'conflicting_record_result')
+
+    def test_record_stamp_parses_ocr_merged_forms(self):
+        """记录页 OCR 粘连时间戳必须能解析，且年份里的数字不得被误当场次小时"""
+        cases = {
+            '2026.09.30 12:00': datetime(2026, 9, 30, 12),
+            '2026.09.301200': datetime(2026, 9, 30, 12),
+            '2026.09.3022:00': datetime(2026, 9, 30, 22),
+            '2026.09.302000': datetime(2026, 9, 30, 20),
+            '2026.09.30100': datetime(2026, 9, 30, 10),
+            '2026.10.01.10:00': datetime(2026, 10, 1, 10),
+            '2026.10.0112:00': datetime(2026, 10, 1, 12),
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(parse_record_stamp(text), expected)
+        for text in ('12:00', '2026.09.30 13:00', '2026.09.30 12:30', '2026.13.01 10:00'):
+            with self.subTest(text=text):
+                self.assertIsNone(parse_record_stamp(text))
+        self.assertEqual(slot_label('2026.09.301200'), '09-30 第2场(12:00)')
+
+    def test_settle_record_accepts_ocr_merged_stamp(self):
+        """粘连时间戳应能归因到对应场次的决策"""
+        with tempfile.TemporaryDirectory() as directory:
+            store = OasHistory(Path(directory) / 'history.jsonl')
+            store.append('decision', id='ten', slot='2026-09-30:5', side='LEFT',
+                         votes={'a': 'LEFT'})
+            store.append('decision', id='twelve', slot='2026-09-30:6', side='RIGHT',
+                         votes={'a': 'RIGHT'})
+            self.assertEqual(store.settle_record('2026.09.30100', True)['id'], 'ten')
+            self.assertEqual(store.settle_record('2026.09.301200', False)['id'], 'twelve')
+            self.assertEqual(store.reliability('a'), 0.5)
 
     def test_record_page_does_not_guess_between_duplicate_decisions(self):
         with tempfile.TemporaryDirectory() as directory:
