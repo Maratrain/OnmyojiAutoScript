@@ -7,7 +7,8 @@ from unittest.mock import patch
 
 from tasks.FrogBoss.frog_oas import (OasHistory, choose_follow, fetch_blogger_prediction,
                                      format_decision, format_result, parse_follow_post,
-                                     parse_follow_side, parse_side, same_lineup, side_name)
+                                     parse_follow_side, parse_side, same_lineup, side_name,
+                                     slot_hour_of)
 from tasks.FrogBoss.oas_sources import DASHEN_BLOGGERS, blogger_name, resolve_follow_list
 
 
@@ -232,6 +233,17 @@ class FollowTests(unittest.TestCase):
         self.assertIsNone(parse_follow_side('#对弈竞猜# 拿下！'))
         self.assertIsNone(parse_follow_side('#对弈竞猜# 上一局红色赢了，这局蓝色也说不定'))
         self.assertIsNone(parse_follow_side('#对弈竞猜# 别压红，这局不稳'))
+
+    def test_slot_hour_of(self):
+        # 屏幕上是当前正在竞猜的场次：中途进场与场次末尾进场都向下取整
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 13, 35)), 12)
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 13, 45)), 12)
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 11, 49)), 10)
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 12, 50)), 12)
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 10, 30)), 10)
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 23, 50)), 22)
+        # 首场开始前进场押的是即将开始的 10:00 场（补结算匹配所需）
+        self.assertEqual(slot_hour_of(datetime(2026, 10, 1, 9, 45)), 10)
 
     def _choose(self, store, uids, left=20, right=10, wait=None, fetch_side_effect=None):
         now = self.NOW

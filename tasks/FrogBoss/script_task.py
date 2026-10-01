@@ -25,8 +25,8 @@ from tasks.FrogBoss.config import Strategy
 from tasks.FrogBoss.record_reader import read_record_rows
 from tasks.FrogBoss.frog_oas import (OasHistory, fetch_predictions, fingerprint,
                                      choose_follow, format_decision, format_result,
-                                     side_name, same_lineup, FOLLOW_POLL_INTERVAL)
-from tasks.FrogBoss.oas_sources import resolve_follow_list
+                                     side_name, same_lineup, slot_label, FOLLOW_POLL_INTERVAL)
+from tasks.FrogBoss.oas_sources import resolve_follow_list, blogger_name
 
 STRATEGY_LABELS = {
     Strategy.Majority: '押人数多的一方',
@@ -95,10 +95,14 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 settle_lines = []
                 for stamp, won, side in dict.fromkeys(readings[0]):
                     result = self.oas_history.settle_record(stamp, won, selected_side=side)
-                    result_text = format_result(result) if result is not None else '未能归属到唯一决策，已记为未验证'
-                    logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {result_text}，时间={stamp}，'
+                    if result is not None:
+                        result_text = format_result(result)
+                    else:
+                        result_text = '无对应跟单决策，结果暂记为未验证'
+                    label = slot_label(stamp)
+                    logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {label} {result_text}，时间={stamp}，'
                                 f"{'胜' if won else '负'}，本方押 {side_name(side)}")
-                    settle_lines.append(f"{stamp} {'胜' if won else '负'}（本方押 {side_name(side)}）: {result_text}")
+                    settle_lines.append(f"{label} {'胜' if won else '负'}（本方押 {side_name(side)}）: {result_text}")
                 if settle_lines:
                     self.frog_notify('历史补结算', '\n'.join(settle_lines))
         finally:
@@ -232,6 +236,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         flag_glod_30 = 0
         count_left = self.O_LEFT_COUNT.ocr(self.device.image)
         count_right = self.O_RIGHT_COUNT.ocr(self.device.image)
+        blogger_text = ''
         match self.config.model.frog_boss.frog_boss_config.strategy_frog:
             case Strategy.Majority:
                 click_image = self.I_BET_LEFT if count_left > count_right else self.I_BET_RIGHT
@@ -267,6 +272,10 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 decision = choose_follow(self.oas_history, signature, count_left, count_right, uids,
                                          wait=self.wait_for_follow_poll)
                 logger.info(f'[对弈竞猜-跟单] 决策: {format_decision(decision)}')
+                if decision.get('mode') == 'follow_blogger':
+                    blogger_text = blogger_name(decision.get('source_uid'))
+                else:
+                    blogger_text = '全部博主无预测，已回退人数多'
                 # 等待发帖可能跨越轮次切换，绝不点击过期画面
                 self.screenshot()
                 if not same_lineup(signature, fingerprint(self.device.image)):
@@ -283,8 +292,11 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
         logger.info(f'策略为 {self.config.model.frog_boss.frog_boss_config.strategy_frog}，下注 {click_image}')
         side_text = '红方（左）' if click_image is self.I_BET_LEFT else '蓝方（右）'
         strategy_now = self.config.model.frog_boss.frog_boss_config.strategy_frog
-        self.frog_notify('下注决策', f"策略: {STRATEGY_LABELS.get(strategy_now, strategy_now)}\n"
-                                     f"红方 {count_left} 票 / 蓝方 {count_right} 票\n押 {side_text}")
+        notify_content = (f"策略: {STRATEGY_LABELS.get(strategy_now, strategy_now)}\n"
+                          f"红方 {count_left} 票 / 蓝方 {count_right} 票\n押 {side_text}")
+        if blogger_text:
+            notify_content += f"\n跟单博主: {blogger_text}"
+        self.frog_notify('下注决策', notify_content)
         self.ui_click_until_disappear(click_image)
         gold_30_timer = Timer(10)
         gold_30_timer.start()

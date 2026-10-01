@@ -194,7 +194,7 @@ class OasHistory:
     def choose(self, signature, left, right, predictions):
         now = datetime.now()
         # Re-entry in the same slot reuses the original frozen decision.
-        slot = f'{now.date()}:{now.hour // 2}'
+        slot = f'{now.date()}:{slot_hour_of(now) // 2}'
         for e in reversed(self.events):
             if e.get('kind') == 'decision' and e['slot'] == slot and same_lineup(e['signature'], signature):
                 return e
@@ -336,7 +336,8 @@ def choose_follow(history, signature, left, right, uids, now=None, wait=None):
     同一场次同一阵容重复进入时复用已冻结的决策，不会重复下注或改单。
     """
     now = now or datetime.now()
-    slot_date, slot_hour = now.date(), now.hour // 2 * 2
+    slot_date = now.date()
+    slot_hour = slot_hour_of(now)
     slot = f'{slot_date}:{slot_hour // 2}'
     for event in reversed(history.events):
         if (event.get('kind') == 'decision' and event['slot'] == slot
@@ -379,6 +380,50 @@ def choose_follow(history, signature, left, right, uids, now=None, wait=None):
 
 
 _SIDE_NAMES = {'LEFT': '左(红)', 'RIGHT': '右(蓝)'}
+
+SLOT_HOURS = [10, 12, 14, 16, 18, 20, 22]
+
+
+def slot_hour_of(now):
+    """把任意时刻归属到屏幕上正在竞猜的场次开始小时（10/12/.../22）。
+
+    场次从偶数小时起持续 2 小时，投注覆盖整场（约结束前 10 分钟截止），
+    无论设计进场（场次末尾 15 分钟）还是中途重试进场，屏幕上都是当前场次，
+    向下取整即可：11:45→10、13:35→12；向上取整会把进行中的场次归到下一场，
+    导致跟单帖被 slot_mismatch 拒收、误报「博主尚未发布本场预测」。
+    仅首场开始前例外：09:45 押的是即将开始的 10:00 首场，钳到 10 保证
+    决策 slot 与补结算按记录页解析的场次一致。
+    """
+    h = now.hour // 2 * 2
+    if h < 10:
+        h = 10
+    return h
+
+
+def slot_label(stamp):
+    """把记录页时间戳翻译成「MM-DD 第N场(HH:00)」；解析失败退回原文。
+
+    记录页 OCR 时间戳格式不固定（含 2026.10.01.10:00 / 2026.09.3022:00 / 2026.09.302000 等粘连形态），
+    优先按 HH:00 精确匹配场次，再按场次小时从大到小兜底，避免 10 抢 20。
+    """
+    s = str(stamp)
+    dm = re.search(r'\d{4}[./-](\d{1,2})[./-](\d{1,2})', s)
+    date_text = f'{int(dm.group(1)):02d}-{int(dm.group(2)):02d}' if dm else ''
+    h = None
+    m = re.search(r'(\d{1,2})[:：]00', s)
+    if m:
+        h = int(m.group(1))
+    if h not in SLOT_HOURS:
+        # OCR 粘连（如 2026.09.3022:00 / 2026.09.302000），从大到小匹配避免 10 抢 20
+        for cand in [22, 20, 18, 16, 14, 12, 10]:
+            if str(cand) in s:
+                h = cand
+                break
+    if h in SLOT_HOURS:
+        field = f'第{SLOT_HOURS.index(h) + 1}场({h:02d}:00)'
+    else:
+        field = s
+    return f'{date_text} {field}' if date_text else field
 
 
 def side_name(side):
