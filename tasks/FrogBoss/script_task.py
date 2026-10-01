@@ -11,6 +11,7 @@ from pathlib import Path
 
 from module.exception import GameStuckError, TaskEnd
 from module.logger import logger
+from module.atom.click import RuleClick
 from module.atom.image import RuleImage
 from module.base.timer import Timer
 from module.notify.notify import Notifier
@@ -233,7 +234,6 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
     def do_bet(self):
         logger.hr('下注', level=2)
         self.screenshot()
-        flag_glod_30 = 0
         count_left = self.O_LEFT_COUNT.ocr(self.device.image)
         count_right = self.O_RIGHT_COUNT.ocr(self.device.image)
         blogger_text = ''
@@ -298,39 +298,55 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             notify_content += f"\n跟单博主: {blogger_text}"
         self.frog_notify('下注决策', notify_content)
         self.ui_click_until_disappear(click_image)
-        gold_30_timer = Timer(10)
-        gold_30_timer.start()
-        while 1:
-            self.screenshot()
-            if self.appear(self.I_GOLD_30_CHECK):
-                flag_glod_30 = 1
-                break
-            if gold_30_timer.reached():
-                logger.info('未出现金币30')
-                break
-            if self.appear_then_click(self.I_GOLD_30, interval=3):
-                continue
-        # 正式下注
-        logger.info('正式下注')
-        confirm_timer = Timer(9).start()
-        while 1:
+        if not self.confirm_bet():
+            return
+        self.frog_notify('下注完成', f"本场押注 {side_text} 完成，等待开奖")
+
+    def select_gold_30(self) -> bool:
+        """选中 30 万档：只点袋身上部，避开下部的获胜奖励说明角标（误触会弹出说明弹窗）"""
+        if not self.appear(self.I_GOLD_30):
+            return False
+        x, y, width, height = self.I_GOLD_30.roi_front
+        area = (x + width // 4, y + height // 8, width // 2, height // 3)
+        self.click(RuleClick(roi_front=area, roi_back=area, name='FB_GOLD_30_SELECT'))
+        return True
+
+    def confirm_bet(self) -> bool:
+        """选档并提交下注，返回是否完成下注（False 为对局已进入休息）
+
+        获胜奖励说明弹窗为模态，弹窗后方的金额袋、鼓面确认键仍能模板匹配，
+        不先关闭会点穿弹窗；检测到弹窗必须优先点左侧空白关闭并重新截图。
+        注意：I_REWARD_CLOSE（右上角红×）实为下注界面的退出按钮，绝非弹窗关闭键，严禁加入本循环。
+        """
+        logger.info('[对弈竞猜] 正式下注')
+        timer = Timer(9).start()
+        gold_selected = False
+        submit_attempts = 0
+        while not timer.reached():
             self.screenshot()
             if self.appear(self.I_BETTED):
-                break
-            if confirm_timer.reached():
-                raise GameStuckError('下注确认无响应，本场押注可能已截止')
-            # 注意：I_REWARD_CLOSE（右上角红×）实为下注界面的退出按钮，绝非奖励弹窗关闭键，
-            # 在此点击会直接退出下注界面导致下注失败，严禁加入确认循环
-            if self.appear_then_click(self.I_BET_SURE, interval=2) and flag_glod_30 == 1:
-                continue
-            if flag_glod_30 == 0 and self.appear_then_click(self.I_GOLD_30, interval=2):
-                flag_glod_30 = 1
+                return True
+            if self.appear(self.I_FROG_BOSS_REST):
+                logger.info('[对弈竞猜] 对局已进入休息，本场无需下注')
+                return False
+            if self.appear(self.I_GOLD_30_CHECK):
+                logger.info('[对弈竞猜] 检测到获胜奖励说明弹窗，点击左侧空白关闭')
+                self.click(self.C_RANDOM_LEFT, interval=2)
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM, interval=2):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=2):
                 continue
-        self.frog_notify('下注完成', f"本场押注 {side_text} 完成，等待开奖")
+            if not gold_selected:
+                if self.select_gold_30():
+                    gold_selected = True
+                continue
+            if submit_attempts < 3 and self.appear_then_click(self.I_BET_SURE, interval=3):
+                submit_attempts += 1
+                continue
+        raise GameStuckError(
+            f'下注确认超时: gold_selected={gold_selected}, submit_attempts={submit_attempts}，本场押注可能已截止'
+        )
 
     def wait_for_follow_poll(self, seconds_left):
         """跟单轮询等待：等一段时间再让 choose_follow 重拉预测。
