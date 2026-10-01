@@ -50,6 +50,9 @@ class Notifier:
     def push(self, **kwargs) -> bool:
         if not self.enable:
             return False
+        if getattr(self, 'notifier', None) is None:
+            logger.warning('[通知] 通知渠道未配置或初始化失败，跳过发送')
+            return False
         # 更新配置
         kwargs["title"] = f"{self.config_name} {kwargs['title']}"
         self.config.update(kwargs)

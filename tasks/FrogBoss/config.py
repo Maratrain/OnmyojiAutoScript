@@ -5,7 +5,7 @@
 from enum import Enum
 from pydantic import BaseModel, Field
 
-from tasks.Component.config_base import ConfigBase, Time
+from tasks.Component.config_base import ConfigBase, MultiLine, Time
 from tasks.Component.config_scheduler import Scheduler
 
 
@@ -23,6 +23,8 @@ class FrogBossConfig(ConfigBase):
     before_end_frog: Time = Field(default=Time(0, 15, 0), description='before_end_frog_help')
     strategy_frog: Strategy = Field(default=Strategy.Majority, description='strategy_frog_help')
     follow_bloggers: str = Field(default='面灵气喵,徐清林', description='follow_bloggers_help')
+    notify_enable: bool = Field(default=False, description='frog_notify_enable_help')
+    notify_config: MultiLine = Field(default='provider: null', description='frog_notify_config_help')
 
 class FrogBoss(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)

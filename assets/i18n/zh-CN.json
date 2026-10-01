@@ -338,6 +338,8 @@
   "before_end_frog_help": "下注提前量：脚本会在下一轮对弈竞猜开始前这段时间运行（默认 15 分钟），用于赶在下注结束前完成竞猜",
   "strategy_frog_help": "对弈竞猜的下注策略：\n1. frog_majority 押下注人数多的一方\n2. frog_minority 押下注人数少的一方\n3. frog_bilibili 跟随 B 站博主（实际也押人多的一方）\n4. frog_dashen 综合多位大神 UP 主的推荐\n5. frog_oas 加权投票：记录各来源历史预测的胜负并按胜率加权，冷启动时按专家多数与人群投票决策\n6. frog_follow_blogger 跟单指定博主：按优先级只跟随配置的大神博主预测，扑空时依次降级\n7. frog_always_red 永远押红方（左）\n8. frog_always_blue 永远押蓝方（右）",
   "follow_bloggers_help": "跟单博主优先级列表（从左到右优先级从高到低，用逗号分隔）：可填大神昵称或 32 位 UID，默认「面灵气喵,徐清林」。最高优先级博主未发布本场预测时，脚本会每 45 秒重试拉取直到本场结束前约 2 分钟；届时仍没有则改跟列表中下一位博主；全部没有时回退为押人数多的一方",
+  "frog_notify_enable_help": "对弈竞猜推送通知：开启后在每个环节（开始、下注决策、下注完成、开奖结果、休息、结束）推送到下方配置的通知渠道",
+  "frog_notify_config_help": "推送渠道配置（onepush 格式，YAML）。示例（Server酱）：\nprovider: serverchan\nsckey: SCTxxxx\n支持 pushplus、bark、telegram、企业微信等，与「全局-其他-错误处理」里的通知配置写法相同；推送开关独立于全局错误通知开关",
   "broker_help": "MQTT 服务器（broker）地址，组队流通过该服务器与其他设备同步策略",
   "ca_help": "SSL/TLS 模式使用的 CA 证书文件路径，选择 SSL/TLS 时必填",
   "enable_help": "是否启用",

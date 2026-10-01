@@ -13,6 +13,7 @@ from module.exception import GameStuckError, TaskEnd
 from module.logger import logger
 from module.atom.image import RuleImage
 from module.base.timer import Timer
+from module.notify.notify import Notifier
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main
@@ -27,12 +28,44 @@ from tasks.FrogBoss.frog_oas import (OasHistory, fetch_predictions, fingerprint,
                                      side_name, same_lineup, FOLLOW_POLL_INTERVAL)
 from tasks.FrogBoss.oas_sources import resolve_follow_list
 
+STRATEGY_LABELS = {
+    Strategy.Majority: '押人数多的一方',
+    Strategy.Minority: '押人数少的一方',
+    Strategy.Bilibili: '跟随B站博主',
+    Strategy.Dashen: '综合大神推荐',
+    Strategy.Oas: '加权投票',
+    Strategy.FollowBlogger: '跟单指定博主',
+    Strategy.AlwaysRed: '永远押红方',
+    Strategy.AlwaysBlue: '永远押蓝方',
+}
+
 
 class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
     @cached_property
     def oas_history(self):
         instance = re.sub(r'[^\w.-]', '_', self.config.config_name)
         return OasHistory(Path('data/frog_oas') / f'{instance}.jsonl')
+
+    @cached_property
+    def frog_notifier(self) -> Notifier:
+        frog = self.config.model.frog_boss.frog_boss_config
+        notifier = Notifier(frog.notify_config, enable=frog.notify_enable)
+        notifier.config_name = self.config.config_name
+        return notifier
+
+    def frog_notify(self, title: str, content: str = ''):
+        """对弈竞猜环节推送：开关关闭或推送失败都不影响任务本身"""
+        if not self.config.model.frog_boss.frog_boss_config.notify_enable:
+            return
+        try:
+            self.frog_notifier.push(title=title, content=content)
+        except Exception as e:
+            logger.exception(f'[对弈竞猜] 推送通知失败: {title}')
+
+    def winner_name(self, result) -> str:
+        if result is None:
+            return '未知'
+        return '左方' if result else '右方'
 
     def record_oas_history_page(self):
         if self.config.model.frog_boss.frog_boss_config.strategy_frog not in (Strategy.Oas, Strategy.FollowBlogger):
@@ -57,12 +90,17 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             if len(readings) != 2 or readings[0] != readings[1]:
                 self.oas_history.append('unverified_result', reason='unstable_record_page')
                 logger.warning('[对弈竞猜-加权投票] 记录页面两次读取结果不稳定，跳过补结算')
+                self.frog_notify('历史补结算跳过', '记录页面两次读取结果不稳定，本轮未补结算')
             else:
+                settle_lines = []
                 for stamp, won, side in dict.fromkeys(readings[0]):
                     result = self.oas_history.settle_record(stamp, won, selected_side=side)
                     result_text = format_result(result) if result is not None else '未能归属到唯一决策，已记为未验证'
                     logger.info(f'[对弈竞猜-加权投票] 记录页补结算: {result_text}，时间={stamp}，'
                                 f"{'胜' if won else '负'}，本方押 {side_name(side)}")
+                    settle_lines.append(f"{stamp} {'胜' if won else '负'}（本方押 {side_name(side)}）: {result_text}")
+                if settle_lines:
+                    self.frog_notify('历史补结算', '\n'.join(settle_lines))
         finally:
             timer = Timer(10).start()
             while not timer.reached():
@@ -94,6 +132,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
     def run(self):
         self.enter_frog_boss()
+        strategy = self.config.model.frog_boss.frog_boss_config.strategy_frog
+        self.frog_notify('对弈竞猜开始', f"本次策略: {STRATEGY_LABELS.get(strategy, strategy)}")
         history_checked = False
         idle_timer = Timer(5).start()
         # 进入主界面
@@ -114,15 +154,18 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             # 已经下注
             if self.appear(self.I_BETTED):
                 logger.info('已下注')
+                self.frog_notify('本场已下注', '检测到本场已完成押注，等待开奖')
                 break
             # 休息中
             if self.appear(self.I_FROG_BOSS_REST):
                 logger.info('[对弈竞猜] 对弈休息中')
+                self.frog_notify('对弈休息中', '当前处于休息时段，本轮无竞猜')
                 break
             # 竞猜成功
             if self.appear(self.I_BET_SUCCESS):
                 logger.info('竞猜成功')
-                self.detect()
+                result = self.detect()
+                self.frog_notify('竞猜成功', f"本场开奖: {self.winner_name(result)}获胜，竞猜成功")
                 while 1:
                     self.screenshot()
                     if self._try_next_competition_fallback(idle_timer):
@@ -142,9 +185,10 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             # 竞猜失败
             if self.appear(self.I_BET_FAILURE):
                 logger.info('竞猜失败')
+                result = self.detect()
+                self.frog_notify('竞猜失败', f"本场开奖: {self.winner_name(result)}获胜，竞猜失败")
                 if self.ui_click_until_disappear(self.I_NEXT_COMPETITION):
                     idle_timer.reset()
-                self.detect()
                 continue
             # 正式竞猜
             if self.appear(self.I_BET_LEFT) and self.appear(self.I_BET_RIGHT):
@@ -154,6 +198,8 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
 
         logger.info('[对弈竞猜] 对弈竞猜结束')
         self.next_run()
+        next_run = self.config.model.frog_boss.scheduler.next_run
+        self.frog_notify('任务结束', f"对弈竞猜结束，下次运行: {next_run}")
         raise TaskEnd('FrogBoss')
 
     def next_run(self):
@@ -247,6 +293,10 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
             case _:
                 raise ValueError(f'Unknown bet mode: {self.config.model.frog_boss.frog_boss_config.strategy_frog}')
         logger.info(f'策略为 {self.config.model.frog_boss.frog_boss_config.strategy_frog}，下注 {click_image}')
+        side_text = '红方（左）' if click_image is self.I_BET_LEFT else '蓝方（右）'
+        strategy_now = self.config.model.frog_boss.frog_boss_config.strategy_frog
+        self.frog_notify('下注决策', f"策略: {STRATEGY_LABELS.get(strategy_now, strategy_now)}\n"
+                                     f"红方 {count_left} 票 / 蓝方 {count_right} 票\n押 {side_text}")
         self.ui_click_until_disappear(click_image)
         gold_30_timer = Timer(10)
         gold_30_timer.start()
@@ -280,6 +330,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=2):
                 continue
+        self.frog_notify('下注完成', f"本场押注 {side_text} 完成，等待开奖")
 
     def wait_for_follow_poll(self, seconds_left):
         """跟单轮询等待：等一段时间再让 choose_follow 重拉预测。
