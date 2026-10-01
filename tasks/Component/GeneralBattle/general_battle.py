@@ -676,7 +676,8 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
     def _exclude_button_stage_1(self) -> list[str]:
         """结算页需要排除的控件区域资产名(含玩家名片, 防止拟人点击误开个人主页)。"""
         return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
-                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD']
+                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD',
+                'C_END_3']
 
     @cached_property
     def _exclude_button_stage_2(self) -> list[str]:
@@ -791,6 +792,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         # 上个页面为战斗结算/奖励页面, 此时识别不到页面, 则开始超时计时
         if context.reward_no_battle_ts is None:
             context.reward_no_battle_ts = time.time()
+            return BattleAction.CONTINUE
+        # 识别丢失多为误触奖励物品弹出了详情浮窗, 先点击空白处关闭再等页面恢复
+        if self.appear(self.I_END_FIX_1):
+            self.click(self.C_REWARD_2, interval=1.5)
             return BattleAction.CONTINUE
         # 若超时则认为战斗已经结束
         if time.time() - context.reward_no_battle_ts >= 2.5:

@@ -108,6 +108,8 @@ class GeneralBattleAssets:
 	C_END_2_5 = RuleClick(roi_front=(806,310,100,100), roi_back=(806,310,100,100), name="end_2_5")
 	# description
 	C_END_2_6 = RuleClick(roi_front=(942,312,100,100), roi_back=(942,312,100,100), name="end_2_6")
+	# 结算页奖励物品行(兵藏秘境等结算页自带一排物品, 误触会弹出物品详情浮窗)
+	C_END_3 = RuleClick(roi_front=(210,405,865,118), roi_back=(210,405,865,118), name="end_3")
 
 
 	# Image Rule Assets
