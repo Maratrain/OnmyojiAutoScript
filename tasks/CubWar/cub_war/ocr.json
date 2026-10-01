@@ -1,0 +1,29 @@
+[
+ {
+  "itemName": "feast_end_countdown",
+  "roiFront": "497,50,268,44",
+  "roiBack": "497,50,268,44",
+  "mode": "Full",
+  "method": "Default",
+  "keyword": "",
+  "description": "本宴剩余倒计时"
+ },
+ {
+  "itemName": "retreat_times",
+  "roiFront": "1153,643,62,26",
+  "roiBack": "1153,643,62,26",
+  "mode": "Digit",
+  "method": "Default",
+  "keyword": "",
+  "description": "退治按钮角标次数"
+ },
+ {
+  "itemName": "daily_limit",
+  "roiFront": "1152,679,68,28",
+  "roiBack": "1152,679,68,28",
+  "mode": "DigitCounter",
+  "method": "Default",
+  "keyword": "",
+  "description": "每日消耗上限已用/总量"
+ }
+]

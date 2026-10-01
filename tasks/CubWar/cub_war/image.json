@@ -1,0 +1,92 @@
+[
+ {
+  "itemName": "main_goto_cub_war",
+  "imageName": "cub_war_main_goto_cub_war.png",
+  "roiFront": "1169,442,92,78",
+  "roiBack": "1150,420,120,120",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "庭院右侧为崽而战入口"
+ },
+ {
+  "itemName": "check_cub_war_page",
+  "imageName": "cub_war_check_cub_war_page.png",
+  "roiFront": "476,18,318,82",
+  "roiBack": "460,10,350,95",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "为崽而战活动主页标志"
+ },
+ {
+  "itemName": "goto_feast",
+  "imageName": "cub_war_goto_feast.png",
+  "roiFront": "445,161,50,240",
+  "roiBack": "430,150,90,270",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "八百八狸盛宴入口横幅"
+ },
+ {
+  "itemName": "check_feast_map",
+  "imageName": "cub_war_check_feast_map.png",
+  "roiFront": "497,10,160,38",
+  "roiBack": "460,5,260,60",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "盛宴地图标志"
+ },
+ {
+  "itemName": "goto_boss",
+  "imageName": "cub_war_goto_boss.png",
+  "roiFront": "594,374,154,88",
+  "roiBack": "520,350,280,130",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "八百八狸讨伐中横幅，点击进入挑战页"
+ },
+ {
+  "itemName": "check_challenge",
+  "imageName": "cub_war_check_challenge.png",
+  "roiFront": "590,12,158,32",
+  "roiBack": "560,5,220,60",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "首领战斗挑战页标志"
+ },
+ {
+  "itemName": "retreat_fire",
+  "imageName": "cub_war_retreat_fire.png",
+  "roiFront": "1118,578,100,62",
+  "roiBack": "1090,540,180,110",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "退治按钮"
+ },
+ {
+  "itemName": "goto_push",
+  "imageName": "cub_war_goto_push.png",
+  "roiFront": "840,462,150,50",
+  "roiBack": "700,420,400,140",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "讨伐开启弹窗立即前往按钮"
+ },
+ {
+  "itemName": "popup_close",
+  "imageName": "cub_war_popup_close.png",
+  "roiFront": "1185,36,42,44",
+  "roiBack": "1150,20,130,175",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "活动弹窗右上角关闭"
+ },
+ {
+  "itemName": "check_group",
+  "imageName": "cub_war_check_group.png",
+  "roiFront": "583,283,126,142",
+  "roiBack": "520,240,240,240",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "本寮分组弹窗标志"
+ }
+]
