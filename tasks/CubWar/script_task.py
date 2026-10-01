@@ -114,12 +114,16 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
             if battle_count >= 20:
                 logger.warning("[崽战退治] 单次运行已达 20 场上限，收工")
                 break
-            # 每日消耗上限（已用/剩余/总量）
+            # 每日消耗上限（已用/剩余/总量）与单次消耗（按钮 ×N）
             used, remain, total = self.O_DAILY_LIMIT.ocr(self.device.image)
+            cost = self.O_RETREAT_COST.ocr(self.device.image)
             if total > 0:
                 ocr_fail = 0
                 if remain <= 0:
                     logger.info(f"[崽战退治] 今日消耗已达上限 {used}/{total}，收工")
+                    break
+                if cost > 0 and remain < cost:
+                    logger.info(f"[崽战退治] 剩余 {remain} 不足一次消耗 {cost}，收工")
                     break
             else:
                 ocr_fail += 1

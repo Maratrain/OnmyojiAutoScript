@@ -9,18 +9,18 @@
   "description": "本宴剩余倒计时"
  },
  {
-  "itemName": "retreat_times",
-  "roiFront": "1153,643,62,26",
-  "roiBack": "1153,643,62,26",
+  "itemName": "retreat_cost",
+  "roiFront": "1163,636,76,26",
+  "roiBack": "1163,636,76,26",
   "mode": "Digit",
   "method": "Default",
   "keyword": "",
-  "description": "退治按钮角标次数"
+  "description": "单次挑战消耗（按钮×N）"
  },
  {
   "itemName": "daily_limit",
-  "roiFront": "1152,679,68,28",
-  "roiBack": "1152,679,68,28",
+  "roiFront": "1151,678,102,30",
+  "roiBack": "1151,678,102,30",
   "mode": "DigitCounter",
   "method": "Default",
   "keyword": "",

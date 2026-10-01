@@ -36,7 +36,7 @@ class CubWarAssets:
 	# Ocr Rule Assets（为崽而战·八百八狸盛宴）
 	# 本宴剩余倒计时
 	O_FEAST_END_COUNTDOWN = RuleOcr(roi=(497,50,268,44), area=(497,50,268,44), mode="Full", method="Default", keyword="", name="feast_end_countdown")
-	# 退治按钮角标次数
-	O_RETREAT_TIMES = RuleOcr(roi=(1153,643,62,26), area=(1153,643,62,26), mode="Digit", method="Default", keyword="", name="retreat_times")
+	# 单次挑战消耗（按钮×N）
+	O_RETREAT_COST = RuleOcr(roi=(1163,636,76,26), area=(1163,636,76,26), mode="Digit", method="Default", keyword="", name="retreat_cost")
 	# 每日消耗上限已用/总量
-	O_DAILY_LIMIT = RuleOcr(roi=(1152,679,68,28), area=(1152,679,68,28), mode="DigitCounter", method="Default", keyword="", name="daily_limit")
+	O_DAILY_LIMIT = RuleOcr(roi=(1151,678,102,30), area=(1151,678,102,30), mode="DigitCounter", method="Default", keyword="", name="daily_limit")
