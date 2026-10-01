@@ -169,13 +169,15 @@ class CostumeAssets:
 	# description 
 	I_CHECK_MAIN_4 = RuleImage(roi_front=(885,192,37,32), roi_back=(149,108,1005,144), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_check_main_4.png")
 	# description 
-	I_MAIN_GOTO_EXPLORATION_4 = RuleImage(roi_front=(439,234,32,48), roi_back=(150,201,847,100), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_exploration_4.png")
+	I_MAIN_GOTO_EXPLORATION_4 = RuleImage(roi_front=(440,218,48,66), roi_back=(150,201,847,100), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_exploration_4.png")
 	#  
 	I_MAIN_GOTO_SUMMON_4 = RuleImage(roi_front=(959,215,41,62), roi_back=(556,187,659,100), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_summon_4.png")
 	# description 
 	I_MAIN_GOTO_TOWN_4 = RuleImage(roi_front=(814,242,47,60), roi_back=(524,228,555,82), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_town_4.png")
 	# description 
-	I_PET_HOUSE_4 = RuleImage(roi_front=(977,387,29,40), roi_back=(922,371,241,73), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_pet_house_4.png")
+	I_MAIN_GOTO_CUB_WAR_4 = RuleImage(roi_front=(1170,440,94,80), roi_back=(1150,420,120,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_cub_war_4.png")
+	# 宠物屋金徽章（十周年庭院后位置/样式变化，依 2026-10-01 截图重截）
+	I_PET_HOUSE_4 = RuleImage(roi_front=(958,362,84,76), roi_back=(900,355,280,130), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_pet_house_4.png")
 
 
 	# Image Rule Assets
