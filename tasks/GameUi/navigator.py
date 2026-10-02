@@ -22,6 +22,7 @@ from module.base.timer import Timer
 from module.exception import GamePageUnknownError, GameNotRunningError
 from module.logger import logger
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
+from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.GameUi.action import ActionSequence, ConditionalAction
 from tasks.GameUi.assets import GameUiAssets
 from tasks.GameUi.common import infer_tasks_category_from_parts, infer_tasks_category_from_path
@@ -704,6 +705,14 @@ class GameUi(BaseTask, GameUiAssets):
                 # 关掉未知界面后等待页面变化, 防止多次识别到未知界面
                 time.sleep(random.randrange(8, 16, 1) / 10)
                 return True
+        # 常规关闭控件均未识别到时, 点击屏幕左侧空白处, 关闭点空白即可退出的详情浮窗
+        # (如结算奖励页误触奖励物品弹出的御魂详情)。连续多次无效则放弃, 交由上层导航超时处理。
+        if self.navigator.unknown_close_history[-3:] != ['blank_area_close'] * 3:
+            self.click(GeneralBattleAssets.C_REWARD_2, interval=1.5)
+            self._record_unknown_close_event('blank_area_close')
+            # 关掉未知界面后等待页面变化, 防止多次识别到未知界面
+            time.sleep(random.randrange(8, 16, 1) / 10)
+            return True
         self._record_unknown_close_event(f"None")
 
         @run_once

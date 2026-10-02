@@ -83,17 +83,17 @@ class GeneralBattleAssets:
 	# 战斗数据详细
 	C_END_SOUL_DETAILS = RuleClick(roi_front=(383,559,52,49), roi_back=(383,559,52,49), name="end_soul_details")
 	# description
-	C_END_1_1 = RuleClick(roi_front=(266,175,100,100), roi_back=(266,175,100,100), name="end_1_1")
+	C_END_1_1 = RuleClick(roi_front=(266,165,100,120), roi_back=(266,165,100,120), name="end_1_1")
 	# description
-	C_END_1_2 = RuleClick(roi_front=(400,174,100,100), roi_back=(400,174,100,100), name="end_1_2")
+	C_END_1_2 = RuleClick(roi_front=(400,165,100,120), roi_back=(400,165,100,120), name="end_1_2")
 	# description
-	C_END_1_3 = RuleClick(roi_front=(536,173,100,100), roi_back=(536,173,100,100), name="end_1_3")
+	C_END_1_3 = RuleClick(roi_front=(536,165,100,120), roi_back=(536,165,100,120), name="end_1_3")
 	# description
-	C_END_1_4 = RuleClick(roi_front=(671,173,100,100), roi_back=(671,173,100,100), name="end_1_4")
+	C_END_1_4 = RuleClick(roi_front=(671,165,100,120), roi_back=(671,165,100,120), name="end_1_4")
 	# description
-	C_END_1_5 = RuleClick(roi_front=(805,174,100,100), roi_back=(805,174,100,100), name="end_1_5")
+	C_END_1_5 = RuleClick(roi_front=(805,165,100,120), roi_back=(805,165,100,120), name="end_1_5")
 	# description
-	C_END_1_6 = RuleClick(roi_front=(942,175,100,100), roi_back=(942,175,100,100), name="end_1_6")
+	C_END_1_6 = RuleClick(roi_front=(942,165,100,120), roi_back=(942,165,100,120), name="end_1_6")
 	# 结算页玩家名片(头像/名字/点赞按钮), 拟人随机点击误触会打开个人主页
 	C_END_PLAYER_CARD = RuleClick(roi_front=(540,370,170,235), roi_back=(540,370,170,235), name="end_player_card")
 	# description

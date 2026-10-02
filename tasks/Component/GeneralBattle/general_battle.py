@@ -120,6 +120,8 @@ class BattleContext:
     continuous_count: int = 1
     # 结算结束后暂时识别不到战斗页面时的首个时间戳；用于 x 秒兜底。
     reward_no_battle_ts: float | None = None
+    # 识别不到战斗页面时是否已执行过"点空白关浮窗"兜底；每轮连战重置，防止无限点击。
+    reward_blank_closed: bool = False
     # 当前调用是否已进入快速退出路径；该状态只在本次调用内有效。
     quick_exit: bool = False
     # quick_exit 的退出按钮等待窗口；用于容忍页面尚未加载完成时的短暂失败。
@@ -484,6 +486,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         context.long_refresh_timer = Timer(180).start()
         context.last_page = None
         context.reward_no_battle_ts = None
+        context.reward_blank_closed = False
         context.quick_exit = bool(config.quick_exit)
         context.quick_exit_timer = None
         context.continuous_count = continuous_count
@@ -789,16 +792,23 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if context.last_page is None or (context.last_page in {page_battle_prepare, page_battle} and
                                          context.reward_no_battle_ts is None):
             return BattleAction.CONTINUE
+        # 识别丢失多为误触奖励物品弹出了详情浮窗, 先点击空白处关闭再等页面恢复
+        if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2) or self.appear(self.I_END_FIX_3):
+            self.click(self.C_REWARD_2, interval=1.5)
+            context.reward_no_battle_ts = None
+            return BattleAction.CONTINUE
         # 上个页面为战斗结算/奖励页面, 此时识别不到页面, 则开始超时计时
         if context.reward_no_battle_ts is None:
             context.reward_no_battle_ts = time.time()
             return BattleAction.CONTINUE
-        # 识别丢失多为误触奖励物品弹出了详情浮窗, 先点击空白处关闭再等页面恢复
-        if self.appear(self.I_END_FIX_1):
-            self.click(self.C_REWARD_2, interval=1.5)
-            return BattleAction.CONTINUE
-        # 若超时则认为战斗已经结束
+        # 若超时则先点击一次空白处, 兜底关闭模板未覆盖的详情浮窗, 仍无法恢复才认为战斗已经结束
         if time.time() - context.reward_no_battle_ts >= 2.5:
+            if not context.reward_blank_closed:
+                context.reward_blank_closed = True
+                logger.info("[通用战斗] 页面识别丢失, 点击空白处尝试关闭误触浮窗")
+                self.click(self.C_REWARD_2, interval=1.5)
+                context.reward_no_battle_ts = None
+                return BattleAction.CONTINUE
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE
         return BattleAction.CONTINUE
 
