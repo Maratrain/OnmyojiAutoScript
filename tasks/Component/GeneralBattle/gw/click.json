@@ -7,9 +7,9 @@
   },
   {
     "itemName": "end_buff_area_1",
-    "roiFront": "150,638,295,41",
-    "roiBack": "150,638,295,41",
-    "description": "description"
+    "roiFront": "148,625,310,90",
+    "roiBack": "148,625,310,90",
+    "description": "左下角经验/金币加成按钮(含底部阴影), 拟人随机点击误触会展开加成详情"
   },
   {
     "itemName": "end_buff_area_2",

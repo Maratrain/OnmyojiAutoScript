@@ -70,8 +70,8 @@ class GeneralBattleAssets:
 	C_REWARD_3 = RuleClick(roi_front=(1092,156,168,437), roi_back=(1092,156,168,437), name="reward_3")
 	# 右上角的聊天信息
 	C_END_MESSAGE_RIGHT_TOP = RuleClick(roi_front=(848,0,399,46), roi_back=(849,0,397,45), name="end_message_right_top")
-	# description
-	C_END_BUFF_AREA_1 = RuleClick(roi_front=(150,638,295,41), roi_back=(150,638,295,41), name="end_buff_area_1")
+	# 左下角经验/金币加成按钮(含底部阴影), 拟人随机点击误触会展开加成详情
+	C_END_BUFF_AREA_1 = RuleClick(roi_front=(148,625,310,90), roi_back=(148,625,310,90), name="end_buff_area_1")
 	# description
 	C_END_BUFF_AREA_2 = RuleClick(roi_front=(457,635,273,43), roi_back=(457,635,273,43), name="end_buff_area_2")
 	# 給地鬼的

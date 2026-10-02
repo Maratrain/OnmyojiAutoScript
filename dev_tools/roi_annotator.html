@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>OAS ROI 标注工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: #1e1f22; color: #d6d3cd;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  header {
+    padding: 8px 14px; background: #2b2d31; border-bottom: 1px solid #3f4147;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  header b { color: #e8b04b; }
+  header .hint { color: #8e9196; font-size: 12px; }
+  button {
+    background: #4e5d94; color: #fff; border: none; border-radius: 4px;
+    padding: 5px 12px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { background: #5d6ead; }
+  button.small { padding: 2px 8px; font-size: 12px; background: #55585f; }
+  button.small:hover { background: #6a6e76; }
+  main { flex: 1; display: flex; min-height: 0; }
+  #stage {
+    flex: 1; position: relative; overflow: auto;
+    display: flex; align-items: flex-start; justify-content: flex-start;
+    background: #141517;
+  }
+  #dropzone {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; color: #6a6d73;
+    font-size: 15px; pointer-events: none;
+  }
+  #imgwrap { position: relative; margin: auto; display: none; }
+  #img { display: block; user-select: none; -webkit-user-drag: none; }
+  #overlay { position: absolute; inset: 0; cursor: crosshair; }
+  #selbox {
+    position: absolute; border: 1px solid #ff5555; outline: 1px solid rgba(0,0,0,.6);
+    background: rgba(255,85,85,.12); display: none; pointer-events: none;
+  }
+  #hline, #vline { position: absolute; background: rgba(255,220,80,.45); display: none; pointer-events: none; }
+  #hline { left: 0; right: 0; height: 1px; }
+  #vline { top: 0; bottom: 0; width: 1px; }
+  aside {
+    width: 340px; flex-shrink: 0; background: #2b2d31;
+    border-left: 1px solid #3f4147; padding: 12px; overflow-y: auto;
+  }
+  aside h3 { font-size: 13px; color: #9da3ad; margin: 12px 0 6px; }
+  aside h3:first-child { margin-top: 0; }
+  .row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .val {
+    flex: 1; background: #111214; border: 1px solid #3f4147; border-radius: 4px;
+    padding: 5px 8px; font-family: Consolas, monospace; font-size: 13px;
+    color: #7fd18c; white-space: nowrap; overflow-x: auto; user-select: all;
+  }
+  .val .dim { color: #8e9196; }
+  #history { list-style: none; }
+  #history li {
+    background: #1a1b1e; border: 1px solid #3f4147; border-radius: 4px;
+    padding: 5px 8px; margin-bottom: 5px; font-family: Consolas, monospace;
+    font-size: 12px; display: flex; gap: 6px; align-items: center;
+  }
+  #history li .txt { flex: 1; word-break: break-all; user-select: all; color: #c9c5bd; }
+  #history li .src { color: #6f9dd6; }
+  #mousepos { color: #e8b04b; font-family: Consolas, monospace; font-size: 13px; }
+  .empty { color: #6a6d73; font-size: 12px; }
+  #zoominfo { color: #8e9196; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <b>OAS ROI 标注工具</b>
+  <button id="btnopen">打开图片</button>
+  <button id="btnclear" class="small">清空历史</button>
+  <span class="hint">把截图拖进页面 → 在图上拖拽圈选 → 点"复制"把坐标发出来</span>
+  <span id="zoominfo"></span>
+</header>
+<main>
+  <div id="stage">
+    <div id="dropzone">
+      <div style="font-size:40px">🖼️</div>
+      <div>把截图拖到这里，或点右上角"打开图片"</div>
+      <div class="hint">支持 MuMu / OAS 错误现场等任意 PNG/JPG</div>
+    </div>
+    <div id="imgwrap">
+      <img id="img">
+      <div id="overlay">
+        <div id="hline"></div>
+        <div id="vline"></div>
+        <div id="selbox"></div>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <h3>鼠标位置（原图坐标）</h3>
+    <div id="mousepos">—</div>
+    <h3>当前圈选区域</h3>
+    <div class="row"><div class="val" id="v-roi"><span class="dim">尚未圈选</span></div><button class="small" data-copy="v-roi">复制</button></div>
+    <div class="row"><div class="val" id="v-assets"><span class="dim">assets.py 参数格式</span></div><button class="small" data-copy="v-assets">复制</button></div>
+    <div class="row"><div class="val" id="v-center"><span class="dim">中心点</span></div><button class="small" data-copy="v-center">复制</button></div>
+    <div class="row"><div class="val" id="v-topleft"><span class="dim">左上角点</span></div><button class="small" data-copy="v-topleft">复制</button></div>
+    <h3>历史标注 <span class="empty" id="imgname"></span></h3>
+    <ul id="history"><li class="empty">暂无，圈选后自动记录</li></ul>
+  </aside>
+</main>
+<input type="file" id="fileinput" accept="image/*" style="display:none">
+<script>
+(function () {
+  var img = document.getElementById('img');
+  var imgwrap = document.getElementById('imgwrap');
+  var overlay = document.getElementById('overlay');
+  var selbox = document.getElementById('selbox');
+  var hline = document.getElementById('hline');
+  var vline = document.getElementById('vline');
+  var dropzone = document.getElementById('dropzone');
+  var mousepos = document.getElementById('mousepos');
+  var zoominfo = document.getElementById('zoominfo');
+  var imgname = document.getElementById('imgname');
+  var historyUl = document.getElementById('history');
+  var fileinput = document.getElementById('fileinput');
+
+  var scale = 1;          // 显示尺寸 / 原图尺寸
+  var dragging = false;
+  var startX = 0, startY = 0;   // 原图坐标
+  var cur = null;               // {x,y,w,h} 原图坐标
+  var curImage = '';
+
+  function toImageCoord(ev) {
+    var r = img.getBoundingClientRect();
+    var x = Math.round((ev.clientX - r.left) / scale);
+    var y = Math.round((ev.clientY - r.top) / scale);
+    x = Math.max(0, Math.min(img.naturalWidth - 1, x));
+    y = Math.max(0, Math.min(img.naturalHeight - 1, y));
+    return { x: x, y: y };
+  }
+
+  function loadFile(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    if (curImage === file.name) { /* 同名图片重新打开, 保留历史 */ }
+    curImage = file.name;
+    imgname.textContent = '（' + file.name + '）';
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      fitImage();
+      imgwrap.style.display = 'block';
+      dropzone.style.display = 'none';
+      cur = null; showValues(null);
+    };
+    img.src = url;
+  }
+
+  function fitImage() {
+    var stage = document.getElementById('stage');
+    var maxW = stage.clientWidth - 24, maxH = stage.clientHeight - 24;
+    scale = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+    img.style.width = Math.round(img.naturalWidth * scale) + 'px';
+    img.style.height = Math.round(img.naturalHeight * scale) + 'px';
+    overlay.style.width = img.style.width;
+    overlay.style.height = img.style.height;
+    zoominfo.textContent = img.naturalWidth + '×' + img.naturalHeight +
+      (scale < 1 ? '　显示 ' + Math.round(scale * 100) + '%' : '　1:1');
+  }
+
+  function drawSelbox() {
+    if (!cur) { selbox.style.display = 'none'; return; }
+    selbox.style.display = 'block';
+    selbox.style.left = cur.x * scale + 'px';
+    selbox.style.top = cur.y * scale + 'px';
+    selbox.style.width = cur.w * scale + 'px';
+    selbox.style.height = cur.h * scale + 'px';
+  }
+
+  function fmtRoi(c) { return c.x + ',' + c.y + ',' + c.w + ',' + c.h; }
+  function showValues(c) {
+    set('v-roi', c ? fmtRoi(c) : null, '尚未圈选');
+    set('v-assets', c ? '(roi_front=(' + fmtRoi(c) + '), roi_back=(' + fmtRoi(c) + '))' : null, 'assets.py 参数格式');
+    set('v-center', c ? '(' + (c.x + Math.floor(c.w / 2)) + ', ' + (c.y + Math.floor(c.h / 2)) + ')' : null, '中心点');
+    set('v-topleft', c ? '(' + c.x + ', ' + c.y + ')' : null, '左上角点');
+  }
+  function set(id, text, empty) {
+    var el = document.getElementById(id);
+    el.textContent = text === null ? empty : text;
+  }
+
+  overlay.addEventListener('mousedown', function (ev) {
+    if (!img.naturalWidth) return;
+    if (ev.button !== 0) return;
+    dragging = true;
+    var p = toImageCoord(ev);
+    startX = p.x; startY = p.y;
+    cur = { x: p.x, y: p.y, w: 0, h: 0 };
+    drawSelbox(); showValues(null);
+    ev.preventDefault();
+  });
+  overlay.addEventListener('mousemove', function (ev) {
+    if (!img.naturalWidth) return;
+    var p = toImageCoord(ev);
+    mousepos.textContent = '(' + p.x + ', ' + p.y + ')';
+    var r = overlay.getBoundingClientRect();
+    hline.style.display = vline.style.display = 'block';
+    hline.style.top = (p.y * scale) + 'px';
+    vline.style.left = (p.x * scale) + 'px';
+    if (!dragging) return;
+    var x2 = Math.max(startX, p.x), y2 = Math.max(startY, p.y);
+    cur = {
+      x: Math.min(startX, p.x), y: Math.min(startY, p.y),
+      w: x2 - Math.min(startX, p.x), h: y2 - Math.min(startY, p.y)
+    };
+    drawSelbox();
+  });
+  window.addEventListener('mouseup', function () {
+    if (!dragging) return;
+    dragging = false;
+    if (cur && (cur.w < 3 && cur.h < 3)) {
+      // 视为点选: 只输出一个 1x1 点
+      cur = { x: cur.x, y: cur.y, w: 1, h: 1 };
+      drawSelbox();
+    }
+    if (cur) { showValues(cur); addHistory(cur); }
+  });
+  overlay.addEventListener('mouseleave', function () {
+    hline.style.display = vline.style.display = 'none';
+  });
+
+  function setHistoryItems(items) {
+    historyUl.innerHTML = '';
+    if (!items.length) {
+      var li = document.createElement('li');
+      li.className = 'empty'; li.textContent = '暂无，圈选后自动记录';
+      historyUl.appendChild(li); return;
+    }
+    items.forEach(function (it, idx) {
+      var li = document.createElement('li');
+      var txt = document.createElement('span');
+      txt.className = 'txt';
+      txt.textContent = '[' + it.img + '] ' + it.roi + (it.point ? '（点选）' : '');
+      var cp = document.createElement('button');
+      cp.className = 'small'; cp.textContent = '复制';
+      cp.onclick = function () { copyText(it.roi); };
+      var del = document.createElement('button');
+      del.className = 'small'; del.textContent = '删';
+      del.onclick = function () {
+        items.splice(idx, 1); saveHistory(items); setHistoryItems(items);
+      };
+      li.appendChild(txt); li.appendChild(cp); li.appendChild(del);
+      historyUl.appendChild(li);
+    });
+  }
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('roi_annotator_history') || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveHistory(items) {
+    try { localStorage.setItem('roi_annotator_history', JSON.stringify(items.slice(-50))); } catch (e) {}
+  }
+  function addHistory(c) {
+    var items = getHistory();
+    items.push({ img: curImage || '未命名', roi: fmtRoi(c), point: c.w <= 1 && c.h <= 1 });
+    saveHistory(items); setHistoryItems(items);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-copy'));
+      if (el && el.textContent && el.textContent.indexOf('尚') !== 0) copyText(el.textContent);
+    });
+  });
+
+  document.getElementById('btnopen').addEventListener('click', function () { fileinput.click(); });
+  fileinput.addEventListener('change', function () { loadFile(fileinput.files[0]); fileinput.value = ''; });
+  document.getElementById('btnclear').addEventListener('click', function () { saveHistory([]); setHistoryItems([]); });
+
+  window.addEventListener('dragover', function (ev) { ev.preventDefault(); });
+  window.addEventListener('drop', function (ev) {
+    ev.preventDefault();
+    if (ev.dataTransfer.files.length) loadFile(ev.dataTransfer.files[0]);
+  });
+  window.addEventListener('resize', function () {
+    if (img.naturalWidth) { fitImage(); drawSelbox(); }
+  });
+
+  setHistoryItems(getHistory());
+})();
+</script>
+</body>
+</html>
