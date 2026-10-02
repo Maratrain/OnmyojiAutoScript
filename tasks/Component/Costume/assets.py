@@ -174,8 +174,8 @@ class CostumeAssets:
 	I_MAIN_GOTO_SUMMON_4 = RuleImage(roi_front=(959,215,41,62), roi_back=(556,187,659,100), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_summon_4.png")
 	# description 
 	I_MAIN_GOTO_TOWN_4 = RuleImage(roi_front=(814,242,47,60), roi_back=(524,228,555,82), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_town_4.png")
-	# description 
-	I_MAIN_GOTO_CUB_WAR_4 = RuleImage(roi_front=(1170,440,94,80), roi_back=(1150,420,120,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_cub_war_4.png")
+	# 为崽而战入口（笔墨山河皮肤，印章本体裁剪，跨背景通用；依 2026-10-02 截图重截）
+	I_MAIN_GOTO_CUB_WAR_4 = RuleImage(roi_front=(1173,447,70,70), roi_back=(1100,380,180,200), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_main_goto_cub_war_4.png")
 	# 宠物屋金徽章（十周年庭院后位置/样式变化，依 2026-10-01 截图重截）
 	I_PET_HOUSE_4 = RuleImage(roi_front=(958,362,84,76), roi_back=(900,355,280,130), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main4/main4_pet_house_4.png")
 

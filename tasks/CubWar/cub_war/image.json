@@ -2,11 +2,11 @@
  {
   "itemName": "main_goto_cub_war",
   "imageName": "cub_war_main_goto_cub_war.png",
-  "roiFront": "1169,442,92,78",
-  "roiBack": "1150,420,120,120",
+  "roiFront": "1172,446,70,70",
+  "roiBack": "1100,380,180,200",
   "method": "Template matching",
   "threshold": 0.8,
-  "description": "庭院右侧为崽而战入口"
+  "description": "庭院右侧为崽而战入口（印章本体，跨皮肤通用）"
  },
  {
   "itemName": "check_cub_war_page",
@@ -88,5 +88,140 @@
   "method": "Template matching",
   "threshold": 0.8,
   "description": "本寮分组弹窗标志"
+ },
+ {
+  "itemName": "check_yokai",
+  "imageName": "cub_war_check_yokai.png",
+  "roiFront": "406,20,111,33",
+  "roiBack": "370,5,200,60",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "妖怪退治区域页标题"
+ },
+ {
+  "itemName": "check_shrine",
+  "imageName": "cub_war_check_shrine.png",
+  "roiFront": "406,20,111,33",
+  "roiBack": "370,5,200,60",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "神社区域页标题"
+ },
+ {
+  "itemName": "map_torii",
+  "imageName": "cub_war_map_torii.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.72,
+  "description": "盛宴地图上的鸟居（神社区域入口）"
+ },
+ {
+  "itemName": "map_army_blue1",
+  "imageName": "cub_war_map_army_blue1.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.75,
+  "description": "地图上的鲸组单兵军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "map_army_blue3",
+  "imageName": "cub_war_map_army_blue3.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.75,
+  "description": "地图上的鲸组三人军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "map_army_yellow1",
+  "imageName": "cub_war_map_army_yellow1.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.75,
+  "description": "地图上的鸥组单兵军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "map_army_yellow3",
+  "imageName": "cub_war_map_army_yellow3.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.75,
+  "description": "地图上的鸥组三人军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "group_stamp",
+  "imageName": "cub_war_group_stamp.png",
+  "roiFront": "140,115,140,150",
+  "roiBack": "140,115,140,150",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "奖券排名面板的本大人印章（标记本组所在行）"
+ },
+ {
+  "itemName": "icon_whale",
+  "imageName": "cub_war_icon_whale.png",
+  "roiFront": "55,120,45,145",
+  "roiBack": "55,120,45,145",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "鲸组组图标（蓝色）"
+ },
+ {
+  "itemName": "icon_gull",
+  "imageName": "cub_war_icon_gull.png",
+  "roiFront": "55,120,45,145",
+  "roiBack": "55,120,45,145",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "鸥组组图标（黄色）"
+ },
+ {
+  "itemName": "icon_shark",
+  "imageName": "cub_war_icon_shark.png",
+  "roiFront": "55,120,45,145",
+  "roiBack": "55,120,45,145",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "鲨组组图标（红色）"
+ },
+ {
+  "itemName": "map_army_red3",
+  "imageName": "cub_war_map_army_red3.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "地图上的鲨组三人军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "map_army_red1",
+  "imageName": "cub_war_map_army_red1.png",
+  "roiFront": "300,55,980,655",
+  "roiBack": "300,55,980,655",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "地图上的鲨组单兵军队（正在攻打的妖怪退治）"
+ },
+ {
+  "itemName": "boss_locked",
+  "imageName": "cub_war_boss_locked.png",
+  "roiFront": "1135,585,70,90",
+  "roiBack": "1080,540,200,170",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "首领退治按钮锁链（未开启状态）"
+ },
+ {
+  "itemName": "map_compass",
+  "imageName": "cub_war_map_compass.png",
+  "roiFront": "1185,625,70,70",
+  "roiBack": "1140,580,140,140",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "盛宴地图右下角指南针（点击回到本组大部队所在位置）"
  }
 ]

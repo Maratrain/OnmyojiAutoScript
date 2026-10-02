@@ -25,5 +25,14 @@
   "method": "Default",
   "keyword": "",
   "description": "每日消耗上限已用/总量"
+ },
+ {
+  "itemName": "boss_locked_countdown",
+  "roiFront": "1060,486,190,34",
+  "roiBack": "1060,486,190,34",
+  "mode": "Full",
+  "method": "Default",
+  "keyword": "",
+  "description": "首领未开启倒计时（如 38时8分后开启）"
  }
 ]

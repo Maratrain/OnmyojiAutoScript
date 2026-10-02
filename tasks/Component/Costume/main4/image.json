@@ -43,5 +43,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "description"
+  },
+  {
+    "itemName": "main_goto_cub_war_4",
+    "imageName": "main4_main_goto_cub_war_4.png",
+    "roiFront": "1173,447,70,70",
+    "roiBack": "1100,380,180,200",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "为崽而战入口（笔墨山河皮肤，印章本体裁剪）"
   }
 ]
