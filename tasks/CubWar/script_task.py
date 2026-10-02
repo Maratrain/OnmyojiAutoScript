@@ -166,6 +166,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
         success = False
         attempts = 0
         swipes = 0
+        # 记录点击后未能进入预期区域页的目标，避免反复点同一个「点不进去」的格子
+        # 形成「点目标→未进入→返回地图→滑动→再点同一目标」的死循环触发反卡死守卫
+        failed = set()
         while attempts < 4 and swipes < 4:
             self.screenshot()
             if self.cub_war_close_popup():
@@ -174,12 +177,18 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
                 if not self.back_to_feast_map():
                     break
                 continue
+            # 优先找尚未失败过的目标，已确认点不进去的格子直接跳过
             hit = None
             for target in targets:
+                if target in failed:
+                    continue
                 if self.appear(target):
                     hit = target
                     break
             if hit is None:
+                if len(failed) >= len(targets):
+                    logger.warning(f"[{tag}] 本组可攻打目标均已尝试但未能进入{label}，停止阶段")
+                    break
                 swipes += 1
                 logger.info(f"[{tag}] 地图上暂未找到{label}目标，滑动地图继续找（{swipes}/4）")
                 if swipes % 2 == 1:
@@ -210,15 +219,22 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
                 if not self.back_to_feast_map():
                     break
                 continue
-            if entered != 'page':
+            if entered == 'page':
+                fought = self.cub_war_area_battle(cfg, shrine)
+                success = success or fought
                 attempts += 1
-                logger.warning(f"[{tag}] 点击目标后未进入{label}页（第 {attempts}/4 次）")
+                if not self.back_to_feast_map():
+                    break
                 continue
-            fought = self.cub_war_area_battle(cfg, shrine)
-            success = success or fought
+            # entered 为 '' 或 'other'：点击未进入预期区域页
             attempts += 1
-            if not self.back_to_feast_map():
-                break
+            logger.warning(f"[{tag}] 点击目标后未进入{label}页（第 {attempts}/4 次）")
+            failed.add(hit)
+            # 若误入其它区域页，先退回盛宴地图再继续找其它目标
+            if not self.appear(self.I_CHECK_FEAST_MAP):
+                if not self.back_to_feast_map():
+                    break
+            continue
         logger.info(f"[{tag}] {label}阶段结束")
         return success
 
