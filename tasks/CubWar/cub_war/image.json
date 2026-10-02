@@ -29,8 +29,8 @@
  {
   "itemName": "check_feast_map",
   "imageName": "cub_war_check_feast_map.png",
-  "roiFront": "497,10,160,38",
-  "roiBack": "460,5,260,60",
+  "roiFront": "530,10,123,35",
+  "roiBack": "530,10,123,35",
   "method": "Template matching",
   "threshold": 0.8,
   "description": "盛宴地图标志"
@@ -110,19 +110,19 @@
  {
   "itemName": "map_torii",
   "imageName": "cub_war_map_torii.png",
-  "roiFront": "300,55,980,655",
+  "roiFront": "567,294,98,88",
   "roiBack": "300,55,980,655",
   "method": "Template matching",
-  "threshold": 0.72,
+  "threshold": 0.8,
   "description": "盛宴地图上的鸟居（神社区域入口）"
  },
  {
   "itemName": "map_army_blue1",
   "imageName": "cub_war_map_army_blue1.png",
-  "roiFront": "300,55,980,655",
+  "roiFront": "342,185,61,86",
   "roiBack": "300,55,980,655",
   "method": "Template matching",
-  "threshold": 0.75,
+  "threshold": 0.8,
   "description": "地图上的鲸组单兵军队（正在攻打的妖怪退治）"
  },
  {
@@ -137,10 +137,10 @@
  {
   "itemName": "map_army_yellow1",
   "imageName": "cub_war_map_army_yellow1.png",
-  "roiFront": "300,55,980,655",
+  "roiFront": "437,564,59,88",
   "roiBack": "300,55,980,655",
   "method": "Template matching",
-  "threshold": 0.75,
+  "threshold": 0.8,
   "description": "地图上的鸥组单兵军队（正在攻打的妖怪退治）"
  },
  {
@@ -200,7 +200,7 @@
  {
   "itemName": "map_army_red1",
   "imageName": "cub_war_map_army_red1.png",
-  "roiFront": "300,55,980,655",
+  "roiFront": "573,491,58,89",
   "roiBack": "300,55,980,655",
   "method": "Template matching",
   "threshold": 0.8,
@@ -218,8 +218,8 @@
  {
   "itemName": "map_compass",
   "imageName": "cub_war_map_compass.png",
-  "roiFront": "1185,625,70,70",
-  "roiBack": "1140,580,140,140",
+  "roiFront": "1189,646,35,38",
+  "roiBack": "1189,646,35,38",
   "method": "Template matching",
   "threshold": 0.8,
   "description": "盛宴地图右下角指南针（点击回到本组大部队所在位置）"

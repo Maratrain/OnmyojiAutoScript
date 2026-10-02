@@ -45,14 +45,17 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
 
         success = False
         settings = cfg.cub_war_settings
+        self._cub_war_limit_reached = False
         # 首领·八百八狸（每场消耗 18 点）
         if settings.battle_boss:
             success = self.cub_war_boss_phase(cfg) or success
         # 神社区域（每场消耗 12 点）
-        if settings.battle_shrine:
+        if settings.battle_shrine and not self._cub_war_limit_reached:
             success = self.cub_war_area_phase(cfg, shrine=True) or success
-        # 妖怪退治（每场消耗 6 点）
-        if settings.battle_yokai:
+        # 已达每日消耗上限：妖怪退治必也打满，直接收工不再进入妖怪阶段
+        if self._cub_war_limit_reached:
+            logger.info("[崽战退治] 已达每日消耗上限，跳过妖怪退治阶段")
+        elif settings.battle_yokai:
             success = self.cub_war_area_phase(cfg, shrine=False) or success
 
         # 逐级返回庭院再回主界面
@@ -171,6 +174,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
         failed = set()
         while attempts < 4 and swipes < 4:
             self.screenshot()
+            if self._cub_war_limit_reached:
+                logger.info(f"[{tag}] 已达每日消耗上限，停止{label}阶段")
+                break
             if self.cub_war_close_popup():
                 continue
             if not self.appear(self.I_CHECK_FEAST_MAP):
@@ -223,7 +229,14 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
                 fought = self.cub_war_area_battle(cfg, shrine)
                 success = success or fought
                 attempts += 1
+                if not fought:
+                    # 进了区域页但没打成（区域未解锁/已达上限/无退治按钮）：该目标无需再进，
+                    # 加入 failed 避免反复点同一鸟居或军队又退回；神社仅一个目标则直接结束本阶段
+                    failed.add(hit)
                 if not self.back_to_feast_map():
+                    break
+                if self._cub_war_limit_reached:
+                    logger.info(f"[{tag}] 已达每日消耗上限，停止{label}阶段")
                     break
                 continue
             # entered 为 '' 或 'other'：点击未进入预期区域页
@@ -350,9 +363,11 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
                 ocr_fail = 0
                 if remain <= 0:
                     logger.info(f"[{tag}] 今日消耗已达上限 {used}/{total}，收工")
+                    self._cub_war_limit_reached = True
                     break
                 if cost > 0 and remain < cost:
                     logger.info(f"[{tag}] 剩余 {remain} 不足一次消耗 {cost}，收工")
+                    self._cub_war_limit_reached = True
                     break
             else:
                 ocr_fail += 1
@@ -439,9 +454,11 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
                 ocr_fail = 0
                 if remain <= 0:
                     logger.info(f"[崽战退治] 今日消耗已达上限 {used}/{total}，收工")
+                    self._cub_war_limit_reached = True
                     break
                 if cost > 0 and remain < cost:
                     logger.info(f"[崽战退治] 剩余 {remain} 不足一次消耗 {cost}，收工")
+                    self._cub_war_limit_reached = True
                     break
             else:
                 ocr_fail += 1

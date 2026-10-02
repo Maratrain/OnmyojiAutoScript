@@ -18,7 +18,7 @@ class CubWarAssets:
 	# 八百八狸盛宴入口横幅
 	I_GOTO_FEAST = RuleImage(roi_front=(445,161,50,240), roi_back=(430,150,90,270), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_goto_feast.png")
 	# 盛宴地图标志
-	I_CHECK_FEAST_MAP = RuleImage(roi_front=(497,10,160,38), roi_back=(460,5,260,60), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_check_feast_map.png")
+	I_CHECK_FEAST_MAP = RuleImage(roi_front=(530,10,123,35), roi_back=(530,10,123,35), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_check_feast_map.png")
 	# 八百八狸讨伐中横幅，点击进入挑战页
 	I_GOTO_BOSS = RuleImage(roi_front=(594,374,154,88), roi_back=(520,350,280,130), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_goto_boss.png")
 	# 首领战斗挑战页标志
@@ -36,13 +36,13 @@ class CubWarAssets:
 	# 神社区域页标题
 	I_CHECK_SHRINE = RuleImage(roi_front=(406,20,111,33), roi_back=(370,5,200,60), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_check_shrine.png")
 	# 盛宴地图上的鸟居（神社区域入口）
-	I_MAP_TORII = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.72, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_torii.png")
+	I_MAP_TORII = RuleImage(roi_front=(567,294,98,88), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_torii.png")
 	# 地图上的鲸组单兵军队（正在攻打的妖怪退治）
-	I_MAP_ARMY_BLUE1 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.75, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_blue1.png")
+	I_MAP_ARMY_BLUE1 = RuleImage(roi_front=(342,185,61,86), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_blue1.png")
 	# 地图上的鲸组三人军队（正在攻打的妖怪退治）
 	I_MAP_ARMY_BLUE3 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.75, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_blue3.png")
 	# 地图上的鸥组单兵军队（正在攻打的妖怪退治）
-	I_MAP_ARMY_YELLOW1 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.75, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_yellow1.png")
+	I_MAP_ARMY_YELLOW1 = RuleImage(roi_front=(437,564,59,88), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_yellow1.png")
 	# 地图上的鸥组三人军队（正在攻打的妖怪退治）
 	I_MAP_ARMY_YELLOW3 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.75, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_yellow3.png")
 	# 奖券排名面板的本大人印章（标记本组所在行）
@@ -56,11 +56,11 @@ class CubWarAssets:
 	# 地图上的鲨组三人军队（正在攻打的妖怪退治）
 	I_MAP_ARMY_RED3 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_red3.png")
 	# 地图上的鲨组单兵军队（正在攻打的妖怪退治）
-	I_MAP_ARMY_RED1 = RuleImage(roi_front=(300,55,980,655), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_red1.png")
+	I_MAP_ARMY_RED1 = RuleImage(roi_front=(573,491,58,89), roi_back=(300,55,980,655), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_army_red1.png")
 	# 首领退治按钮锁链（未开启状态）
 	I_BOSS_LOCKED = RuleImage(roi_front=(1135,585,70,90), roi_back=(1080,540,200,170), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_boss_locked.png")
 	# 盛宴地图右下角指南针（点击回到本组大部队所在位置）
-	I_MAP_COMPASS = RuleImage(roi_front=(1185,625,70,70), roi_back=(1140,580,140,140), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_compass.png")
+	I_MAP_COMPASS = RuleImage(roi_front=(1189,646,35,38), roi_back=(1189,646,35,38), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_compass.png")
 
 
 	# Ocr Rule Assets（为崽而战·八百八狸盛宴）
