@@ -64,6 +64,7 @@ from tasks.FloatParade.config import FloatParade
 from tasks.Quiz.config import Quiz
 from tasks.KittyShop.config import KittyShop
 from tasks.DyeTrials.config import DyeTrials
+from tasks.IbukiArena.config import IbukiArena
 # ----------------------------------------------------------------------------------------------------------------------
 
 # 肝帝专属---------------------------------------------------------------------------------------------------------------
@@ -143,6 +144,7 @@ class ConfigModel(ConfigBase):
     divine_barrier: DivineBarrier = Field(default_factory=DivineBarrier)
     budokai_tournament: BudokaiTournament = Field(default_factory=BudokaiTournament)
     activity_999: Activity999 = Field(default_factory=Activity999)
+    ibuki_arena: IbukiArena = Field(default_factory=IbukiArena)
 
     # 这些是肝帝专属
     bondling_fairyland: BondlingFairyland = Field(default_factory=BondlingFairyland)
