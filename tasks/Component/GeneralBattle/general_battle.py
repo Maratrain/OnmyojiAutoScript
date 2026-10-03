@@ -1154,7 +1154,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if tmp is None:
             tmp = self.C_PRESET_TEAM_1
         color_size = [5, 5]
-        unselected_color = (216.8, 185.0, 146.8)
+        # 同分组常量: 按实机面板实测重取。代码取色点是队伍 ROI 左上角 5x5, 未选中三队实测
+        # (219.8,191.5,162.8)/(220.2,192.8,165.9)/(216.1,189.0,162.9), 原值 B 通道低了约 16,
+        # 判定裕量 16~19 超过阈值 10, 队伍 2/3/4 会被误判成"已选中"而漏点, 沿用旧队伍
+        unselected_color = (218.2, 190.9, 164.4)
         logger.info("[通用战斗] 选择预设队伍")
         choose_team_timer = Timer(4).start()
         while True:
