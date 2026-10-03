@@ -29,6 +29,18 @@ class DemonClass(str, Enum):
     GHOSTLY_SONGSTRESS = '鬼灵歌伎'
     # Boss_7 夜荒魂
     BOSS_7 = '夜荒魂'
+    # Boss_8 八咫镜
+    BOSS_8 = '八咫镜'
+    # Boss_9 天羽羽斩
+    BOSS_9 = '天羽羽斩'
+    # Boss_10 预言星盘
+    BOSS_10 = '预言星盘'
+    # Boss_11 月之石
+    BOSS_11 = '月之石'
+    # Boss_12 纺缘锤
+    BOSS_12 = '纺缘锤'
+    # Boss_13 稻荷穗箭
+    BOSS_13 = '稻荷穗箭'
 
 
 

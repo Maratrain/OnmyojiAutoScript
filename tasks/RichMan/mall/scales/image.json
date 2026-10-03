@@ -29,56 +29,119 @@
   {
     "itemName": "sca_demon_boss_1",
     "imageName": "scales_sca_demon_boss_1.png",
-    "roiFront": "246,224,112,126",
-    "roiBack": "168,142,346,290",
-    "method": "Template matching",
-    "threshold": 0.8,
+    "roiFront": "575,445,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
     "description": "土蜘蛛"
   },
   {
     "itemName": "sca_demon_boss_2",
     "imageName": "scales_sca_demon_boss_2.png",
-    "roiFront": "457,203,123,153",
-    "roiBack": "413,136,273,250",
-    "method": "Template matching",
-    "threshold": 0.8,
+    "roiFront": "375,445,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
     "description": "胧车"
   },
   {
     "itemName": "sca_demon_boss_3",
     "imageName": "scales_sca_demon_boss_3.png",
-    "roiFront": "686,239,131,121",
-    "roiBack": "631,132,344,273",
-    "method": "Template matching",
-    "threshold": 0.6,
+    "roiFront": "175,445,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
     "description": "荒骷髅"
   },
   {
     "itemName": "sca_demon_boss_4",
     "imageName": "scales_sca_demon_boss_4.png",
-    "roiFront": "912,188,141,169",
-    "roiBack": "804,121,315,292",
-    "method": "Template matching",
-    "threshold": 0.8,
+    "roiFront": "945,340,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
     "description": "地震鲶"
   },
   {
     "itemName": "sca_demon_boss_5",
     "imageName": "scales_sca_demon_boss_5.png",
-    "roiFront": "345,469,136,160",
-    "roiBack": "241,414,504,242",
-    "method": "Template matching",
-    "threshold": 0.8,
+    "roiFront": "752,340,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
     "description": "蜃气楼"
   },
   {
     "itemName": "sca_demon_boss_6",
     "imageName": "scales_sca_demon_boss_6.png",
-    "roiFront": "561,480,141,141",
-    "roiBack": "437,402,555,236",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "歌姬"
+    "roiFront": "560,340,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "鬼灵歌伎"
+  },
+  {
+    "itemName": "sca_demon_boss_7",
+    "imageName": "scales_sca_demon_boss_7.png",
+    "roiFront": "367,340,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "夜荒魂"
+  },
+  {
+    "itemName": "sca_demon_boss_8",
+    "imageName": "scales_sca_demon_boss_8.png",
+    "roiFront": "175,340,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "八咫镜"
+  },
+  {
+    "itemName": "sca_demon_boss_9",
+    "imageName": "scales_sca_demon_boss_9.png",
+    "roiFront": "945,135,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "天羽羽斩"
+  },
+  {
+    "itemName": "sca_demon_boss_10",
+    "imageName": "scales_sca_demon_boss_10.png",
+    "roiFront": "752,135,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "预言星盘"
+  },
+  {
+    "itemName": "sca_demon_boss_11",
+    "imageName": "scales_sca_demon_boss_11.png",
+    "roiFront": "560,135,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "月之石"
+  },
+  {
+    "itemName": "sca_demon_boss_12",
+    "imageName": "scales_sca_demon_boss_12.png",
+    "roiFront": "367,135,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "纺缘锤"
+  },
+  {
+    "itemName": "sca_demon_boss_13",
+    "imageName": "scales_sca_demon_boss_13.png",
+    "roiFront": "175,135,180,180",
+    "roiBack": "30,120,1210,560",
+    "method": "Multi-scale template matching",
+    "threshold": 0.7,
+    "description": "稻荷穗箭"
   },
   {
     "itemName": "sca_select_1",
@@ -126,6 +189,15 @@
     "description": "点击屏幕继续"
   },
   {
+    "itemName": "sca_buy_success",
+    "imageName": "scales_sca_buy_success.png",
+    "roiFront": "495,95,305,95",
+    "roiBack": "200,60,880,200",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "购买成功横幅(新版御魂屋)"
+  },
+  {
     "itemName": "sca_demon_buy",
     "imageName": "scales_sca_demon_buy.png",
     "roiFront": "861,572,180,62",
@@ -133,14 +205,5 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "点击兑换"
-  },
-  {
-    "itemName": "sca_demon_boss_7",
-    "imageName": "scales_sca_demon_boss_7.png",
-    "roiFront": "819,489,100,100",
-    "roiBack": "640,423,412,222",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "夜荒魂"
   }
 ]

@@ -3,6 +3,7 @@
 # github https://github.com/runhey
 import time
 
+from module.base.timer import Timer
 from module.logger import logger
 
 from tasks.Component.Buy.buy import Buy
@@ -64,14 +65,22 @@ class Scales(Buy, MallNavbar):
         self._scales_buy_confirm(start_click, number)
 
         # 购买确认
+        confirm_clicks = 0
         while 1:
             self.screenshot()
-            if self.appear(self.I_SCA_SIX_STAR) or self.appear(self.I_SCA_REWARD):
+            if (self.appear(self.I_SCA_SIX_STAR)
+                    or self.appear(self.I_SCA_REWARD)
+                    or self.appear(self.I_SCA_BUY_SUCCESS)):
                 logger.info('[鳞片商店] 购买成功')
                 time.sleep(1)
+                dismiss_timer = Timer(15).start()
                 while 1:
                     self.screenshot()
-                    if not self.appear(self.I_SCA_SIX_STAR):
+                    if (not self.appear(self.I_SCA_SIX_STAR)
+                            and not self.appear(self.I_SCA_BUY_SUCCESS)):
+                        break
+                    if dismiss_timer.reached():
+                        logger.warning('[鳞片商店] 成功弹窗关闭超时，继续流程')
                         break
                     if self.click(self.C_SCA_SOULS_GET, interval=1):
                         continue
@@ -79,6 +88,10 @@ class Scales(Buy, MallNavbar):
                 logger.info('[鳞片商店] 领取成功')
                 break
 
+            confirm_clicks += 1
+            if confirm_clicks > 6:
+                logger.warning('[鳞片商店] 购买确认未完成，停止点击避免卡死')
+                return False
             if self.click(self.C_BUY_MORE, interval=5):
                 continue
 
@@ -94,7 +107,7 @@ class Scales(Buy, MallNavbar):
         # 选择魂
         while 1:
             self.screenshot()
-            if self.appear(self.I_SCA_SIX_STAR):
+            if self.appear(self.I_SCA_SIX_STAR) or self.appear(self.I_SCA_BUY_SUCCESS):
                 logger.info('[鳞片商店] 购买成功')
                 time.sleep(1.8)
                 while 1:
@@ -234,6 +247,12 @@ class Scales(Buy, MallNavbar):
             DemonClass.SHINKIRO: self.I_SCA_DEMON_BOSS_5,  # 神木鸟
             DemonClass.GHOSTLY_SONGSTRESS: self.I_SCA_DEMON_BOSS_6,  # 歌姬
             DemonClass.BOSS_7: self.I_SCA_DEMON_BOSS_7,  # 夜荒魂
+            DemonClass.BOSS_8: self.I_SCA_DEMON_BOSS_8,  # 八咫镜
+            DemonClass.BOSS_9: self.I_SCA_DEMON_BOSS_9,  # 天羽羽斩
+            DemonClass.BOSS_10: self.I_SCA_DEMON_BOSS_10,  # 预言星盘
+            DemonClass.BOSS_11: self.I_SCA_DEMON_BOSS_11,  # 月之石
+            DemonClass.BOSS_12: self.I_SCA_DEMON_BOSS_12,  # 纺缘锤
+            DemonClass.BOSS_13: self.I_SCA_DEMON_BOSS_13,  # 稻荷穗箭
         }
         match_position = {
             1: self.C_SCA_DEMON_1,
@@ -254,7 +273,30 @@ class Scales(Buy, MallNavbar):
         target_class = match_class[buy_class]
         target_position = match_position[buy_position]
         target_number = match_number[buy_position]
-        self.ui_click(self.I_SCA_DEMON_SOULS, target_class)
+        # 新版御魂屋分类排序调整, 目标分类可能不在首屏:
+        # 放宽搜索带到整个货架区, 点开兑换页后未见到目标分类时逐屏下滑查找, 最多 6 屏
+        target_class.roi_back = (30, 120, 1210, 560)
+        found = False
+        search_timer = Timer(60).start()
+        scroll_count = 0
+        while scroll_count < 6:
+            self.screenshot()
+            if self.appear(target_class):
+                found = True
+                break
+            if search_timer.reached():
+                break
+            if self.appear_then_click(self.I_SCA_DEMON_SOULS, interval=2):
+                time.sleep(1)
+                continue
+            scroll_count += 1
+            logger.info(f'[鳞片商店] 目标分类不在当前屏，下滑查找 (第 {scroll_count}/6 屏)')
+            self.swipe(self.S_SCA_DOWN)
+            # 等待列表滑动停稳后再截图匹配
+            time.sleep(1)
+        if not found:
+            logger.warning('[鳞片商店] 下滑查找后仍未找到目标分类，跳过首领御魂购买')
+            return
         self.ui_click(target_class, self.I_SCA_DEMON_BUY)
         # self.ui_click(target_position, self.I_SCA_DEMON_BUY)
         while 1:

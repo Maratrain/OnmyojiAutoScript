@@ -255,17 +255,17 @@ class WeeklyPurchaseAssets:
 	# 永生之海 
 	I_SCA_PICTURE_BOOK = RuleImage(roi_front=(995,258,100,100), roi_back=(954,177,185,240), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_picture_book.png")
 	# 土蜘蛛 
-	I_SCA_DEMON_BOSS_1 = RuleImage(roi_front=(246,224,112,126), roi_back=(168,142,346,290), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_1.png")
+	I_SCA_DEMON_BOSS_1 = RuleImage(roi_front=(575,445,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_1.png")
 	# 胧车 
-	I_SCA_DEMON_BOSS_2 = RuleImage(roi_front=(457,203,123,153), roi_back=(413,136,273,250), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_2.png")
+	I_SCA_DEMON_BOSS_2 = RuleImage(roi_front=(375,445,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_2.png")
 	# 荒骷髅 
-	I_SCA_DEMON_BOSS_3 = RuleImage(roi_front=(686,239,131,121), roi_back=(631,132,344,273), threshold=0.6, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_3.png")
+	I_SCA_DEMON_BOSS_3 = RuleImage(roi_front=(175,445,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_3.png")
 	# 地震鲶 
-	I_SCA_DEMON_BOSS_4 = RuleImage(roi_front=(912,188,141,169), roi_back=(804,121,315,292), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_4.png")
+	I_SCA_DEMON_BOSS_4 = RuleImage(roi_front=(945,340,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_4.png")
 	# 蜃气楼 
-	I_SCA_DEMON_BOSS_5 = RuleImage(roi_front=(345,469,136,160), roi_back=(241,414,504,242), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_5.png")
+	I_SCA_DEMON_BOSS_5 = RuleImage(roi_front=(752,340,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_5.png")
 	# 歌姬 
-	I_SCA_DEMON_BOSS_6 = RuleImage(roi_front=(561,480,141,141), roi_back=(437,402,555,236), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_6.png")
+	I_SCA_DEMON_BOSS_6 = RuleImage(roi_front=(560,340,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_6.png")
 	# 永生之海第一个选择 
 	I_SCA_SELECT_1 = RuleImage(roi_front=(189,519,113,51), roi_back=(189,519,113,51), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_select_1.png")
 	# description 
@@ -276,10 +276,18 @@ class WeeklyPurchaseAssets:
 	I_SCA_SIX_STAR = RuleImage(roi_front=(120,216,97,22), roi_back=(113,102,1056,257), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_six_star.png")
 	# 点击屏幕继续 
 	I_SCA_REWARD = RuleImage(roi_front=(584,503,100,100), roi_back=(584,503,100,100), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_reward.png")
+	# 购买成功横幅(新版御魂屋)
+	I_SCA_BUY_SUCCESS = RuleImage(roi_front=(495,95,305,95), roi_back=(200,60,880,200), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_buy_success.png")
 	# 点击兑换 
 	I_SCA_DEMON_BUY = RuleImage(roi_front=(861,572,180,62), roi_back=(861,572,180,62), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_buy.png")
 	# 夜荒魂 
-	I_SCA_DEMON_BOSS_7 = RuleImage(roi_front=(819,489,100,100), roi_back=(640,423,412,222), threshold=0.8, method="Template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_7.png")
+	I_SCA_DEMON_BOSS_7 = RuleImage(roi_front=(367,340,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_7.png")
+	I_SCA_DEMON_BOSS_8 = RuleImage(roi_front=(175,340,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_8.png")
+	I_SCA_DEMON_BOSS_9 = RuleImage(roi_front=(945,135,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_9.png")
+	I_SCA_DEMON_BOSS_10 = RuleImage(roi_front=(752,135,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_10.png")
+	I_SCA_DEMON_BOSS_11 = RuleImage(roi_front=(560,135,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_11.png")
+	I_SCA_DEMON_BOSS_12 = RuleImage(roi_front=(367,135,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_12.png")
+	I_SCA_DEMON_BOSS_13 = RuleImage(roi_front=(175,135,180,180), roi_back=(30,120,1210,560), threshold=0.7, method="Multi-scale template matching", file="./tasks/WeeklyPurchase/mall/scales/scales_sca_demon_boss_13.png")
 
 
 	# Ocr Rule Assets
@@ -318,6 +326,8 @@ class WeeklyPurchaseAssets:
 	# Swipe Rule Assets
 	# 向下滑动 
 	S_SP_DOWN = RuleSwipe(roi_front=(249,419,486,22), roi_back=(339,300,301,22), mode="default", name="sp_down")
+	# 御魂屋货架向下滑动
+	S_SCA_DOWN = RuleSwipe(roi_front=(590,540,100,40), roi_back=(590,380,100,40), mode="default", name="sca_down")
 
 
 	# Image Rule Assets

@@ -1,0 +1,9 @@
+[
+  {
+    "itemName": "sca_down",
+    "roiFront": "590,540,100,40",
+    "roiBack": "590,380,100,40",
+    "mode": "default",
+    "description": "御魂屋货架向下滑动"
+  }
+]
