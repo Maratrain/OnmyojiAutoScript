@@ -4,6 +4,7 @@
 import time
 
 from module.logger import logger
+from module.base.timer import Timer
 
 from tasks.GameUi.page import page_main, page_summon
 from tasks.GameUi.game_ui import GameUi
@@ -68,15 +69,23 @@ class Shrine(GameUi, RichManAssets):
         if not self.appear(self.I_S_BLACK):
             logger.info('[大富翁] 黑达摩已购买')
             return
-        self.ui_click(self.I_S_BLACK, self.I_S_CHECK_BLACK)
-        self.screenshot()
-        if not self.appear(self.I_S_BUY_BLACK, threshold=0.6):
-            logger.info('[大富翁] 黑达摩已购买')
-            self.ui_click_until_disappear(self.I_UI_BACK_RED)
-            time.sleep(0.5)
-            return
-        self.ui_click(self.I_S_BUY_BLACK, self.I_S_CONFIRM_BLACK)
-        self.ui_get_reward(self.I_S_CONFIRM_BLACK)
+        # 限时重试循环: 确认/购买/商品逐层点, 弹出奖励即领;
+        # 确认弹窗慢一拍不会再被误判成已购买
+        timer = Timer(10).start()
+        while 1:
+            self.screenshot()
+            if timer.reached():
+                logger.warning('[大富翁] 黑达摩购买等待超时')
+                break
+            if self.ui_reward_appear_click():
+                logger.info('[大富翁] 领取购买奖励')
+                break
+            if self.appear_then_click(self.I_S_CONFIRM_BLACK, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_BUY_BLACK, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_BLACK, interval=2.5):
+                continue
         self.ui_click_until_disappear(self.I_UI_BACK_RED)
         time.sleep(1)
 
@@ -88,15 +97,22 @@ class Shrine(GameUi, RichManAssets):
             return
         if not self.shrine_check_money(1200):
             return
-        self.ui_click(self.I_S_WHITE_FIVE, self.I_S_CHECK_WHITE_FIVE)
-        self.screenshot()
-        if not self.appear(self.I_S_BUY_WHITE_FIVE, threshold=0.9):
-            logger.info('[大富翁] 五星白蛋已购买')
-            self.ui_click_until_disappear(self.I_UI_BACK_RED)
-            time.sleep(1)
-            return
-        self.ui_click(self.I_S_BUY_WHITE_FIVE, self.I_S_CONFIRM_WHITE_FIVE)
-        self.ui_get_reward(self.I_S_CONFIRM_WHITE_FIVE)
+        # 限时重试循环, 同黑达摩
+        timer = Timer(10).start()
+        while 1:
+            self.screenshot()
+            if timer.reached():
+                logger.warning('[大富翁] 五星白蛋购买等待超时')
+                break
+            if self.ui_reward_appear_click():
+                logger.info('[大富翁] 领取购买奖励')
+                break
+            if self.appear_then_click(self.I_S_CONFIRM_WHITE_FIVE, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_BUY_WHITE_FIVE, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_WHITE_FIVE, interval=2.5):
+                continue
         self.ui_click_until_disappear(self.I_UI_BACK_RED)
         time.sleep(1)
 
@@ -108,15 +124,22 @@ class Shrine(GameUi, RichManAssets):
             return
         if not self.shrine_check_money(400):
             return
-        self.ui_click(self.I_S_WHITE_FOUR, self.I_S_CHECK_WHITE_FOUR)
-        self.screenshot()
-        if not self.appear(self.I_S_BUY_WHITE_FOUR, threshold=0.9):
-            logger.info('[大富翁] 四星白蛋已购买')
-            self.ui_click_until_disappear(self.I_UI_BACK_RED)
-            time.sleep(1)
-            return
-        self.ui_click(self.I_S_BUY_WHITE_FOUR, self.I_S_CONFIRM_WHITE_FOUR)
-        self.ui_get_reward(self.I_S_CONFIRM_WHITE_FOUR)
+        # 限时重试循环, 同黑达摩
+        timer = Timer(10).start()
+        while 1:
+            self.screenshot()
+            if timer.reached():
+                logger.warning('[大富翁] 四星白蛋购买等待超时')
+                break
+            if self.ui_reward_appear_click():
+                logger.info('[大富翁] 领取购买奖励')
+                break
+            if self.appear_then_click(self.I_S_CONFIRM_WHITE_FOUR, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_BUY_WHITE_FOUR, interval=1):
+                continue
+            if self.appear_then_click(self.I_S_WHITE_FOUR, interval=2.5):
+                continue
         self.ui_click_until_disappear(self.I_UI_BACK_RED)
         time.sleep(1)
 
