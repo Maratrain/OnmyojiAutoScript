@@ -192,6 +192,10 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
             logger.info(f'[每周琐事] 当前福运御守数量: {cu_tickts}')
             cost_tickts = self.O_WT_SAVE_COST.ocr(self.device.image)
             logger.info(f'[每周琐事] 全部存储需花费福运御守数量: {cost_tickts}')
+            if cost_tickts <= 0:
+                logger.warning('[每周琐事] 全部存储花费 OCR 识别失败，跳过摸鱼存储')
+                self.goto_page(page_main)
+                return
             not_save_flag = True
             get_timer = Timer(7)
             get_timer.start()

@@ -30,8 +30,10 @@ class OasTests(unittest.TestCase):
             self.assertEqual(reloaded.reliability('crowd'), 1)
             second = reloaded.choose('1' * 512, 10, 20, [
                 {'uid': 'a', 'side': 'LEFT'}, {'uid': 'b', 'side': 'LEFT'}])
-            self.assertEqual(second['scores'], {'LEFT': 1, 'RIGHT': 1})
-            self.assertEqual(second['mode'], 'win_rate')
+            # a/crowd 各 1 胜平滑为 2/3，b 1 负平滑为 1/3；左 = 2/3 + 1/3 - 1 ≈ 0
+            self.assertAlmostEqual(second['scores']['LEFT'], 0, places=12)
+            self.assertAlmostEqual(second['scores']['RIGHT'], 1 / 6, places=12)
+            self.assertEqual(second['mode'], 'signed_win_rate')
             reloaded.settle('1' * 512, 'RIGHT')
             self.assertEqual(reloaded.reliability('a'), .5)
             self.assertEqual(reloaded.reliability('b'), 0)
@@ -74,7 +76,58 @@ class OasTests(unittest.TestCase):
                     self.assertIsNone(store.settle('0' * 512, bet_won=won))
                     reloaded = OasHistory(store.path)
                     second = reloaded.choose('1' * 512, left, right, [{'uid': 'a', 'side': side}])
-                    self.assertEqual(second['mode'], 'win_rate')
+                    self.assertEqual(second['mode'], 'signed_win_rate')
+
+    def test_signed_weights_penalize_wrong_sources_and_leave_newcomers_neutral(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = OasHistory(Path(directory) / 'history.jsonl')
+            for index in range(2):
+                store.append('decision', id=f'p{index}', slot=f'2026-09-28:{5 + index}',
+                             signature='1' * 512, votes={'wrong': 'LEFT', 'correct': 'RIGHT'})
+                store.append('result', id=f'p{index}', winner='RIGHT')
+            decision = store.choose('0' * 512, 20, 10, [
+                {'uid': 'wrong', 'side': 'LEFT'},
+                {'uid': 'correct', 'side': 'RIGHT'},
+                {'uid': 'newcomer', 'side': 'LEFT'},
+            ])
+            # 连错来源平滑后 0.25、连对来源 0.75、无战绩 0.5：负向权重反推多数押的一侧
+            self.assertEqual(decision['win_rates'], {
+                'wrong': .25, 'correct': .75, 'newcomer': .5, 'crowd': .5})
+            self.assertEqual(decision['weights'], {
+                'wrong': -.25, 'correct': .25, 'newcomer': 0, 'crowd': 0})
+            self.assertEqual(decision['scores'], {'LEFT': -.25, 'RIGHT': .25})
+            self.assertEqual(decision['side'], 'RIGHT')
+            self.assertEqual(decision['strategy_version'], 3)
+
+    def test_negative_consensus_can_select_the_opposite_side(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = OasHistory(Path(directory) / 'history.jsonl')
+            for index in range(2):
+                store.append('decision', id=f'p{index}', slot=f'2026-09-28:{5 + index}',
+                             signature='1' * 512, votes={'a': 'LEFT'})
+                store.append('result', id=f'p{index}', winner='RIGHT')
+            decision = store.choose('0' * 512, 20, 10, [{'uid': 'a', 'side': 'LEFT'}])
+            self.assertEqual(decision['weights'], {'a': -.25, 'crowd': 0})
+            self.assertEqual(decision['scores'], {'LEFT': -.25, 'RIGHT': 0})
+            self.assertEqual(decision['side'], 'RIGHT')
+
+    def test_signed_weights_use_smoothed_rate_and_randomize_zero_tie(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = OasHistory(Path(directory) / 'history.jsonl')
+            for index in range(2):
+                store.append('decision', id=f'p{index}', slot=f'2026-09-28:{5 + index}',
+                             signature='1' * 512, votes={'a': 'LEFT', 'b': 'RIGHT'})
+                store.append('result', id=f'p{index}', winner='RIGHT')
+            decision = store.choose('0' * 512, 0, 0, [
+                {'uid': 'a', 'side': 'LEFT'}, {'uid': 'b', 'side': 'RIGHT'}])
+            self.assertEqual(decision['weights'], {'a': -.25, 'b': .25})
+            self.assertEqual(decision['side'], 'RIGHT')
+            with patch('tasks.FrogBoss.frog_oas.random.choice', return_value='LEFT') as choose:
+                tied = store.choose('1' * 512, 0, 0, [
+                    {'uid': 'a', 'side': 'LEFT'}, {'uid': 'b', 'side': 'LEFT'}])
+            self.assertEqual(tied['scores'], {'LEFT': 0, 'RIGHT': 0})
+            self.assertTrue(tied['random_tiebreak'])
+            choose.assert_called_once_with(('LEFT', 'RIGHT'))
 
     def test_bet_outcome_rejects_missing_or_ambiguous_lineup(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -369,9 +422,9 @@ class FollowTests(unittest.TestCase):
                                     'mode': 'follow_fallback_majority'})
         self.assertIn('跟单博主全部无预测，回退押人数多的一方 右(蓝)', fallback)
         weighted = format_decision({'slot': '2026-09-30:5', 'left': 3, 'right': 4, 'side': 'LEFT',
-                                    'mode': 'win_rate', 'scores': {'LEFT': 1.5, 'RIGHT': 0.5},
-                                    'weights': {'a': 1, 'b': .8}})
-        self.assertIn('按来源历史胜率加权 押 左(红)（得分 左 1.50 : 右 0.50，2 个来源）', weighted)
+                                    'mode': 'signed_win_rate', 'scores': {'LEFT': 1.5, 'RIGHT': -0.5},
+                                    'weights': {'a': 1, 'b': -.8}})
+        self.assertIn('按来源平滑胜率加权 押 左(红)（得分 左 1.50 : 右 -0.50，2 个来源）', weighted)
         cold = format_decision({'slot': '2026-09-30:5', 'left': 3, 'right': 4, 'side': 'RIGHT',
                                 'mode': 'cold_start', 'expert_side': 'RIGHT', 'crowd_side': None,
                                 'random_tiebreak': False})

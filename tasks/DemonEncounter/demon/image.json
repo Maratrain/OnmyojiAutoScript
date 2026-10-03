@@ -81,6 +81,15 @@
     "description": "50勾玉购买"
   },
   {
+    "itemName": "de_box_center",
+    "imageName": "demon_de_box_center.png",
+    "roiFront": "618,325,45,34",
+    "roiBack": "547,264,190,157",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "地图中央未购买的宝箱展示"
+  },
+  {
     "itemName": "de_to_real_world",
     "imageName": "demon_de_to_real_world.png",
     "roiFront": "993,488,104,28",

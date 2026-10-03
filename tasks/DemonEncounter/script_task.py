@@ -48,6 +48,11 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             self.goto_page(page_shikigami_records)
             self.checkout_soul()
         self.goto_page(page_rwt)
+        # 进图先读顶部「今日挑战次数」，0 次直接结束，避免空跑灯笼与首领流程
+        if not self._check_challenge_count():
+            self.goto_page(page_main)
+            self.set_next_run(task='DemonEncounter', success=False, finish=True, server=True)
+            raise TaskEnd('DemonEncounter')
         self.execute_lantern()
         self.execute_boss()
         self.goto_page(page_main)
@@ -68,6 +73,21 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             return
         logger.error(f'[逢魔] 未知的御魂切换配置: group[{group}], team[{team}]')
 
+    def _check_challenge_count(self) -> bool:
+        """
+        读地图顶部的「今日挑战次数」，返回 True 表示还有剩余次数。
+        DigitCounter 返回 (剩余, 已用, 总数)，连续识别失败时假设仍有次数。
+        """
+        for _ in range(3):
+            self.screenshot()
+            current, _remain, total = self.O_DE_CHALLENGE_COUNT.ocr(self.device.image)
+            if total > 0:
+                logger.info(f'[逢魔] 今日首领挑战次数: {current}/{total}')
+                return current > 0
+            sleep(1)
+        logger.warning('[逢魔] 挑战次数识别失败，默认仍有剩余次数')
+        return True
+
     def execute_boss(self):
         """
         打boss
@@ -79,35 +99,48 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             search_button = self.I_DE_BOSS_BEST if self.best_demon_enable else self.I_DE_BOSS
             boss_name = '极首领' if self.best_demon_enable else '普通首领'
 
-            # 最多重新执行两轮"点击搜寻按钮 -> 点击地图中央集结区域"的完整搜寻流程
-            for search_attempt in range(1, 3):
-                self.device.click_record_clear()
+            # OCR 已确认仍有挑战次数, 搜不到多半是上一场战斗未结束或地图状态卡住。
+            # 每轮搜索前若中央有未购买的宝箱展示, 先点左下角定位(小指针)把它挪开;
+            # 一轮(2次搜索)没找到则重进逢魔之时清状态, 最多 3 轮。
+            for reenter_round in range(1, 4):
                 self.screenshot()
-                if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
-                    return True
-                if not self.appear_then_click(search_button, interval=0):
-                    logger.warning(f'[逢魔] 未找到{boss_name}搜寻按钮')
-                    self.set_next_run(task='DemonEncounter', success=False, finish=True, server=False)
-                    raise TaskEnd('DemonEncounter')
-                logger.info(f'[逢魔] 正在寻找{boss_name}，第 {search_attempt}/2 轮')
-                time.sleep(1)
+                if self.appear(self.I_DE_BOX_CENTER):
+                    logger.info(f'[逢魔] 地图中央有宝箱展示，点击定位复位视角 (第 {reenter_round}/3 轮)')
+                    self.appear_then_click(self.I_DE_LOCATION, interval=2)
+                    time.sleep(1)
 
-                # 每轮点击地图中央红色集结区域至多两次，每次等待集结挑战标志 5 秒
-                for center_attempt in range(1, 3):
-                    self.click(self.C_DM_BOSS_CLICK, interval=0)
-                    deadline = time.monotonic() + 5
-                    while time.monotonic() < deadline:
-                        self.screenshot()
-                        if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
-                            logger.info(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后首领集结标志出现')
-                            return True
-                        time.sleep(0.2)
-                    logger.warning(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后未出现集结标志')
+                for search_attempt in range(1, 3):
+                    self.device.click_record_clear()
+                    self.screenshot()
+                    if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
+                        return True
+                    # 点击宝箱误弹 50 勾玉购买界面时, 点寻找按钮点掉(事后补救)
+                    if self.appear(self.I_JADE_50):
+                        logger.warning('[逢魔] 出现 50 勾玉购买弹窗，点击寻找按钮关闭')
+                        self.ui_click_until_smt_disappear(self.I_DE_FIND, self.I_JADE_50, interval=1)
+                        continue
+                    if not self.appear_then_click(search_button, interval=2):
+                        logger.warning(f'[逢魔] 未找到{boss_name}搜寻按钮，本轮作废')
+                        break
+                    logger.info(f'[逢魔] 正在寻找{boss_name}，第 {search_attempt}/2 次 (第 {reenter_round}/3 轮)')
+                    time.sleep(1)
+
+                    # 每轮点击地图中央红色集结区域至多两次，每次等待集结挑战标志 5 秒
+                    for center_attempt in range(1, 3):
+                        self.click(self.C_DM_BOSS_CLICK, interval=2)
+                        deadline = time.monotonic() + 5
+                        while time.monotonic() < deadline:
+                            self.screenshot()
+                            if self.appear(self.I_BOSS_FIRE) or self.appear(self.I_BEST_BOSS_FIRE):
+                                logger.info(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后首领集结标志出现')
+                                return True
+                            time.sleep(0.2)
+                        logger.warning(f'[逢魔] 第 {center_attempt}/2 次点击集结区域后未出现集结标志')
 
                 # 本轮失败，返回逢魔地图，重新点击逢魔入口进行下一轮搜寻
                 self.screenshot()
                 if self.appear(self.I_UI_BACK_RED):
-                    self.appear_then_click(self.I_UI_BACK_RED, interval=0)
+                    self.appear_then_click(self.I_UI_BACK_RED, interval=2)
                     deadline = time.monotonic() + 5
                     while time.monotonic() < deadline:
                         self.screenshot()
@@ -115,7 +148,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                             break
                         time.sleep(0.2)
 
-            logger.warning('[逢魔] 两轮搜寻后仍未找到首领')
+            logger.warning('[逢魔] 三轮搜寻后仍未找到首领')
             self.set_next_run(task='DemonEncounter', success=False, finish=True, server=False)
             raise TaskEnd('DemonEncounter')
 
@@ -292,11 +325,13 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         :param index: 四个灯笼，从1开始
         :return:
         """
+        # 分类模板的搜索区(须容纳完整灯笼图案), 与点击区 C_DE_* 分离:
+        # 点击区只包住内部图形, 模板放不进搜索区会全部误判成 battle
         match_roi = {
-            1: self.C_DE_1.roi_front,
-            2: self.C_DE_2.roi_front,
-            3: self.C_DE_3.roi_front,
-            4: self.C_DE_4.roi_front,
+            1: self.C_DE_MATCH_1.roi_front,
+            2: self.C_DE_MATCH_2.roi_front,
+            3: self.C_DE_MATCH_3.roi_front,
+            4: self.C_DE_MATCH_4.roi_front,
         }
         match_empty = {
             1: self.I_DE_DEFEAT_1,
@@ -364,6 +399,22 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 logger.info('[逢魔] 花费 50 勾玉购买 100 体力')
                 self.click(self.I_JADE_50)
                 continue
+        # 跳过购买后必须确认弹窗已关闭, 残留弹窗会挡住后面的逢魔极/集结入口
+        self._close_box_popup()
+
+    def _close_box_popup(self, timeout=5):
+        """确认宝箱购买弹窗已关闭；未关闭则点弹窗外侧直到关掉或超时。"""
+        timer = Timer(timeout).start()
+        while 1:
+            self.screenshot()
+            if not self.appear(self.I_JADE_50):
+                logger.info('[逢魔] 宝箱购买弹窗已关闭')
+                return
+            if timer.reached():
+                logger.warning(f'[逢魔] 宝箱购买弹窗 {timeout} 秒仍未关闭')
+                return
+            logger.info('[逢魔] 宝箱购买弹窗仍在，点击弹窗外侧关闭')
+            self.click(self.I_DE_FIND, interval=1)
 
     def _mail(self, target_click):
         # 答题
@@ -420,9 +471,11 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                     break
                 # 如果没有出现红色关闭按钮，说明答题结束
                 if not self.appear(self.I_LETTER_CLOSE):
-                    time.sleep(1.8)
+                    time.sleep(2.5)
                     self.screenshot()
                     if not self.appear(self.I_LETTER_CLOSE):
+                        # 答题结束后的奖励/答谢弹窗补点领取，避免残留遮挡
+                        self.ui_reward_appear_click()
                         logger.warning('[逢魔] 答题已结束')
                         return
 

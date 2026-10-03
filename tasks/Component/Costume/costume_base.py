@@ -146,8 +146,12 @@ class CostumeBase:
         costume_assets = CostumeAssets()
         for key, value in main_costume_model[main_type].items():
             if isinstance(value, list):
+                # 皮肤模型配了任务上不存在的键位时直接跳过, 不让换皮崩溃
+                if not hasattr(self, key):
+                    continue
                 rules: list[RuleImage] = [getattr(costume_assets, item) for item in value]
-                self.set_asset(key, RuleGif(rules))
+                # 就地挂接多帧匹配行为: 不换引用, Page/寻路等持有旧对象的地方立即生效
+                RuleGif.attach_to(getattr(self, key), rules)
             else:
                 assert_value: RuleImage = getattr(costume_assets, value, None)
                 if assert_value is None:

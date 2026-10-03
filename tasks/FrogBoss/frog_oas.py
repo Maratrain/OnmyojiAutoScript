@@ -16,6 +16,8 @@ FOLLOW_POLL_INTERVAL = 45
 FOLLOW_DEADLINE_MARGIN_MINUTES = 2
 # 只扫描博主最近若干条动态即可覆盖当前场次。
 FOLLOW_FEED_LIMIT = 10
+# 拉普拉斯平滑先验：等价于给每个来源预置 1 胜 1 负的虚拟战绩，压小样本极端胜率。
+RELIABILITY_PRIOR = 2
 
 
 def fingerprint(image):
@@ -100,7 +102,8 @@ class OasHistory:
         self.events.append(event)
         return event
 
-    def reliability(self, source):
+    def _source_record(self, source):
+        """统计来源在已结算场次中的原始战绩，返回（正确, 总计）。"""
         decisions = {e['id']: e for e in self.events if e.get('kind') == 'decision'}
         correct = total = 0
         seen = set()
@@ -112,6 +115,10 @@ class OasHistory:
             if vote in ('LEFT', 'RIGHT'):
                 total += 1
                 correct += vote == result['winner']
+        return correct, total
+
+    def reliability(self, source):
+        correct, total = self._source_record(source)
         # Unverified newcomers start neutral; verified sources use raw win rate.
         return correct / total if total else 0.5
 
@@ -200,7 +207,14 @@ class OasHistory:
         if crowd:
             votes['crowd'] = crowd
         cold_start = not any(e.get('kind') == 'result' for e in self.events)
-        weights = {} if cold_start else {uid: self.reliability(uid) for uid in votes}
+        win_rates, weights = {}, {}
+        if not cold_start:
+            for uid in votes:
+                correct, total = self._source_record(uid)
+                # 拉普拉斯平滑胜率：(胜+1)/(总+2)，无战绩来源恰为 0.5 保持中性
+                win_rates[uid] = (correct + 1) / (total + RELIABILITY_PRIOR)
+                # 负向胜率权重：低于五成的来源反推其押的一侧
+                weights[uid] = win_rates[uid] - 0.5
         scores = {'LEFT': 0.0, 'RIGHT': 0.0}
         if cold_start:
             # Two equal votes: the expert majority as a whole and the crowd.
@@ -214,8 +228,9 @@ class OasHistory:
         side = random.choice(('LEFT', 'RIGHT')) if tied else max(scores, key=scores.get)
         return self.append('decision', id=uuid4().hex, slot=slot, signature=signature,
                            left=left, right=right, votes=votes, weights=weights,
-                           scores=scores, side=side, strategy_version=2,
-                           mode='cold_start' if cold_start else 'win_rate',
+                           win_rates=win_rates,
+                           scores=scores, side=side, strategy_version=3,
+                           mode='cold_start' if cold_start else 'signed_win_rate',
                            expert_counts={'LEFT': expert_left, 'RIGHT': expert_right},
                            expert_side=expert_side, crowd_side=crowd, random_tiebreak=tied)
 
@@ -479,7 +494,7 @@ def format_decision(decision):
                 f"（专家多数 {side_name(expert) if expert else '无'}，人群 {side_name(crowd) if crowd else '无'}）")
     else:
         scores = decision.get('scores') or {}
-        text = (f"按来源历史胜率加权 押 {side}"
+        text = (f"按来源平滑胜率加权 押 {side}"
                 f"（得分 左 {scores.get('LEFT', 0):.2f} : 右 {scores.get('RIGHT', 0):.2f}，"
                 f"{len(decision.get('weights') or {})} 个来源）")
     if decision.get('random_tiebreak'):
