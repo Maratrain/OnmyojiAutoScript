@@ -42,6 +42,12 @@
     "description": "description"
   },
   {
+    "itemName": "sou_group_8",
+    "roiFront": "1090,575,156,51",
+    "roiBack": "1090,575,156,51",
+    "description": "御魂预设分组8"
+  },
+  {
     "itemName": "sou_team_select",
     "imageName": "ss_sou_team_select.png",
     "roiFront": "977,157,21,21",

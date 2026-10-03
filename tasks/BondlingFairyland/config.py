@@ -78,7 +78,7 @@ class BondlingConfig(ConfigBase):
 
 class BondlingSwitchSoul(ConfigBase):
     enable: bool = Field(default=False,
-                         description='若是数字,则以编号方式切换御魂(组号,队伍号),组号1-7,队伍号1-4\n若非数字,则自动以ocr方式切换御魂(组名,队伍名)')
+                         description='若是数字,则以编号方式切换御魂(组号,队伍号),组号1-8,队伍号1-4\n若非数字,则自动以ocr方式切换御魂(组名,队伍名)')
     search_switch: str = Field(default='', description='设置探查御魂装配分组')
     tomb_guard_switch: str = Field(default='', description='tomb_guard_switch_help')
     snowball_switch: str = Field(default='', description='snowball_switch_help')

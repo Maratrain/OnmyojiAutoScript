@@ -19,7 +19,7 @@ class SwitchSoulConfig(BaseModel):
     enable_switch_daily_training: bool = Field(default=False, title='切换每日演武御魂',
                                                description='是否切换每日演武御魂队伍')
     group_team_daily_training: str = Field(default='-1,-1', title='每日演武队伍编号',
-                                           description='组1-7,队伍1-4，中间用英文逗号分隔')
+                                           description='组1-8,队伍1-4，中间用英文逗号分隔')
     enable_switch_by_name_daily_training: bool = Field(default=False, title='按名称切换每日演武御魂',
                                                        description='是否通过OCR识别队伍名称切换')
     group_team_name_daily_training: str = Field(default='', title='每日演武队伍名称',
@@ -28,7 +28,7 @@ class SwitchSoulConfig(BaseModel):
     enable_switch_cultivation_drills: bool = Field(default=False, title='切换修行演练御魂',
                                                    description='是否切换修行演练御魂队伍')
     group_team_cultivation_drills: str = Field(default='-1,-1', title='修行演练队伍编号',
-                                               description='组1-7,队伍1-4，中间用英文逗号分隔')
+                                               description='组1-8,队伍1-4，中间用英文逗号分隔')
     enable_switch_by_name_cultivation_drills: bool = Field(default=False, title='按名称切换修行演练御魂',
                                                            description='是否通过OCR识别队伍名称切换')
     group_team_name_cultivation_drills: str = Field(default='', title='修行演练队伍名称',

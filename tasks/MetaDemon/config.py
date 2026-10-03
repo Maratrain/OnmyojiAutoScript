@@ -63,7 +63,7 @@ class MetaDemonConfig(ConfigBase):
 
 
 class MetaDemonSwitchSoulConfig(ConfigBase):
-    enable: bool = Field(default=False, description='是否启用自动切换御魂,清空则不会切换对应御魂\n若是数字,则以编号方式切换御魂(组号,队伍号),组1-7,队伍1-4\n若非数字,则以ocr方式切换御魂(组名,队伍名)')
+    enable: bool = Field(default=False, description='是否启用自动切换御魂,清空则不会切换对应御魂\n若是数字,则以编号方式切换御魂(组号,队伍号),组1-8,队伍1-4\n若非数字,则以ocr方式切换御魂(组名,队伍名)')
     switch_once: bool = Field(default=False, description='启用该项会一次性切换所有需要攻击的鬼王御魂(建议全部独立御魂再启用), 否则当鬼王级别变更时会自动切换对应级别御魂')
     one_star: str = Field(default='', description='一星鬼王切换御魂配置')
     enable_one_star_preset: bool = Field(default=False, description='是否战斗内切换一星鬼王预设,仅限数字切换御魂可用,否则无效,下面同理')

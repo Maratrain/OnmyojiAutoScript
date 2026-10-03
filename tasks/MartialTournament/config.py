@@ -67,7 +67,7 @@ class SwitchSoulConfig(BaseModel):
     enable_switch_group: bool = Field(default=False, title='切换群体Boss御魂',
                                       description='打群体Boss前切换到指定御魂队伍')
     group_boss_team: str = Field(default='-1,-1', title='群体Boss队伍编号',
-                                 description='组1-7,队伍1-4，中间用英文逗号分隔')
+                                 description='组1-8,队伍1-4，中间用英文逗号分隔')
     enable_switch_group_by_name: bool = Field(default=False, title='按名称切换群体Boss御魂',
                                               description='改用预设队伍名称切换')
     group_boss_team_name: str = Field(default='', title='群体Boss队伍名称',
@@ -76,7 +76,7 @@ class SwitchSoulConfig(BaseModel):
     enable_switch_single: bool = Field(default=False, title='切换单体Boss御魂',
                                        description='打单体Boss前切换到指定御魂队伍')
     single_group_team: str = Field(default='-1,-1', title='单体Boss队伍编号',
-                                   description='组1-7,队伍1-4，中间用英文逗号分隔')
+                                   description='组1-8,队伍1-4，中间用英文逗号分隔')
     enable_switch_single_by_name: bool = Field(default=False, title='按名称切换单体Boss御魂',
                                                description='改用预设队伍名称切换')
     single_group_team_name: str = Field(default='', title='单体Boss队伍名称',
@@ -85,7 +85,7 @@ class SwitchSoulConfig(BaseModel):
     enable_switch_mt_ap: bool = Field(default=False, title='切换体力爬塔御魂',
                                       description='体力爬塔前切换到指定御魂队伍')
     mt_ap_team: str = Field(default='-1,-1', title='体力爬塔队伍编号',
-                            description='组1-7,队伍1-4，中间用英文逗号分隔')
+                            description='组1-8,队伍1-4，中间用英文逗号分隔')
     enable_switch_mt_ap_by_name: bool = Field(default=False, title='按名称切换体力爬塔御魂',
                                               description='改用预设队伍名称切换')
     mt_ap_team_name: str = Field(default='', title='体力爬塔队伍名称',

@@ -1127,8 +1127,12 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         tmp = self.__getattribute__("C_PRESET_GROUP_" + str(preset_group))
         if tmp is None:
             tmp = self.C_PRESET_GROUP_1
-        color_size = [self.C_PRESET_GROUP_1.roi_back[2], self.C_PRESET_GROUP_1.roi_back[3]]
-        unselected_color = (224.9, 208.3, 187.4)
+        # 取色区域必须跟随目标分组自身 ROI 尺寸: 分组过多时末位分组会被面板底边裁切,
+        # 沿用组1的 25x50 会把越界的暗色一并平均进去, 导致颜色判定永不命中而放弃点击
+        color_size = [tmp.roi_back[2], tmp.roi_back[3]]
+        # 未选中底色按 1280x720 实机面板实测重取: 各分组取色区均值落在 (211~222, 194~204, 175~183),
+        # 原值 (224.9, 208.3, 187.4) 偏亮约 9~14, 判定裕量不足 10, 组1/组3/组7 会被误判成"已选中"而漏点
+        unselected_color = (216.8, 198.8, 179.1)
         logger.info("[通用战斗] 选择预设分组")
         choose_group_timer = Timer(4).start()
         while True:

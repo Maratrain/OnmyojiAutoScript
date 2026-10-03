@@ -34,6 +34,8 @@ class GeneralBattleAssets:
 	C_PRESET_GROUP_6 = RuleClick(roi_front=(35,555,25,50), roi_back=(35,555,25,50), name="preset_group_6")
 	# 预设组7 
 	C_PRESET_GROUP_7 = RuleClick(roi_front=(35,615,25,50), roi_back=(35,615,25,50), name="preset_group_7")
+	# 预设组8(分组过多时该组被面板底边裁切, 仅左上可见约16px) 
+	C_PRESET_GROUP_8 = RuleClick(roi_front=(35,679,25,16), roi_back=(35,679,25,16), name="preset_group_8")
 	# 从左开始第一个绿标 
 	C_GREEN_LEFT_1 = RuleClick(roi_front=(183,506,125,108), roi_back=(183,506,125,108), name="green_left_1")
 	# 从左开始第二个绿标 

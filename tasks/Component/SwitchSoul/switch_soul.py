@@ -59,7 +59,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
     def switch_soul_one(self, group: int, team: int) -> None:
         """
         设置一个队伍的预设御魂
-        :param group: 只能是[1-7]
+        :param group: 只能是[1-8]
         :param team: 只能是[1-4]
         :return:
         """
@@ -73,6 +73,8 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
                 5: tuple([self.C_SOU_GROUP_5, self.I_SOU_CHECK_GROUP_5]),
                 6: tuple([self.C_SOU_GROUP_6, self.I_SOU_CHECK_GROUP_6]),
                 7: tuple([self.C_SOU_GROUP_7, self.I_SOU_CHECK_GROUP_7]),
+                # 第8组暂无选中态图片, 该图片在当前无反馈点击流程中未被使用
+                8: tuple([self.C_SOU_GROUP_8, None]),
             }
             return match[group]
 
@@ -100,8 +102,8 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             # 等待滑动动画
             sleep(0.5)
 
-        if group < 1 or group > 7:
-            raise ValueError('Switch soul_one group must be in [1-7]')
+        if group < 1 or group > 8:
+            raise ValueError(f'切换御魂的分组号必须在[1-8]之间, 当前为{group}')
         if team < 1 or team > 4:
             raise ValueError('Switch soul_one team must be in [1-4]')
         # 这一步是选择组

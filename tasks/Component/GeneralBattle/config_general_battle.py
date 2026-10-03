@@ -36,7 +36,7 @@ class GeneralBattleConfig(BaseModel):
     )
     # 选哪一个预设组
     preset_group: int = Field(
-        default=1, title='预设组', ge=1, le=7,
+        default=1, title='预设组', ge=1, le=8,
         description='使用第几个预设分组',
     )
     # 选哪一个队伍

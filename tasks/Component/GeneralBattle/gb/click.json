@@ -66,6 +66,12 @@
     "description": "预设组7"
   },
   {
+    "itemName": "preset_group_8",
+    "roiFront": "35,679,25,16",
+    "roiBack": "35,679,25,16",
+    "description": "预设组8(分组过多时该组被面板底边裁切, 仅左上可见约16px)"
+  },
+  {
     "itemName": "green_left_1",
     "roiFront": "183,506,125,108",
     "roiBack": "183,506,125,108",
