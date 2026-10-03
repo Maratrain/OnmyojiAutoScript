@@ -1629,11 +1629,11 @@
     },
     "scales": {
       "enable": false,
-      "orochi_scales": 40,
-      "demon_souls": 50,
+      "orochi_scales": 0,
+      "demon_souls": 0,
       "demon_class": "土蜘蛛",
       "demon_position": 1,
-      "picture_book_scrap": 30,
+      "picture_book_scrap": 0,
       "picture_book_rule": "auto"
     },
     "bondlings": {

@@ -27,11 +27,11 @@ class Consignment(BaseModel):
 class Scales(BaseModel):
     # 密卷屋 蛇皮
     enable: bool = Field(title='Enable', default=False)
-    orochi_scales: int = Field(title='Orochi Scales', default=40, description='orochi_scales_help')
-    demon_souls: int = Field(title='Demon Souls', default=50, description='demon_souls_help')
+    orochi_scales: int = Field(title='Orochi Scales', default=0, description='orochi_scales_help')
+    demon_souls: int = Field(title='Demon Souls', default=0, description='demon_souls_help')
     demon_class: DemonClass = Field(title='DemonClass', default=DemonClass.TSUCHIGUMO, description='demon_class_help')
     demon_position: int = Field(title='Demon Position', default=1, description='demon_position_help')
-    picture_book_scrap: int = Field(title='Picture Book Scrap', default=30, description='picture_book_scrap_help')
+    picture_book_scrap: int = Field(title='Picture Book Scrap', default=0, description='picture_book_scrap_help')
     enable_book_auto: bool = Field(title='Enable Book Auto', default=False, description='enable_book_auto_help')
     picture_book_rule: str = Field(title='Picture Book Rule', default='auto', description='picture_book_rule_help')
 
@@ -67,7 +67,7 @@ class MedalRoom(BaseModel):
     ap_100: bool = Field(title='AP 100', default=False)
     random_soul: bool = Field(title='Random Soul', default=False)
     white_daruma: bool = Field(title='White Daruma', default=False)
-    challenge_pass: int = Field(title='Challenge Pass', default=0, description='challenge_pass_help')
+    challenge_pass: int = Field(title='式神挑战券', default=0, description='challenge_pass_help')
     red_daruma: int = Field(title='Red Daruma', default=0)
     broken_amulet: int = Field(title='Broken Amulet', default=0)
 
@@ -102,7 +102,7 @@ class GuildStore(BaseModel):
     honor_gift: bool = Field(default=False)
     mystery_amulet: bool = Field(title='Mystery Amulet', default=False)
     black_daruma_scrap: bool = Field(title='Black Daruma Scrap', default=False)
-    skin_ticket: int = Field(title='Skin Ticket', default=0, description='skin_ticket_help')
+    skin_ticket: int = Field(title='皮肤券', default=0, description='skin_ticket_help')
 
 
 class RichMan(ConfigBase):

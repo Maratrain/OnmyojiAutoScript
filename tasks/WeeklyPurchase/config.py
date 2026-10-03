@@ -27,11 +27,11 @@ class Consignment(BaseModel):
 class Scales(BaseModel):
     # 密卷屋 蛇皮
     enable: bool = Field(title='启用', default=False)
-    orochi_scales: int = Field(title='八岐大蛇鳞片', default=40, description='orochi_scales_help')
-    demon_souls: int = Field(title='御魂', default=50, description='demon_souls_help')
+    orochi_scales: int = Field(title='八岐大蛇鳞片', default=0, description='orochi_scales_help')
+    demon_souls: int = Field(title='御魂', default=0, description='demon_souls_help')
     demon_class: DemonClass = Field(title='御魂副本', default=DemonClass.TSUCHIGUMO, description='demon_class_help')
     demon_position: int = Field(title='御魂层数', default=1, description='demon_position_help')
-    picture_book_scrap: int = Field(title='绘卷碎片', default=30, description='picture_book_scrap_help')
+    picture_book_scrap: int = Field(title='绘卷碎片', default=0, description='picture_book_scrap_help')
     enable_book_auto: bool = Field(title='启用绘卷自动选择', default=False, description='enable_book_auto_help')
     picture_book_rule: str = Field(title='绘卷选择规则', default='auto', description='picture_book_rule_help')
 
