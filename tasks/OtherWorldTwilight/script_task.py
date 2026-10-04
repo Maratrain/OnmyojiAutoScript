@@ -47,9 +47,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         logger.info('创建队伍')
         self.ui_click(self.I_OWT_TEAM, self.I_CHECK_TEAM, interval=1)
         # 创建房间
-        self.create_room()
+        if not self.create_room():
+            logger.warning('[彼世逢魔] 创建房间失败，退出队长流程')
+            return False
         self.ensure_private()
-        self.create_ensure()
+        if not self.create_ensure():
+            logger.warning('[彼世逢魔] 创建确认失败，退出队长流程')
+            return False
         # 邀请队友
         success = True
         is_first = True

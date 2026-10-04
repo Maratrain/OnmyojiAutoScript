@@ -697,8 +697,8 @@ class ImageRuntime:
         """
         判断模板在参与匹配的区域内是否逐通道恒为常量。
 
-        CCOEFF_NORMED 归一化时分母来自各通道的方差，参与区域内只要有通道完全没有起伏，
-        分母就是 0，OpenCV 会走特判：无掩码时整张结果矩阵被填成 1.0（恒假阳性，且落点固定
+        CCOEFF_NORMED 归一化时分母来自各通道的方差，参与区域内所有通道都完全没有起伏时，
+        分母才是 0，OpenCV 会走特判：无掩码时整张结果矩阵被填成 1.0（恒假阳性，且落点固定
         在 roi_back 左上角），带掩码时整张变成 0/0 的 nan。两种都让这条规则失去意义，
         这里提前拦掉，而不是把异常数值当成命中。
         """
@@ -741,7 +741,7 @@ class ImageRuntime:
         if source.shape[0] < template.shape[0] or source.shape[1] < template.shape[1]:
             return False, -1.0, None
         if self._template_is_degenerate(template, mask):
-            logger.error(f"{log_name} template is flat (no variance in matching area), treated as not matched")
+            logger.error(f"{log_name} 模板在匹配区域内恒为纯色（无起伏），按未匹配处理")
             return False, -1.0, None
         if mask is None:
             result = cv2.matchTemplate(source, template, cv2.TM_CCOEFF_NORMED)
@@ -781,7 +781,7 @@ class ImageRuntime:
             logger.error(f"模板图像无效: {None if template is None else template.shape}")
             return True, 1.0, [int(v) for v in roi_back], None
         if self._template_is_degenerate(template):
-            logger.error(f"{log_name} template is flat (no variance), treated as not matched")
+            logger.error(f"{log_name} 模板恒为纯色（无起伏），按未匹配处理")
             return False, -1.0, None, None
 
         min_scale, max_scale, step = self._get_multi_scale_range(scale_range, scale_step)
@@ -803,6 +803,7 @@ class ImageRuntime:
                 continue
             scaled_template = cv2.resize(template, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
             result = cv2.matchTemplate(source, scaled_template, cv2.TM_CCOEFF_NORMED)
+            result = self._sanitize_match_result(result, log_name)
             _, max_val, _, max_loc = cv2.minMaxLoc(result)
             if max_val > best_val:
                 best_val = max_val
@@ -925,7 +926,7 @@ class ImageRuntime:
         if source.shape[0] < template.shape[0] or source.shape[1] < template.shape[1]:
             return []
         if self._template_is_degenerate(template, entry.mask):
-            logger.error(f"{rule['name']} template is flat (no variance in matching area), skip match_all")
+            logger.error(f"{rule['name']} 模板在匹配区域内恒为纯色（无起伏），跳过 match_all")
             return []
         if entry.mask is None:
             results = cv2.matchTemplate(source, template, cv2.TM_CCOEFF_NORMED)
@@ -1093,7 +1094,7 @@ class ImageRuntime:
         """
         if np.isfinite(result).all():
             return result
-        logger.error(f"{log_name} match result contains nan/inf (solid-color region), treated as not matched")
+        logger.error(f"{log_name} 匹配结果出现 nan/inf（同色区域），按未匹配处理")
         return np.nan_to_num(result, nan=-1.0, posinf=-1.0, neginf=-1.0)
 
     @staticmethod
