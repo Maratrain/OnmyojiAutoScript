@@ -253,8 +253,11 @@ class ManualClaimMixin(PortraitUIMixin):
                 logger.info('手动领取完成（有点击领取按钮）')
             else:
                 logger.info('手动领取完成（无未领取项）')
+            # 大神侧领取≠到账，继续游戏内领取
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=True, finish=True)
         else:
             logger.warning('手动领取超时未完成')
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=False, finish=True)
         raise TaskEnd('AutoCheckinBigGod')

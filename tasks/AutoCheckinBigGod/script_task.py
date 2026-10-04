@@ -20,6 +20,7 @@ import urllib3
 from module.logger import logger
 from module.exception import TaskEnd
 from tasks.AutoCheckinBigGod.manual_claim import ManualClaimMixin
+from tasks.AutoCheckinBigGod.game_claim import GameClaimMixin
 
 try:
     from oas_checkin_biggod import FRIDA_SERVER_XZ, ADB_PATH
@@ -46,7 +47,7 @@ GL_CLIENTTYPE = "50"
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
 
 
-class ScriptTask(ManualClaimMixin):
+class ScriptTask(GameClaimMixin, ManualClaimMixin):
 
     def run(self):
         self.gl_uid = ""
@@ -76,12 +77,14 @@ class ScriptTask(ManualClaimMixin):
         logger.info('[1/5] 检查运行环境...')
         if not self._check_adb_connection():
             logger.error('未检测到ADB设备，请确保模拟器已启动并已连接ADB')
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=False, finish=True)
             raise TaskEnd('AutoCheckinBigGod')
         logger.info('ADB已连接')
 
         if not self._ensure_frida_server_running():
             logger.error('Frida Server启动失败，请检查模拟器环境')
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=False, finish=True)
             raise TaskEnd('AutoCheckinBigGod')
         logger.info('Frida Server运行中')
@@ -115,6 +118,7 @@ class ScriptTask(ManualClaimMixin):
 
         if not token_data:
             logger.error('无法获取Token，请确保已登录大神APP并绑定阴阳师角色')
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=False, finish=True)
             raise TaskEnd('AutoCheckinBigGod')
 
@@ -150,6 +154,8 @@ class ScriptTask(ManualClaimMixin):
         if not rewards:
             logger.info('没有可领取的礼包')
             self._cleanup()
+            # 大神侧已领取≠到账，游戏内仍可能有已登记未领取的礼包
+            self._run_game_claim()
             self.set_next_run('AutoCheckinBigGod', success=True, finish=True)
             raise TaskEnd('AutoCheckinBigGod')
 
@@ -163,6 +169,8 @@ class ScriptTask(ManualClaimMixin):
 
         logger.info(f'完成! 成功领取 {success_count}/{len(rewards)} 个礼包')
         self._cleanup()
+        # API 领取成功只是登记，奖励需在游戏内点「领奖」才到账
+        self._run_game_claim()
         self.set_next_run('AutoCheckinBigGod', success=True, finish=True)
         raise TaskEnd('AutoCheckinBigGod')
 
