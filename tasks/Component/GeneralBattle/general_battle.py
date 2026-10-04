@@ -793,8 +793,9 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                                          context.reward_no_battle_ts is None):
             return BattleAction.CONTINUE
         # 识别丢失多为误触奖励物品弹出了详情浮窗, 先点击空白处关闭再等页面恢复
+        # 空白落点用上部天空区域, 结算后可能已回到庭院, 左侧竖条会点中展示式神
         if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2) or self.appear(self.I_END_FIX_3):
-            self.click(self.C_REWARD_2, interval=1.5)
+            self.click(GlobalGameAssets.C_BLANK_CLOSE, interval=1.5)
             context.reward_no_battle_ts = None
             return BattleAction.CONTINUE
         # 上个页面为战斗结算/奖励页面, 此时识别不到页面, 则开始超时计时
@@ -806,7 +807,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             if not context.reward_blank_closed:
                 context.reward_blank_closed = True
                 logger.info("[通用战斗] 页面识别丢失, 点击空白处尝试关闭误触浮窗")
-                self.click(self.C_REWARD_2, interval=1.5)
+                self.click(GlobalGameAssets.C_BLANK_CLOSE, interval=1.5)
                 context.reward_no_battle_ts = None
                 return BattleAction.CONTINUE
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE

@@ -45,8 +45,8 @@ class GlobalGameAssets:
 	I_UI_CANCEL = RuleImage(roi_front=(432,403,177,62), roi_back=(432,403,177,62), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_cancel.png")
 	# '获得奖励' 四个大字 
 	I_UI_REWARD = RuleImage(roi_front=(481,185,317,42), roi_back=(464,142,350,145), threshold=0.73, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_reward.png")
-	# 右上角红色关闭按钮 
-	I_UI_BACK_RED = RuleImage(roi_front=(1041,111,34,38), roi_back=(680,15,579,374), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_back_red.png")
+	# 右上角红色关闭按钮 (部分全屏弹层如庭院皮肤展示页的关闭钮紧贴顶边, 搜索带需覆盖到 y=0)
+	I_UI_BACK_RED = RuleImage(roi_front=(1041,111,34,38), roi_back=(680,0,579,389), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_back_red.png")
 	# description 
 	I_UI_BACK_YELLOW = RuleImage(roi_front=(26,17,47,46), roi_back=(0,0,100,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_back_yellow.png")
 	# description 
@@ -67,5 +67,7 @@ class GlobalGameAssets:
 	I_PROFILE_CARD_NEW = RuleImage(roi_front=(165,222,135,183), roi_back=(120,180,240,280), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_profile_card_new.png")
 	# 新版个人主页弹层下方的空白背板, 点击关闭弹层
 	C_PROFILE_CARD_CLOSE = RuleClick(roi_front=(780,625,320,70), roi_back=(780,625,320,70), name="profile_card_close")
+	# 通用点空白关弹层落点, 取上部天空区域, 避开庭院展示式神/封印章等可交互元素
+	C_BLANK_CLOSE = RuleClick(roi_front=(480,90,320,48), roi_back=(480,90,320,48), name="blank_close")
 
 
