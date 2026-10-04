@@ -61,6 +61,8 @@ class CubWarAssets:
 	I_BOSS_LOCKED = RuleImage(roi_front=(1135,585,70,90), roi_back=(1080,540,200,170), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_boss_locked.png")
 	# 盛宴地图右下角指南针（点击回到本组大部队所在位置）
 	I_MAP_COMPASS = RuleImage(roi_front=(1189,646,35,38), roi_back=(1189,646,35,38), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_map_compass.png")
+	# 区域攻打界面右下角式神录按钮（首领讨伐中接管时从这里进式神录换御魂）
+	I_AREA_SHIKIGAMI = RuleImage(roi_front=(1026,556,66,88), roi_back=(1000,540,110,120), threshold=0.8, method="Template matching", file="./tasks/CubWar/cub_war/cub_war_area_shikigami.png")
 
 
 	# Ocr Rule Assets（为崽而战·八百八狸盛宴）

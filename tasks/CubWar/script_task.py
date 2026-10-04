@@ -19,6 +19,9 @@ GROUP_NAMES = {
     CubWarGroup.Shark: '鲨组',
 }
 
+# 首领讨伐中时等待用户手动进入可攻打区域的时长（秒）
+CUB_WAR_MANUAL_WAIT_SECONDS = 300
+
 
 class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
 
@@ -26,6 +29,8 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
         """
         为崽而战·八百八狸盛宴退治主流程（限时活动）
         首领开启时间以游戏内倒计时为准（且需所在分组占领相邻区域）；神社区域/妖怪退治按所在分组解锁情况开放
+        首领讨伐中时指南针只会定位到中央八百八狸，区域退治转为半人工接管：
+        等待用户手动进入可攻打区域后，从区域界面右下角「式神录」换御魂再开启挑战
         """
         cfg: CubWar = self.config.cub_war
         logger.hr('为崽而战·八百八狸盛宴', 2)
@@ -46,6 +51,8 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
         success = False
         settings = cfg.cub_war_settings
         self._cub_war_limit_reached = False
+        # 首领讨伐中的半人工接管阶段一次运行只进一轮，结束（超时/打满上限）后不再重复等待
+        self._cub_war_manual_done = False
         # 首领·八百八狸（每场消耗 18 点）
         if settings.battle_boss:
             success = self.cub_war_boss_phase(cfg) or success
@@ -145,11 +152,23 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
         区域退治阶段：在盛宴地图上寻找目标进入区域详情页连打。
         神社区域点鸟居进入；妖怪退治点驻扎的军队进入（发金光的格子为正在攻打的区域）。
         区域未解锁（无退治按钮）自动跳过；滑动地图有次数上限，找不到目标即结束该阶段。
+        首领讨伐中时指南针只会定位到中央八百八狸，自动寻路失效，转为半人工接管。
         """
         label = '神社区域' if shrine else '妖怪退治'
         tag = '崽战神社' if shrine else '崽战妖怪'
         # 先点右下角指南针回到本组大部队所在位置，否则默认相机可能在别处，看到的格子都不是本组能攻打的
+        # 首领讨伐中时指南针只会把镜头定位到中央八百八狸，正好可借此判断首领是否已开启
         self.cub_war_click_compass()
+        self.screenshot()
+        if self.appear(self.I_GOTO_BOSS):
+            if self._cub_war_manual_done:
+                logger.info(f"[{tag}] 首领讨伐中且半人工接管阶段已结束，跳过{label}")
+                return False
+            logger.info(f"[{tag}] 首领讨伐中，指南针只能定位到中央八百八狸，"
+                        f"请手动寻找可攻打区域并进入，脚本将自动接管（等待最多 {CUB_WAR_MANUAL_WAIT_SECONDS // 60} 分钟）")
+            result = self.cub_war_area_manual_phase(cfg)
+            self._cub_war_manual_done = True
+            return result
         if shrine:
             targets = [self.I_MAP_TORII]
         else:
@@ -250,6 +269,117 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, CubWarAssets):
             continue
         logger.info(f"[{tag}] {label}阶段结束")
         return success
+
+    def cub_war_area_manual_phase(self, cfg: CubWar) -> bool:
+        """
+        首领讨伐中时的区域退治半人工接管：
+        指南针只会定位到中央八百八狸，无法自动寻找可攻打区域，等待用户手动进入区域攻打界面后接管。
+        神社区域/妖怪退治均可接管（受各自开关控制）；接管后从右下角「式神录」换御魂，再点击退治开启挑战。
+        每打完一个区域回到地图继续等待下一区域，等待进区超时或达到每日消耗上限后结束；
+        等待期间不做任何点击，避免干扰用户手动寻路。
+        """
+        settings = cfg.cub_war_settings
+        need_switch = cfg.switch_soul_config.enable or cfg.switch_soul_config.enable_switch_by_name
+        success = False
+        took_over = False
+        hint = ''
+        wait = Timer(CUB_WAR_MANUAL_WAIT_SECONDS).start()
+        while 1:
+            self.screenshot()
+            if self._cub_war_limit_reached:
+                logger.info("[崽战接管] 已达每日消耗上限，接管阶段结束")
+                break
+            # 用户手动进入了区域攻打界面：先判区域页再判战斗页，防止误把区域页当战斗接管
+            shrine = None
+            if self.appear(self.I_CHECK_SHRINE):
+                shrine = True
+            elif self.appear(self.I_CHECK_YOKAI):
+                shrine = False
+            if shrine is not None:
+                label = '神社区域' if shrine else '妖怪退治'
+                if not (settings.battle_shrine if shrine else settings.battle_yokai):
+                    if hint != label:
+                        hint = label
+                        logger.warning(f"[崽战接管] 用户进入了{label}，但该区域未启用，继续等待已启用的区域")
+                    if wait.reached():
+                        logger.warning("[崽战接管] 等待用户进入已启用的区域超时，接管阶段结束")
+                        break
+                    continue
+                logger.info(f"[崽战接管] 检测到用户已进入{label}界面，接管")
+                hint = ''
+                self._cub_war_settle(1.0)
+                if need_switch:
+                    self.cub_war_switch_soul_on_area_page(cfg, shrine)
+                fought = self.cub_war_area_battle(cfg, shrine)
+                success = success or fought
+                took_over = True
+                if not self.back_to_feast_map():
+                    break
+                if self._cub_war_limit_reached:
+                    logger.info("[崽战接管] 已达每日消耗上限，接管阶段结束")
+                    break
+                logger.info("[崽战接管] 本区域打完，继续等待用户手动进入下一区域")
+                wait = Timer(CUB_WAR_MANUAL_WAIT_SECONDS).start()
+                continue
+            # 首领挑战页不属于区域接管范围，只提示不动作
+            if self.appear(self.I_CHECK_CHALLENGE):
+                if hint != 'challenge':
+                    hint = 'challenge'
+                    logger.warning("[崽战接管] 检测到首领挑战页，请返回地图手动进入可攻打区域")
+            # 用户点军队可能直接开战：立即接管本场
+            elif self.detect_page_in(page_battle_prepare, page_battle, include_global=False) is not None:
+                logger.info("[崽战接管] 检测到用户已进入战斗，接管本场")
+                win = self.run_general_battle(
+                    config=cfg.general_battle,
+                    exit_matcher=lambda: (self.appear(self.I_CHECK_FEAST_MAP) or self.appear(self.I_CHECK_SHRINE)
+                                          or self.appear(self.I_CHECK_YOKAI)),
+                )
+                success = success or win
+                if not win:
+                    logger.warning("[崽战接管] 接管的战斗战败，接管阶段结束")
+                    break
+                took_over = True
+                hint = ''
+                if not self.back_to_feast_map():
+                    break
+                wait = Timer(CUB_WAR_MANUAL_WAIT_SECONDS).start()
+                continue
+            if wait.reached():
+                if not took_over:
+                    logger.warning("[崽战接管] 等待用户手动进入可攻打区域超时，跳过区域退治")
+                else:
+                    logger.info("[崽战接管] 等待用户手动进入下一区域超时，接管阶段结束")
+                break
+        return success
+
+    def cub_war_switch_soul_on_area_page(self, cfg: CubWar, shrine: bool) -> None:
+        """
+        在区域攻打界面通过右下角「式神录」按钮进式神录换御魂（首领讨伐中接管用），
+        换完退回区域攻打界面，随后可直接点击退治开启挑战
+        """
+        label = '神社区域' if shrine else '妖怪退治'
+        page_check = self.I_CHECK_SHRINE if shrine else self.I_CHECK_YOKAI
+        timer = Timer(15).start()
+        opened = False
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_SOU_CHECK_IN):
+                opened = True
+                break
+            if self.appear_then_click(self.I_AREA_SHIKIGAMI, interval=2):
+                continue
+        if not opened:
+            logger.warning(f"[崽战接管] 未能从{label}界面进入式神录，跳过换御魂")
+            return
+        logger.info("[崽战接管] 已从区域界面进入式神录，开始换御魂")
+        if cfg.switch_soul_config.enable:
+            self.run_switch_soul(cfg.switch_soul_config.switch_group_team)
+        if cfg.switch_soul_config.enable_switch_by_name:
+            self.run_switch_soul_by_name(cfg.switch_soul_config.group_name, cfg.switch_soul_config.team_name)
+        self.exit_shikigami_records()
+        self._cub_war_settle(1.5)
+        if not self.appear(page_check):
+            logger.warning(f"[崽战接管] 换御魂后未回到{label}界面")
 
     def cub_war_click_compass(self) -> None:
         """

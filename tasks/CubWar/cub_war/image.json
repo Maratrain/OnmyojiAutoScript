@@ -223,5 +223,14 @@
   "method": "Template matching",
   "threshold": 0.8,
   "description": "盛宴地图右下角指南针（点击回到本组大部队所在位置）"
+ },
+ {
+  "itemName": "area_shikigami",
+  "imageName": "cub_war_area_shikigami.png",
+  "roiFront": "1026,556,66,88",
+  "roiBack": "1000,540,110,120",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "区域攻打界面右下角式神录按钮（首领讨伐中接管时从这里进式神录换御魂）"
  }
 ]
