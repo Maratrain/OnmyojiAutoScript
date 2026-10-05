@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAS 日志分析器</title>
+<link rel="stylesheet" href="static/page.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">OAS 日志分析器</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="analyze">日志分析</button>
+    <button class="tab" data-tab="search">文本搜索</button>
+    <button class="tab" data-tab="stats">节点统计</button>
+  </nav>
+  <div class="source-box" id="sourceBox">
+    <span class="file-chip" id="fileChip" hidden></span>
+    <select id="scriptSelect" class="input" hidden title="选择实例"></select>
+    <select id="dateSelect" class="input" hidden title="选择日期"></select>
+    <button id="loadBtn" class="btn" hidden>加载</button>
+    <button id="openFileBtn" class="btn">打开本地日志</button>
+    <input type="file" id="fileInput" accept=".txt,.log" hidden>
+  </div>
+</header>
+
+<div class="meta-bar" id="metaBar" hidden>
+  <span id="metaText"></span>
+  <span class="meta-right">
+    <label class="chk"><input type="checkbox" id="showRawToggle"> 时间线显示原文行号</label>
+  </span>
+</div>
+
+<!-- 日志分析 -->
+<main class="view" id="view-analyze">
+  <aside class="pane pane-left" id="taskPane">
+    <div class="pane-head">
+      <span>任务列表</span>
+      <button class="btn btn-sm" id="taskAllBtn" title="显示全部任务">全部</button>
+    </div>
+    <div class="pane-body" id="taskList"></div>
+  </aside>
+
+  <section class="pane pane-mid">
+    <div class="pane-head">
+      <span>节点时间线</span>
+      <div class="chips" id="filterChips">
+        <button class="chip active" data-f="all">全部</button>
+        <button class="chip" data-f="action">动作</button>
+        <button class="chip" data-f="reco">识别/界面</button>
+        <button class="chip" data-f="warn">警告</button>
+        <button class="chip" data-f="error">错误</button>
+      </div>
+      <input type="text" id="inlineQuery" class="input input-sm" placeholder="在时间线中筛选文本…">
+    </div>
+    <div class="vlist" id="timeline">
+      <div class="vlist-spacer" id="tlSpacer"></div>
+      <div class="vlist-window" id="tlWindow"></div>
+    </div>
+  </section>
+
+  <aside class="pane pane-right" id="detailPane">
+    <div class="pane-head"><span>详细信息</span><span class="muted" id="detailHint"></span></div>
+    <div class="pane-body" id="detailBody">
+      <div class="empty-tip">在时间线中选择一条记录查看详情</div>
+    </div>
+  </aside>
+</main>
+
+<!-- 文本搜索 -->
+<main class="view" id="view-search" hidden>
+  <div class="search-bar">
+    <input type="text" id="searchInput" class="input" placeholder="搜索关键字或正则…">
+    <label class="chk"><input type="checkbox" id="reToggle"> 正则</label>
+    <label class="chk"><input type="checkbox" id="caseToggle" checked> 忽略大小写</label>
+    <button id="searchBtn" class="btn btn-primary">搜索</button>
+    <select id="historySelect" class="input input-sm" hidden title="搜索历史"></select>
+  </div>
+  <div class="search-meta" id="searchMeta">输入关键字后点击搜索</div>
+  <div class="vlist grow" id="searchResults">
+    <div class="vlist-spacer" id="srSpacer"></div>
+    <div class="vlist-window" id="srWindow"></div>
+  </div>
+</main>
+
+<!-- 节点统计 -->
+<main class="view" id="view-stats" hidden>
+  <div class="cards" id="statCards"></div>
+  <div class="stats-grid">
+    <section class="panel">
+      <div class="panel-head">任务耗时与状态</div>
+      <div class="table-wrap" id="taskTable"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">资产点击 Top 15</div>
+      <div class="bars" id="clickBars"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">日志来源模块 Top 10</div>
+      <div class="bars" id="srcBars"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">级别分布</div>
+      <div class="bars" id="levelBars"></div>
+    </section>
+  </div>
+</main>
+
+<!-- 空状态 -->
+<div class="dropzone" id="dropzone" hidden>
+  <div class="drop-card">
+    <div class="drop-icon">📥</div>
+    <div class="drop-title">拖入 OAS 日志文件开始分析</div>
+    <div class="drop-sub">支持 log/YYYY-MM-DD_实例名.txt，也可点击右上角「打开本地日志」</div>
+    <div class="drop-status" id="dropStatus"></div>
+  </div>
+</div>
+<div class="drag-mask" id="dragMask" hidden><div>松开以载入日志文件</div></div>
+
+<script src="static/parser.js"></script>
+<script src="static/page.js"></script>
+</body>
+</html>

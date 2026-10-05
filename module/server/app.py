@@ -13,6 +13,7 @@ from module.logger import logger
 from module.server.api_logger import ensure_api_logger
 from module.server.analysis_router import analysis_app
 from module.server.home_router import home_app
+from module.server.log_analyzer_router import log_analyzer_app
 from module.server.log_router import log_app
 from module.server.script_router import script_app
 from module.server.stats_router import stats_app
@@ -52,6 +53,7 @@ app.include_router(stats_app)
 app.include_router(task_stats_app)
 app.include_router(analysis_app)
 app.include_router(log_app)
+app.include_router(log_analyzer_app)
 app.include_router(tool_app)
 
 annotator_static_dir = Path(__file__).resolve().parent / "web" / "annotator" / "static"
@@ -77,6 +79,10 @@ if annotator_static_dir.exists():
 task_stats_static_dir = Path(__file__).resolve().parent / "web" / "task_statistics" / "static"
 if task_stats_static_dir.exists():
     app.mount("/task_statistics/static", StaticFiles(directory=str(task_stats_static_dir)), name="task_stats_static")
+
+log_analyzer_static_dir = Path(__file__).resolve().parent / "web" / "log_analyzer" / "static"
+if log_analyzer_static_dir.exists():
+    app.mount("/log_analyzer/static", NoCacheStaticFiles(directory=str(log_analyzer_static_dir)), name="log_analyzer_static")
 
 
 async def on_startup():
