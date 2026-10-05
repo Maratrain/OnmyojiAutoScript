@@ -17,6 +17,7 @@ import random
 import time
 
 from module.atom.click import RuleClick
+from module.logger import logger
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.Component.Login.service import LoginService
 from tasks.DailyTrifles.assets import DailyTriflesAssets
@@ -78,6 +79,34 @@ def handle_login_page(task) -> bool:
     return LoginService(config=task.config, device=task.device).app_handle_login()
 
 
+def reset_courtyard_by_guild(task) -> bool:
+    """庭院镜头偏移恢复: 经阴阳寮进出把庭院重置回默认视角。
+
+    庭院背景可左右拖动, 探索楼/町中/召唤屋等场景入口会移出识别搜索带导致跳转失败;
+    阴阳寮入口固定在底部功能栏不受镜头影响, 进出阴阳寮返回庭院后镜头会复位。
+    仅在仍位于庭院且界面可正常识别时执行。
+    """
+    if not task.appear(GameUiAssets.I_CHECK_MAIN):
+        return False
+    logger.info('[界面] 庭院跳转失败，尝试经阴阳寮进出重置镜头')
+    if not task.appear_then_click(GameUiAssets.I_MAIN_GOTO_GUILD):
+        logger.info('[界面] 未找到阴阳寮入口，跳过镜头重置')
+        return False
+    if not task.wait_until_appear(GameUiAssets.I_CHECK_GUILD, wait_time=6):
+        logger.info('[界面] 进入阴阳寮失败，跳过镜头重置')
+        return False
+    # 阴阳寮可能弹出结界卡挂卡窗口, 先关闭再返回
+    task.appear_then_click(KekkaiUtilizeAssets.I_PLANT_TREE_CLOSE)
+    if not task.wait_until_appear_then_click(GlobalGameAssets.I_UI_BACK_YELLOW, wait_time=4):
+        logger.info('[界面] 未找到阴阳寮返回按钮，跳过镜头重置')
+        return False
+    if not task.wait_until_appear(GameUiAssets.I_CHECK_MAIN, wait_time=8):
+        logger.info('[界面] 返回庭院超时，镜头重置未完成')
+        return False
+    logger.info('[界面] 已返回庭院，镜头重置完成')
+    return True
+
+
 # 登录页。
 page_login = Page(SwitchAccountAssets.I_CHECK_LOGIN_FORM, category="global")
 page_login.add_enter_success_hooks(handle_login_page)
@@ -88,6 +117,8 @@ page_main.add_enter_success_hooks(
     GameUiAssets.I_AD_CLOSE_RED, GlobalGameAssets.I_UI_BACK_RED, RestartAssets.I_CANCEL_BATTLE,
     conditional_action(RestartAssets.I_LOGIN_COURTYARD, RestartAssets.C_LOGIN_SCROLL_CLOSE_AREA),
 )
+# 庭院跳转失败(如镜头被拖动偏移致场景入口移出识别带)时, 经阴阳寮进出重置镜头后由导航重试
+page_main.add_leave_failure_hooks(reset_courtyard_by_guild)
 
 # 庭院区域页面。
 page_shikigami_records = Page(GameUiAssets.I_CHECK_RECORDS, category="global")
