@@ -31,6 +31,9 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
     DANMAKU_FORBIDDEN_AREA = (300, 45, 1100, 140)
     QUESTION_SCALES = tuple(round(value / 100, 2) for value in range(65, 136, 5))
+    # 问号兜底匹配的及格线。实测 0.54~0.67 分区间命中全部是场景高光、
+    # 公告文字一类误报（真问号核心匹配得分均在 0.96+），阈值上调到 0.68。
+    QUESTION_FALLBACK_SCORE = 0.68
 
     @cached_property
     def _config(self):
@@ -110,11 +113,17 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             templates.append((name, template))
         return templates
 
-    def find_question_center(self, image):
-        """多尺寸识别头顶问号，兼容场景明暗和透视造成的轻微缩放。"""
+    @staticmethod
+    def _in_danmaku_forbidden_area(point):
+        x, y = point
+        left, top, right, bottom = ScriptTask.DANMAKU_FORBIDDEN_AREA
+        return left <= x <= right and top <= y <= bottom
+
+    def find_question_candidate(self, image):
+        """多尺寸识别头顶问号，返回 (中心坐标, 是否高分可信)。"""
         templates = self._question_templates_gray
         if not templates:
-            return None
+            return None, False
 
         top, bottom = 60, 500
         search = cv2.cvtColor(image[top:bottom], cv2.COLOR_RGB2GRAY)
@@ -146,7 +155,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                     f'[新手剧情] 问号核心匹配得分: {core_best_score:.3f}, '
                     f'位置: {core_best_center}, 缩放: {core_best_scale:.2f}'
                 )
-                return core_best_center
+                return core_best_center, True
 
         best_score, best_center, best_name, best_scale = 0.0, None, None, None
         for name, template in templates:
@@ -165,16 +174,27 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                     )
                     best_name, best_scale = name, scale
 
-        # Dynamic characters can cover most of the bubble background. Two
-        # consecutive fresh-frame detections are still required before click,
-        # so this fallback can use a lower score than the full-template rules.
-        if best_score >= 0.54:
-            logger.info(
-                f'[新手剧情] 问号图标兜底匹配得分: {best_score:.3f}, 位置: {best_center}, '
-                f'模板: {best_name}, 缩放: {best_scale:.2f}'
-            )
-            return best_center
-        return None
+        # 低于及格线的命中（实测 0.54~0.67 分全是场景高光/公告文字误报，
+        # 如曾反复点击的 (1058, 128)）直接丢弃。
+        if best_score < self.QUESTION_FALLBACK_SCORE:
+            return None, False
+        # 滚动公告/弹幕区域的兜底命中无论得分都按禁点区丢弃，
+        # 与三点气泡识别保持一致。
+        if self._in_danmaku_forbidden_area(best_center):
+            return None, False
+
+        # Dynamic characters can cover most of the bubble background. The
+        # fallback never reports "confident": it still needs the fresh-frame
+        # stability check before any click.
+        logger.info(
+            f'[新手剧情] 问号图标兜底匹配得分: {best_score:.3f}, 位置: {best_center}, '
+            f'模板: {best_name}, 缩放: {best_scale:.2f}'
+        )
+        return best_center, False
+
+    def find_question_center(self, image):
+        """兼容旧接口：只返回问号中心坐标。"""
+        return self.find_question_candidate(image)[0]
 
     def _click_story_control(self, target, message, action=None):
         """等待后重新识别动态控件，并点击最新坐标。"""
@@ -207,6 +227,38 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         self.device.click_record_clear()
         logger.info(f'[新手剧情] 点击弹幕下方露出的眼睛图标: ({x}, {safe_y})')
         return True
+
+    def _appear_in_full_screen(self, target):
+        """临时把搜索窗扩到全屏后识别，返回是否命中（用后恢复原窗口）。"""
+        original_roi = target.roi_back
+        target.roi_back = (0, 0, 1280, 720)
+        try:
+            return self.appear(target, interval=None)
+        finally:
+            target.roi_back = original_roi
+
+    def _click_full_screen_skip(self):
+        """空白兜底前的全屏复扫：跳过按钮换位置后固定窗匹配不到时仍能点住，
+        避免剧情被空白点击一句一句磨过去。"""
+        if (self._appear_in_full_screen(self.I_STORY_PLAYBACK_PAUSE)
+                and self._appear_in_full_screen(self.I_STORY_SKIP_ROUND)):
+            self.click(self.I_STORY_SKIP_ROUND)
+            self.device.click_record_clear()
+            logger.info('[新手剧情] 全屏复扫点击圆形跳过')
+            return True
+        for target, message in (
+            (self.I_CONFIRM_SKIP, '[新手剧情] 全屏复扫点击确认跳过'),
+            (self.I_STORY_SKIP_DIALOG, '[新手剧情] 全屏复扫点击对白跳过'),
+            (self.I_STORY_SKIP_DIALOG_PINK,
+             '[新手剧情] 全屏复扫点击对白跳过（粉色场景）'),
+        ):
+            if not self._appear_in_full_screen(target):
+                continue
+            self.click(target)
+            self.device.click_record_clear()
+            logger.info(message)
+            return True
+        return False
 
     def _click_visible_skip_now(self):
         """在当前截图中优先处理跳过，供动态目标等待后再次仲裁。"""
@@ -399,16 +451,18 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             if self._click_story_control(*control):
                 return True
 
-        question = self.find_question_center(self.device.image)
+        question, _ = self.find_question_candidate(self.device.image)
         if question is not None:
             self._wait_before_recognition_click()
             refreshed_question = None
             # The icon and characters are continuously animated. A single
             # post-delay frame can temporarily score below the threshold, so
             # sample a short burst and accept only a nearby stable candidate.
+            # 首帧候选可能是低分误报：新帧命中本身高分可信时直接接受，
+            # 不再因锚点偏移把 0.9+ 的真问号连续拒绝。
             for attempt in range(5):
                 self.screenshot()
-                candidate = self.find_question_center(self.device.image)
+                candidate, confident = self.find_question_candidate(self.device.image)
                 if candidate is not None:
                     movement = float(np.hypot(
                         candidate[0] - question[0],
@@ -416,6 +470,13 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                     ))
                     if movement <= 160:
                         refreshed_question = candidate
+                        break
+                    if confident:
+                        refreshed_question = candidate
+                        logger.info(
+                            f'[新手剧情] 问号高分命中直接接受: {candidate}'
+                            f'（原候选 {question}，偏移 {movement:.1f}px）'
+                        )
                         break
                     logger.warning(
                         f'[新手剧情] 问号候选位置偏移 {movement:.1f}px: '
@@ -432,6 +493,11 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                 f'[新手剧情] 点击问号图标，刷新后位置: {refreshed_question}'
                 f'（原 {question}）'
             )
+            return True
+
+        # 空白兜底前全屏复扫各跳过控件：按钮随对白框布局换位置后，
+        # 固定搜索窗匹配不到时剧情会被空白点击一句一句磨过去。
+        if self._click_full_screen_skip():
             return True
 
         if self.click(self.C_STORY_BLANK, interval=1.2):

@@ -120,10 +120,11 @@ class NewbieStoryAssets:
         file='./tasks/NewbieStory/res/story_next_track.png',
     )
 
-    # 普通对白框上方的“跳过”按钮。
+    # 普通对白框上方的“跳过”按钮。搜索窗覆盖整个下侧区域：
+    # 不同段落按钮会随对白框布局移动，窄窗会整段漏匹配。
     I_STORY_SKIP_DIALOG = RuleImage(
         roi_front=(820, 548, 100, 55),
-        roi_back=(790, 520, 180, 110),
+        roi_back=(660, 460, 400, 220),
         threshold=0.76,
         method='Template matching',
         file='./tasks/NewbieStory/res/story_skip_dialog.png',
@@ -132,7 +133,7 @@ class NewbieStoryAssets:
     # 粉色剧情场景中的棕色描边“跳过”按钮。
     I_STORY_SKIP_DIALOG_PINK = RuleImage(
         roi_front=(816, 546, 104, 56),
-        roi_back=(790, 520, 180, 110),
+        roi_back=(660, 460, 400, 220),
         threshold=0.74,
         method='Template matching',
         file='./tasks/NewbieStory/res/story_skip_dialog_pink.png',
@@ -142,7 +143,7 @@ class NewbieStoryAssets:
     # 三角形和竖线，避免外圈呼吸光效及动态背景拉低识别率。
     I_STORY_SKIP_ROUND = RuleImage(
         roi_front=(1203, 39, 34, 38),
-        roi_back=(1170, 10, 100, 90),
+        roi_back=(1100, 0, 180, 130),
         threshold=0.60,
         method='Template matching',
         file='./tasks/NewbieStory/res/story_skip_round.png',
@@ -152,7 +153,7 @@ class NewbieStoryAssets:
     # 防止把庭院右上角的频道按钮误认为跳过。
     I_STORY_PLAYBACK_PAUSE = RuleImage(
         roi_front=(999, 38, 31, 40),
-        roi_back=(970, 10, 90, 90),
+        roi_back=(930, 0, 180, 130),
         threshold=0.68,
         method='Template matching',
         file='./tasks/NewbieStory/res/story_playback_pause.png',
