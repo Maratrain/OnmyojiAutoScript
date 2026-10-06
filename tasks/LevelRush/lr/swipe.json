@@ -1,0 +1,16 @@
+[
+  {
+    "itemName": "summon_swipe",
+    "roiFront": "668,445,32,40",
+    "roiBack": "666,275,35,51",
+    "mode": "default",
+    "description": "抽卡"
+  },
+  {
+    "itemName": "borrow_shikigami_up",
+    "roiFront": "273,550,93,94",
+    "roiBack": "582,344,100,100",
+    "mode": "default",
+    "description": "上阵协战式神"
+  }
+]

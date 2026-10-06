@@ -1,0 +1,668 @@
+[
+  {
+    "itemName": "dot_dialog_popup",
+    "imageName": "lr_dot_dialog_popup.png",
+    "roiFront": "1253,300,16,16",
+    "roiBack": "0,102,1280,408",
+    "method": "Template matching",
+    "threshold": 0.7,
+    "description": "点对话弹窗"
+  },
+  {
+    "itemName": "skip_talk",
+    "imageName": "lr_skip_talk.png",
+    "roiFront": "841,558,57,27",
+    "roiBack": "841,558,57,27",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "跳过对话"
+  },
+  {
+    "itemName": "guide_fan",
+    "imageName": "lr_guide_fan.png",
+    "roiFront": "1013,237,19,27",
+    "roiBack": "0,0,1280,720",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "指引折扇"
+  },
+  {
+    "itemName": "summon_confirm",
+    "imageName": "lr_summon_confirm.png",
+    "roiFront": "418,620,173,51",
+    "roiBack": "418,620,173,51",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "确认召唤"
+  },
+  {
+    "itemName": "fight",
+    "imageName": "lr_fight.png",
+    "roiFront": "862,33,51,35",
+    "roiBack": "0,0,1280,549",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击进入战斗"
+  },
+  {
+    "itemName": "open_eye",
+    "imageName": "lr_open_eye.png",
+    "roiFront": "610,107,64,21",
+    "roiBack": "0,72,1280,402",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击眼睛切换世界"
+  },
+  {
+    "itemName": "question_popup",
+    "imageName": "lr_question_popup.png",
+    "roiFront": "1269,231,11,36",
+    "roiBack": "0,72,1280,402",
+    "method": "Template matching",
+    "threshold": 0.75,
+    "description": "问号弹窗"
+  },
+  {
+    "itemName": "movie_skip",
+    "imageName": "lr_movie_skip.png",
+    "roiFront": "1192,42,41,34",
+    "roiBack": "1192,42,41,34",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "跳过动画"
+  },
+  {
+    "itemName": "movie_skip_confirm",
+    "imageName": "lr_movie_skip_confirm.png",
+    "roiFront": "715,445,116,32",
+    "roiBack": "715,445,116,32",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "确认跳过"
+  },
+  {
+    "itemName": "goto_rookie_act",
+    "imageName": "lr_goto_rookie_act.png",
+    "roiFront": "207,308,38,37",
+    "roiBack": "109,173,364,274",
+    "method": "Template matching",
+    "threshold": 0.7,
+    "description": "前往新手活动界面"
+  },
+  {
+    "itemName": "check_rookie_act",
+    "imageName": "lr_check_rookie_act.png",
+    "roiFront": "88,17,160,39",
+    "roiBack": "88,17,160,39",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新手活动界面标志"
+  },
+  {
+    "itemName": "manual_mode",
+    "imageName": "lr_manual_mode.png",
+    "roiFront": "37,647,52,29",
+    "roiBack": "37,647,52,29",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "手动模式"
+  },
+  {
+    "itemName": "automatic_mode",
+    "imageName": "lr_automatic_mode.png",
+    "roiFront": "37,647,52,29",
+    "roiBack": "37,647,52,29",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "自动模式"
+  },
+  {
+    "itemName": "single_speed",
+    "imageName": "lr_single_speed.png",
+    "roiFront": "107,602,39,26",
+    "roiBack": "107,602,39,26",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "单倍速"
+  },
+  {
+    "itemName": "double_speed",
+    "imageName": "lr_double_speed.png",
+    "roiFront": "107,602,39,26",
+    "roiBack": "107,602,39,26",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "双倍速"
+  },
+  {
+    "itemName": "close_recommend",
+    "imageName": "lr_close_recommend.png",
+    "roiFront": "362,579,214,58",
+    "roiBack": "362,579,214,58",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "关闭个性化推荐弹窗"
+  },
+  {
+    "itemName": "get_onmyoji",
+    "imageName": "lr_get_onmyoji.png",
+    "roiFront": "259,112,30,22",
+    "roiBack": "226,82,79,211",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "获取阴阳师弹窗"
+  },
+  {
+    "itemName": "red_close",
+    "imageName": "lr_red_close.png",
+    "roiFront": "1149,77,40,38",
+    "roiBack": "942,0,338,281",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "红色关闭按钮"
+  },
+  {
+    "itemName": "gh_bird_recommend",
+    "imageName": "lr_gh_bird_recommend.png",
+    "roiFront": "284,410,84,87",
+    "roiBack": "202,287,237,377",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "推荐协战式神"
+  },
+  {
+    "itemName": "first_borrow",
+    "imageName": "lr_first_borrow.png",
+    "roiFront": "331,189,74,71",
+    "roiBack": "331,189,74,71",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "第一个借式神坑位"
+  },
+  {
+    "itemName": "first_borrow_get",
+    "imageName": "lr_first_borrow_get.png",
+    "roiFront": "331,189,74,71",
+    "roiBack": "331,189,74,71",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "第一个坑位借到了姑获鸟"
+  },
+  {
+    "itemName": "yellow_back_button",
+    "imageName": "lr_yellow_back_button.png",
+    "roiFront": "16,16,52,47",
+    "roiBack": "5,5,74,71",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "黄色返回按钮"
+  },
+  {
+    "itemName": "levek_7",
+    "imageName": "lr_levek_7.png",
+    "roiFront": "10,19,20,23",
+    "roiBack": "10,19,20,23",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "7级"
+  },
+  {
+    "itemName": "level_locked",
+    "imageName": "lr_level_locked.png",
+    "roiFront": "370,342,28,25",
+    "roiBack": "287,156,857,344",
+    "method": "Template matching",
+    "threshold": 0.6,
+    "description": "锁剧情"
+  },
+  {
+    "itemName": "receive_all",
+    "imageName": "lr_receive_all.png",
+    "roiFront": "1193,566,47,40",
+    "roiBack": "1193,566,47,40",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "一键领取新手活动奖励"
+  },
+  {
+    "itemName": "task_reward_exist",
+    "imageName": "lr_task_reward_exist.png",
+    "roiFront": "1240,144,18,16",
+    "roiBack": "128,78,1152,203",
+    "method": "Template matching",
+    "threshold": 0.7,
+    "description": "存在奖励标志"
+  },
+  {
+    "itemName": "introduce_window",
+    "imageName": "lr_introduce_window.png",
+    "roiFront": "634,121,174,22",
+    "roiBack": "634,121,174,22",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "玩法介绍窗口"
+  },
+  {
+    "itemName": "lr_check_summon",
+    "imageName": "lr_lr_check_summon.png",
+    "roiFront": "385,94,15,23",
+    "roiBack": "385,94,15,23",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "剧情抽卡界面"
+  },
+  {
+    "itemName": "tech_lock",
+    "imageName": "lr_tech_lock.png",
+    "roiFront": "863,381,285,72",
+    "roiBack": "863,381,285,72",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "教学锁1"
+  },
+  {
+    "itemName": "click_youkai_1",
+    "imageName": "lr_click_youkai_1.png",
+    "roiFront": "530,109,23,23",
+    "roiBack": "310,38,775,278",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击妖怪1"
+  },
+  {
+    "itemName": "switch_automatic_mark",
+    "imageName": "lr_switch_automatic_mark.png",
+    "roiFront": "294,32,20,22",
+    "roiBack": "294,32,20,22",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "这里可以切换自动了"
+  },
+  {
+    "itemName": "init_perspective",
+    "imageName": "lr_init_perspective.png",
+    "roiFront": "28,566,24,25",
+    "roiBack": "28,566,24,25",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击回正视角"
+  },
+  {
+    "itemName": "rookie_vip",
+    "imageName": "lr_rookie_vip.png",
+    "roiFront": "45,385,113,37",
+    "roiBack": "17,91,180,611",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新手特权"
+  },
+  {
+    "itemName": "in_rookie_vip",
+    "imageName": "lr_in_rookie_vip.png",
+    "roiFront": "45,303,113,35",
+    "roiBack": "17,91,180,611",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新手特权页面内"
+  },
+  {
+    "itemName": "borrow_shikigami",
+    "imageName": "lr_borrow_shikigami.png",
+    "roiFront": "47,355,103,28",
+    "roiBack": "17,91,180,611",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "式神借用"
+  },
+  {
+    "itemName": "in_borrow_shikigami",
+    "imageName": "lr_in_borrow_shikigami.png",
+    "roiFront": "47,355,103,28",
+    "roiBack": "17,91,180,611",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "式神借用页面内"
+  },
+  {
+    "itemName": "assist_up_success",
+    "imageName": "lr_assist_up_success.png",
+    "roiFront": "303,510,34,31",
+    "roiBack": "303,510,34,31",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "协战成功上阵"
+  },
+  {
+    "itemName": "switch_check",
+    "imageName": "lr_switch_check.png",
+    "roiFront": "21,534,31,63",
+    "roiBack": "21,534,31,63",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "交替页面检查"
+  },
+  {
+    "itemName": "phone_bind",
+    "imageName": "lr_phone_bind.png",
+    "roiFront": "976,460,70,75",
+    "roiBack": "976,460,70,75",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "前往绑定"
+  },
+  {
+    "itemName": "phone_bind_cancel",
+    "imageName": "lr_phone_bind_cancel.png",
+    "roiFront": "474,476,100,51",
+    "roiBack": "474,476,100,51",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "取消绑定"
+  },
+  {
+    "itemName": "normal_mode",
+    "imageName": "lr_normal_mode.png",
+    "roiFront": "986,601,108,44",
+    "roiBack": "986,601,108,44",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "普通模式"
+  },
+  {
+    "itemName": "hard_mode",
+    "imageName": "lr_hard_mode.png",
+    "roiFront": "887,606,102,34",
+    "roiBack": "887,606,102,34",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "困难模式"
+  },
+  {
+    "itemName": "to_hard",
+    "imageName": "lr_to_hard.png",
+    "roiFront": "28,313,108,44",
+    "roiBack": "28,313,108,44",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "切换困难"
+  },
+  {
+    "itemName": "highest_chapter",
+    "imageName": "lr_highest_chapter.png",
+    "roiFront": "1067,457,25,27",
+    "roiBack": "1067,457,25,27",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "最高章节"
+  },
+  {
+    "itemName": "skip_to_30",
+    "imageName": "lr_skip_to_30.png",
+    "roiFront": "1181,621,53,53",
+    "roiBack": "1181,621,53,53",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "跳过流程"
+  },
+  {
+    "itemName": "lr_level_skip",
+    "imageName": "lr_lr_level_skip.png",
+    "roiFront": "704,456,173,67",
+    "roiBack": "704,456,173,67",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "跳过"
+  },
+  {
+    "itemName": "check_agree",
+    "imageName": "lr_check_agree.png",
+    "roiFront": "419,405,33,30",
+    "roiBack": "419,405,33,30",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "同意未勾选状态"
+  },
+  {
+    "itemName": "check_agree_done",
+    "imageName": "lr_check_agree_done.png",
+    "roiFront": "419,405,33,30",
+    "roiBack": "419,405,33,30",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "同意勾选状态"
+  },
+  {
+    "itemName": "doggod_click",
+    "imageName": "lr_doggod_click.png",
+    "roiFront": "771,210,29,32",
+    "roiBack": "734,129,116,156",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新手教学点击犬神"
+  },
+  {
+    "itemName": "town_back_main",
+    "imageName": "lr_town_back_main.png",
+    "roiFront": "1039,233,32,63",
+    "roiBack": "989,199,129,273",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "返回庭院"
+  },
+  {
+    "itemName": "sign_reward_day1",
+    "imageName": "lr_sign_reward_day1.png",
+    "roiFront": "235,299,137,66",
+    "roiBack": "205,290,210,110",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "第一天奖励"
+  },
+  {
+    "itemName": "team_unlock",
+    "imageName": "lr_team_unlock.png",
+    "roiFront": "1009,661,17,22",
+    "roiBack": "848,588,430,132",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "未锁定阵容"
+  },
+  {
+    "itemName": "team_locked",
+    "imageName": "lr_team_locked.png",
+    "roiFront": "1009,661,17,22",
+    "roiBack": "848,588,430,132",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "已锁定阵容"
+  },
+  {
+    "itemName": "daily_goto_achievement",
+    "imageName": "lr_daily_goto_achievement.png",
+    "roiFront": "1086,651,44,34",
+    "roiBack": "1086,651,44,34",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "花合战前往成就页面"
+  },
+  {
+    "itemName": "achievement_reward_exist",
+    "imageName": "lr_achievement_reward_exist.png",
+    "roiFront": "255,169,31,31",
+    "roiBack": "250,79,41,563",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "存在奖励"
+  },
+  {
+    "itemName": "check_achievement",
+    "imageName": "lr_check_achievement.png",
+    "roiFront": "1185,621,62,47",
+    "roiBack": "1185,621,62,47",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "检查成就页面"
+  },
+  {
+    "itemName": "achievement_menu_close",
+    "imageName": "lr_achievement_menu_close.png",
+    "roiFront": "251,153,31,31",
+    "roiBack": "250,79,41,563",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击关闭成就子菜单"
+  },
+  {
+    "itemName": "get_achievement_reward",
+    "imageName": "lr_get_achievement_reward.png",
+    "roiFront": "1079,173,33,38",
+    "roiBack": "1050,125,90,469",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击达摩领取成就奖励"
+  },
+  {
+    "itemName": "side_check_rookie_mall",
+    "imageName": "lr_side_check_rookie_mall.png",
+    "roiFront": "913,13,31,32",
+    "roiBack": "913,13,31,32",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "杂货铺新手商店标志"
+  },
+  {
+    "itemName": "mall_goto_rookie_mall",
+    "imageName": "lr_mall_goto_rookie_mall.png",
+    "roiFront": "877,651,45,32",
+    "roiBack": "877,651,45,32",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "前往新手商店"
+  },
+  {
+    "itemName": "rookie_sushi_gift",
+    "imageName": "lr_rookie_sushi_gift.png",
+    "roiFront": "226,161,64,69",
+    "roiBack": "226,161,64,69",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "超值体力礼盒"
+  },
+  {
+    "itemName": "buy_sushi_gift",
+    "imageName": "lr_buy_sushi_gift.png",
+    "roiFront": "596,498,41,48",
+    "roiBack": "596,498,41,48",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "超值体力礼盒购买"
+  },
+  {
+    "itemName": "exp_youkai_create",
+    "imageName": "lr_exp_youkai_create.png",
+    "roiFront": "604,495,70,39",
+    "roiBack": "604,495,70,39",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "经验妖怪创建按钮"
+  },
+  {
+    "itemName": "cancel_before_7",
+    "imageName": "lr_cancel_before_7.png",
+    "roiFront": "416,475,130,36",
+    "roiBack": "416,475,130,36",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "七级前先不跳过剧情"
+  },
+  {
+    "itemName": "rookie_goto_special",
+    "imageName": "lr_rookie_goto_special.png",
+    "roiFront": "1187,298,44,67",
+    "roiBack": "1169,90,85,488",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新手商店前往特殊商店"
+  },
+  {
+    "itemName": "goto_permission",
+    "imageName": "lr_goto_permission.png",
+    "roiFront": "1168,333,29,67",
+    "roiBack": "1168,333,29,67",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击前往权限设置子页面"
+  },
+  {
+    "itemName": "push_permission",
+    "imageName": "lr_push_permission.png",
+    "roiFront": "100,82,53,67",
+    "roiBack": "100,82,53,67",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "推送权限"
+  },
+  {
+    "itemName": "get_push_reward",
+    "imageName": "lr_get_push_reward.png",
+    "roiFront": "561,501,169,58",
+    "roiBack": "561,501,169,58",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "领取推送奖励50勾玉"
+  },
+  {
+    "itemName": "friend_goto_add",
+    "imageName": "lr_friend_goto_add.png",
+    "roiFront": "1196,280,55,102",
+    "roiBack": "1196,280,55,102",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "前往添加好友界面"
+  },
+  {
+    "itemName": "bind_button",
+    "imageName": "lr_bind_button.png",
+    "roiFront": "976,597,146,36",
+    "roiBack": "976,597,146,36",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "一键绑定"
+  },
+  {
+    "itemName": "bind_reward_exsit",
+    "imageName": "lr_bind_reward_exsit.png",
+    "roiFront": "684,596,30,40",
+    "roiBack": "684,596,30,40",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "未获取绑定奖励"
+  },
+  {
+    "itemName": "device_permission_confirm",
+    "imageName": "lr_device_permission_confirm.png",
+    "roiFront": "669,383,174,51",
+    "roiBack": "669,383,174,51",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "设备获取通讯录权限确定按钮"
+  },
+  {
+    "itemName": "check_add",
+    "imageName": "lr_check_add.png",
+    "roiFront": "94,640,32,56",
+    "roiBack": "94,640,32,56",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "添加好友页面标志"
+  },
+  {
+    "itemName": "push_reward_already_get",
+    "imageName": "lr_push_reward_already_get.png",
+    "roiFront": "561,501,169,58",
+    "roiBack": "561,501,169,58",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "已领取推送奖励"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "itemName": "normal_attack_click",
+    "roiFront": "992,632,72,75",
+    "roiBack": "992,632,72,75",
+    "description": "点击普通攻击"
+  },
+  {
+    "itemName": "click_up_assist",
+    "roiFront": "275,452,252,142",
+    "roiBack": "275,452,252,142",
+    "description": "点击进入上阵式神界面"
+  }
+]

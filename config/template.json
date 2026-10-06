@@ -1127,6 +1127,26 @@
       "team_name": ""
     }
   },
+  "level_rush": {
+    "scheduler": {
+      "enable": false,
+      "next_run": "2023-01-01 00:00:00",
+      "priority": 5,
+      "success_interval": "01 00:00:00",
+      "failure_interval": "01 00:00:00",
+      "server_update": "09:00:00",
+      "delay_date": 1,
+      "float_time": "00:00:00"
+    },
+    "level_rush_config": {
+      "exploration_chapter_max_15_enable": true,
+      "skip_to_30_stop_enable": true,
+      "level_7_mark": false,
+      "assist_up_mark": false,
+      "get_achievement_reward_mark": false,
+      "skip_to_30_mark": false
+    }
+  },
   "float_parade": {
     "scheduler": {
       "enable": false,

@@ -1,0 +1,47 @@
+[
+  {
+    "itemName": "click_anywhere_continue",
+    "roiFront": "544,459,186,36",
+    "roiBack": "365,438,530,87",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "点击任意位置继续",
+    "description": "点击任意位置继续"
+  },
+  {
+    "itemName": "click_blank_close",
+    "roiFront": "552,658,186,36",
+    "roiBack": "374,620,530,87",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "点击空白处关闭",
+    "description": "点击空白处关闭"
+  },
+  {
+    "itemName": "current_level",
+    "roiFront": "0,19,47,25",
+    "roiBack": "0,5,52,87",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "当前等级"
+  },
+  {
+    "itemName": "current_chapter",
+    "roiFront": "1057,452,121,40",
+    "roiBack": "1057,450,215,103",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "当前章节"
+  },
+  {
+    "itemName": "current_sushi_low",
+    "roiFront": "881,0,181,53",
+    "roiBack": "881,0,181,53",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "当前体力较低的情况"
+  }
+]
