@@ -184,3 +184,13 @@ class NewbieStoryAssets:
         keyword='跳过',
         name='newbie_story_skip',
     )
+
+    # 缘初新手专用庭院的底部图标行（珍旅居/纳物库）。新手账号的庭院与
+    # 默认庭院差异大，I_CHECK_MAIN 命中不了，任务会一直空白点击不退出。
+    I_STORY_CHECK_MAIN_NEWBIE = RuleImage(
+        roi_front=(190, 596, 202, 104),
+        roi_back=(40, 580, 400, 140),
+        threshold=0.85,
+        method='Template matching',
+        file='./tasks/NewbieStory/res/story_check_main_newbie.png',
+    )

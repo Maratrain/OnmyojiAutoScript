@@ -438,7 +438,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
 
         # 沿用探索任务的 page_main 页面标志。剧情气泡和跳过均不存在时，
         # 返回主页代表本轮新手剧情已经结束，不再执行空白区域点击。
-        if self.appear(self.I_CHECK_MAIN):
+        # 缘初新手庭院与默认庭院模板差异大，补充专用识别并联判断。
+        if self.appear(self.I_CHECK_MAIN) or self.appear(self.I_STORY_CHECK_MAIN_NEWBIE):
             logger.info('[新手剧情] 已回到主页且无剧情控件，新手剧情结束')
             self.set_next_run(task='NewbieStory', success=True, finish=True)
             raise TaskEnd('NewbieStory returned to main page')
