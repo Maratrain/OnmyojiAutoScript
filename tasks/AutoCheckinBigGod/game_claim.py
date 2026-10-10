@@ -3,6 +3,9 @@
 背景：2026-10 起网易调整发放链路，大神 APP 侧领取（API 或手动 UI）只是登记，
 奖励真正到账需要在游戏内「福利中心」弹窗点击金色「领奖」按钮（API 侧领取返回
 「请到游戏中查看任务完成进度，在游戏中领取奖励」即此原因，连每日礼包也是如此）。
+**且 API 领取后必须冷重启阴阳师**——仅在运行中的游戏里打开福利中心不会刷新出
+「领奖」，游戏要重新启动才会重新拉取服务端福利状态。本流程因此先 app_stop 再
+app_start（复用 Restart 的 LoginService 完成登录），再进福利中心领取。
 
 导航链路（2026-10-04 实机确认，1280x720 横屏）：
 庭院曜日牌 → 日程面板 → 右侧「通知」页签 → 「大神福利中心」横幅 → 「福利中心」弹窗
@@ -26,11 +29,12 @@ import time
 from module.logger import logger
 from module.base.timer import Timer
 from tasks.AutoCheckinBigGod.assets import AutoCheckinBigGodAssets
+from tasks.Component.Login.service import LoginService
 from tasks.GameUi.assets import GameUiAssets
 from tasks.GlobalGame.assets import GlobalGameAssets
 
-# 等待回到庭院的超时（游戏一般已在后台驻留；冷启动登录不在本流程范围内）
-YARD_WAIT_SECONDS = 120
+# 等待回到庭院的超时（含冷启动登录流程，比驻留前台恢复久）
+YARD_WAIT_SECONDS = 180
 # 向左平移镜头查找曜日牌的最大次数（每次一屏）
 PAN_MAX = 3
 # 通知页 / 福利中心弹窗内滚动查找的最大次数
@@ -84,23 +88,33 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
     # ------------------------------------------------------------------ 步骤
 
     def _game_wait_yard(self):
-        """把游戏拉回前台并等待庭院出现。返回是否成功。"""
+        """冷重启游戏并等待庭院出现。
+
+        大神侧 API 领取只是登记，游戏内「福利中心」要等本端重新拉取服务端状态才
+        会刷新出「领奖」按钮——仅把已在运行的游戏拉到前台（app_start 幂等）不会
+        触发刷新，必须 app_stop 后重新启动。登录流程复用 Restart 的 LoginService。
+        返回是否成功到达庭院。
+        """
+        logger.info('冷重启阴阳师以刷新福利状态...')
         try:
+            self.device.app_stop()
             self.device.app_start()
+            self.device.wait_app_start_ready()
+            LoginService(config=self.config, device=self.device).app_handle_login()
         except Exception as e:
-            logger.warning(f'拉起游戏失败: {e}')
+            logger.warning(f'冷重启/登录失败: {e}')
+        # 竖屏手动领取路径可能把 orientation 改为 0，游戏前台后重新获取
         deadline = Timer(YARD_WAIT_SECONDS).start()
         while not deadline.reached():
             self.screenshot()
             if self.appear(self.I_CHECK_MAIN, threshold=0.9):
-                # 竖屏手动领取路径可能把 orientation 改为 0，游戏前台后重新获取
                 try:
                     self.device.get_orientation()
                 except Exception:
                     pass
                 logger.info('已回到庭院')
                 return True
-            # 处理可能残留的「获得奖励」展示窗
+            # 处理可能残留的「获得奖励」展示窗或登录后的公告弹窗
             if self.ui_reward_appear_click():
                 time.sleep(1)
                 continue
