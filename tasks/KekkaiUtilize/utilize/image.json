@@ -162,15 +162,6 @@
     "description": "右上，右数第二个"
   },
   {
-    "itemName": "u_confirm_small",
-    "imageName": "utilize_u_confirm_small.png",
-    "roiFront": "672,513,131,60",
-    "roiBack": "672,513,131,60",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "description"
-  },
-  {
     "itemName": "select_realm_on_1",
     "imageName": "select_realm_on_1.png",
     "roiFront": "608,191,21,59",

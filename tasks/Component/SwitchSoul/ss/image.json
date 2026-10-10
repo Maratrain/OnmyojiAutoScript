@@ -56,8 +56,8 @@
   {
     "itemName": "sou_switch_sure",
     "imageName": "ss_sou_switch_sure.png",
-    "roiFront": "668,401,180,61",
-    "roiBack": "668,401,180,61",
+    "roiFront": "667,409,175,62",
+    "roiBack": "657,401,191,77",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "description"
@@ -155,8 +155,8 @@
   {
     "itemName": "check_block",
     "imageName": "ss_check_block.png",
-    "roiFront": "572,408,137,49",
-    "roiBack": "572,408,137,49",
+    "roiFront": "554,408,173,61",
+    "roiBack": "554,408,173,61",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "误触点到式神检查"

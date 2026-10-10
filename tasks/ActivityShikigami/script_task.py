@@ -9,9 +9,9 @@ from tasks.base_task import BaseTask
 class ScriptTask(BaseTask):
 
     def run(self):
-        # FakeGodAct(self.config, self.device).run()
+        FakeGodAct(self.config, self.device).run()
         # RichManAct(self.config, self.device).run()
-        NormalClimbAct(self.config, self.device).run()
+        # NormalClimbAct(self.config, self.device).run()
 
 
 if __name__ == '__main__':

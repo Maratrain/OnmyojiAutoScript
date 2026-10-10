@@ -118,7 +118,7 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                 clicked = True
                 continue
             if self.appear_then_click(self.I_U_CIRCLE_ALTERNATE, interval=2.5):
-                self.appear_then_click(self.I_U_CONFIRM_ALTERNATE, interval=1.5)
+                self.appear_then_click(self.I_UI_CONFIRM, interval=1.5)
                 continue
         logger.info('[更换式神] 选择式神: %d' % shikigami_order)
 

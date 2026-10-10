@@ -2,7 +2,7 @@
   {
     "itemName": "main_goto_act",
     "imageName": "as_main_goto_act.png",
-    "roiFront": "1184,211,46,32",
+    "roiFront": "1187,377,46,32",
     "roiBack": "1164,134,83,393",
     "method": "Template matching",
     "threshold": 0.7,
@@ -20,8 +20,8 @@
   {
     "itemName": "to_battle_main",
     "imageName": "as_to_battle_main.png",
-    "roiFront": "320,176,87,105",
-    "roiBack": "282,76,155,370",
+    "roiFront": "816,454,101,61",
+    "roiBack": "792,238,155,370",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "进入主要的战斗界面"
@@ -47,7 +47,7 @@
   {
     "itemName": "battle_main_to_records",
     "imageName": "as_battle_main_to_records.png",
-    "roiFront": "999,560,39,42",
+    "roiFront": "871,558,39,42",
     "roiBack": "674,539,439,157",
     "method": "Template matching",
     "threshold": 0.8,
@@ -56,7 +56,7 @@
   {
     "itemName": "as_to_pass",
     "imageName": "as_as_to_pass.png",
-    "roiFront": "624,505,38,35",
+    "roiFront": "669,408,17,33",
     "roiBack": "273,141,759,475",
     "method": "Template matching",
     "threshold": 0.65,
@@ -83,8 +83,8 @@
   {
     "itemName": "as_check_main_2",
     "imageName": "as_as_check_main_2.png",
-    "roiFront": "566,10,151,36",
-    "roiBack": "505,0,256,92",
+    "roiFront": "590,4,137,35",
+    "roiBack": "523,0,256,92",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "活动页2标志"
@@ -119,8 +119,8 @@
   {
     "itemName": "to_battle_ap",
     "imageName": "as_to_battle_ap.png",
-    "roiFront": "825,321,39,139",
-    "roiBack": "720,255,238,269",
+    "roiFront": "220,252,101,34",
+    "roiBack": "149,157,238,269",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "活动主界面进入体力爬塔标志"

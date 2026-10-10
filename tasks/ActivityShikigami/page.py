@@ -30,7 +30,7 @@ page_main.connect(
     page_act, ActivityShikigamiAssets.I_MAIN_GOTO_ACT, key="page_main->page_act"
 )
 # 是否存在特殊活动界面标志(点击一次无法进入体力爬塔界面，存在中转界面的情况，False表示没有中转界面，True表示有中转界面)
-special_act_Flag = True
+special_act_Flag = False
 if special_act_Flag:
     # 特殊活动中转地图页面
     page_act_map = Page(ActivityShikigamiAssets.I_MAP_GOTO_BATTLE)

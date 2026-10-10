@@ -141,8 +141,6 @@ class KekkaiUtilizeAssets:
 	# 右上，右数第二个 
 	I_U_ADD_2 = RuleImage(roi_front=(979,52,76,69), roi_back=(979,52,76,69), threshold=0.7, method="Template matching", file="./tasks/KekkaiUtilize/utilize/utilize_u_add_2.png")
 	# description 
-	I_U_CONFIRM_SMALL = RuleImage(roi_front=(672,513,131,60), roi_back=(672,513,131,60), threshold=0.8, method="Template matching", file="./tasks/KekkaiUtilize/utilize/utilize_u_confirm_small.png")
-	# description 
 	I_SELECT_REALM_ON_1 = RuleImage(roi_front=(608,191,21,59), roi_back=(608,191,21,59), threshold=0.8, method="Template matching", file="./tasks/KekkaiUtilize/utilize/select_realm_on_1.png")
 	# description 
 	I_SELECT_REALM_ON_2 = RuleImage(roi_front=(606,298,21,59), roi_back=(606,298,21,59), threshold=0.8, method="Template matching", file="./tasks/KekkaiUtilize/utilize/select_realm_on_2.png")

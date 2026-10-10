@@ -2,7 +2,7 @@
   {
     "itemName": "ui_confirm",
     "imageName": "ui_ui_confirm.png",
-    "roiFront": "667,398,179,66",
+    "roiFront": "666,406,175,64",
     "roiBack": "547,368,322,122",
     "method": "Template matching",
     "threshold": 0.8,
@@ -11,8 +11,8 @@
   {
     "itemName": "ui_cancel",
     "imageName": "ui_ui_cancel.png",
-    "roiFront": "432,403,177,62",
-    "roiBack": "432,403,177,62",
+    "roiFront": "438,405,177,62",
+    "roiBack": "406,379,246,116",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "长一点的取消"
@@ -20,7 +20,7 @@
   {
     "itemName": "ui_reward",
     "imageName": "ui_ui_reward.png",
-    "roiFront": "481,185,317,42",
+    "roiFront": "524,251,232,25",
     "roiBack": "464,142,350,145",
     "method": "Template matching",
     "threshold": 0.73,

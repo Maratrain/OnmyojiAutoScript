@@ -65,7 +65,7 @@
   {
     "itemName": "sou_switch_sure_8",
     "imageName": "sk8_sou_switch_sure_8.png",
-    "roiFront": "668,401,180,61",
+    "roiFront": "715,414,81,43",
     "roiBack": "668,401,180,61",
     "method": "Template matching",
     "threshold": 0.8,

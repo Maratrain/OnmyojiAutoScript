@@ -20,7 +20,7 @@
   {
     "itemName": "confirm_close_diff_soul",
     "imageName": "gb_confirm_close_diff_soul.png",
-    "roiFront": "571,404,135,54",
+    "roiFront": "570,411,135,54",
     "roiBack": "517,374,226,112",
     "method": "Template matching",
     "threshold": 0.8,

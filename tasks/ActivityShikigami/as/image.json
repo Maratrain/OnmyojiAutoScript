@@ -2,7 +2,7 @@
   {
     "itemName": "lock",
     "imageName": "as_lock.png",
-    "roiFront": "897,646,23,24",
+    "roiFront": "902,653,15,22",
     "roiBack": "685,612,330,86",
     "method": "Template matching",
     "threshold": 0.7,
@@ -11,7 +11,7 @@
   {
     "itemName": "unlock",
     "imageName": "as_unlock.png",
-    "roiFront": "897,646,28,25",
+    "roiFront": "902,653,15,22",
     "roiBack": "686,610,313,92",
     "method": "Template matching",
     "threshold": 0.7,
@@ -20,8 +20,8 @@
   {
     "itemName": "climb_mode_pass",
     "imageName": "as_climb_mode_pass.png",
-    "roiFront": "1141,544,21,21",
-    "roiBack": "1118,510,49,105",
+    "roiFront": "1151,642,15,22",
+    "roiBack": "1113,510,167,200",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "活动爬塔标志"
@@ -47,7 +47,7 @@
   {
     "itemName": "climb_mode_ap100",
     "imageName": "as_climb_mode_ap100.png",
-    "roiFront": "1186,665,22,25",
+    "roiFront": "1205,669,22,24",
     "roiBack": "1055,495,202,219",
     "method": "Template matching",
     "threshold": 0.8,
@@ -74,7 +74,7 @@
   {
     "itemName": "act_fire",
     "imageName": "as_act_fire.png",
-    "roiFront": "1132,602,84,45",
+    "roiFront": "1135,595,84,45",
     "roiBack": "1080,530,192,190",
     "method": "Template matching",
     "threshold": 0.8,
@@ -88,5 +88,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "boss挑战标志"
+  },
+  {
+    "itemName": "ap_100_fire",
+    "imageName": "as_ap_100_fire.png",
+    "roiFront": "1137,599,84,45",
+    "roiBack": "1080,530,192,190",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "100体力挑战标志"
   }
 ]

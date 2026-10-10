@@ -10,15 +10,15 @@ class NormalClimbAct(BaseAct):
     """普通爬塔活动"""
 
     def _exit_matcher(self) -> ExitMatcher | None:
-        return pages.any_of(self.I_ACT_FIRE, self.I_AS_BOSS_FIRE)
+        return pages.any_of(self.I_ACT_FIRE, self.I_AS_BOSS_FIRE, self.I_AP_100_FIRE)
 
     def before_run(self):
         super().before_run()
         page_act = self.navigator.resolve_page(pages.page_act)
         page_act_pass = self.navigator.resolve_page(pages.page_act_pass)
         page_act_ap = self.navigator.resolve_page(pages.page_act_ap)
-        page_act_map = self.navigator.resolve_page(pages.page_act_map)
         flag = pages.special_act_Flag
+        page_act_map = self.navigator.resolve_page(pages.page_act_map) if flag else None
 
         if flag:
             # 体力爬塔和中转界面关联
