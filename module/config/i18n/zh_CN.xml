@@ -592,7 +592,6 @@ Refresh：直接刷新，如果刷新操作进入CD，将标记为失败并退�
 	<message><source>three_refresh_help</source><translation>挑战进度到三，领取奖励后就刷新，如果刷新操作进入CD，将标记为失败并退出</translation></message>
 	<message><source>number_base_help</source><translation>旨在检查突破卷数量，如果当前的数量没有大于等于这个值，将标记为成功并退出</translation></message>
 	<message><source>level_cap_help</source><translation>卡级：勋章识别，满场 9 个可进攻结界中 6 个以上勋章为 0 判定等级漂移，连续撤退九场再刷新，直到漂移信号消失</translation></message>
-	<message><source>cap_level_help</source><translation>卡级目标等级，突破稳定卡在 57 级收益最好；场上仍有该等级即视为达标，此时对手最高只会到 58 级</translation></message>
 </context>	
 <context>
     <name>Args</name>

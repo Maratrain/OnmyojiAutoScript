@@ -330,9 +330,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
 
     def read_attackable(self) -> list[bool]:
         """
-        按位置 1~9 判断结界是否可进攻（有勋章即可进攻）。
-        已攻破的格子没有勋章，但其等级徽章被"已攻破"印章遮挡，OCR 会读出假值，
-        所以不能靠等级识别为 0 来判断格子是否已攻破。
+        按位置 1~9 判断结界是否可进攻（有勋章即可进攻）
+        已攻破的格子没有勋章，不会出现在匹配结果里
         :return: 长度 9 的布尔列表，按位置 1~9 排列
         """
         self.screenshot()
@@ -421,7 +420,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         连续撤退指定场次，用于卡级时整体重置突破难度
         与打九退四一致：进攻后靠再次挑战连续撤退，不消耗突破券也不计入每日进攻次数
         撤退降级只看场次、不看打第几个，所以目标由 find_one 选可进攻的结界；
-        1 号位已被攻破（等级 OCR 会读出假值导致满场误判）时绝不能点它，否则卡死
+        已攻破的格子绝不能点，否则卡死
         :param times: 撤退场数
         :return: 是否打满了指定场数并回到结界列表
         """
