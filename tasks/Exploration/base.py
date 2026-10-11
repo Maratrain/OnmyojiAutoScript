@@ -38,6 +38,11 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         roi_front=(615, 300, 85, 180), roi_back=(600, 285, 115, 210),
         threshold=0.78, method='Template matching',
         file='./tasks/Exploration/res/chat_window_handle.png')
+    # 抽屉关闭三角(展开态把手条上的左箭头, 仅抽屉展开时可见)
+    I_CHAT_WINDOW_CLOSE = RuleImage(
+        roi_front=(636, 370, 44, 54), roi_back=(615, 285, 100, 230),
+        threshold=0.85, method='Template matching',
+        file='./tasks/Exploration/res/chat_window_close.png')
     # 抽屉右侧安全点击区
     C_CHAT_WINDOW_CLOSE_SAFE = RuleClick(
         (930, 315, 80, 70), (930, 315, 80, 70), 'chat_window_close_safe')
@@ -171,7 +176,12 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         return True
 
     def close_chat_window(self) -> bool:
-        """战斗等待期出现聊天抽屉时, 点击其右侧安全空白区关闭。"""
+        """聊天抽屉展开时优先点击其关闭三角收起, 模板未命中再退回右侧空白区关闭。"""
+        if self.appear_then_click(self.I_CHAT_WINDOW_CLOSE, interval=0.5):
+            logger.info('[探索] 检测到聊天窗, 点击关闭三角收起')
+            self.device.click_record_clear()
+            time.sleep(0.5)
+            return True
         if not self.appear(self.I_CHAT_WINDOW_HANDLE):
             return False
         logger.info('[探索] 检测到聊天窗, 从右侧空白区关闭')

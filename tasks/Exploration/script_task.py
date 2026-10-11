@@ -56,6 +56,9 @@ class ScriptTask(BaseExploration):
             self.screenshot()
             current_page = self.get_current_page()
             if current_page is None:
+                # 聊天抽屉等浮层盖住左下角识别按钮时页面会识别失败, 先尝试关闭抽屉再继续
+                if self.close_chat_window():
+                    continue
                 time.sleep(0.5)
                 continue
             if self.check_exit(current_page):
