@@ -55,11 +55,20 @@
   },
   {
     "itemName": "sa_check_select_svr",
-    "roiFront": "252,145,97,32",
-    "roiBack": "248,141,102,38",
+    "roiFront": "225,140,120,45",
+    "roiBack": "221,136,128,49",
     "mode": "Single",
     "method": "Default",
-    "keyword": "已有角色",
-    "description": "判断是否在 选择服务器 界面的文本特质"
+    "keyword": "有角色",
+    "description": "判断是否在 选择服务器/选择区域 界面的页签文本"
+  },
+  {
+    "itemName": "sa_check_select_region",
+    "roiFront": "495,28,280,70",
+    "roiBack": "495,28,280,70",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "选择区域",
+    "description": "判断是否在 选择区域 界面的标题文本"
   }
 ]

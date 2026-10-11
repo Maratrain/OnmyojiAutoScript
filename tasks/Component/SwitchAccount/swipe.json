@@ -12,5 +12,12 @@
     "roiBack": "750,270,30,20",
     "mode": "default",
     "description": "登录界面 账号列表的手指向上滑动"
+  },
+  {
+    "itemName": "sa_region_grid_scroll",
+    "roiFront": "640,340,40,20",
+    "roiBack": "640,150,40,20",
+    "mode": "default",
+    "description": "选择区域界面 角色卡片网格向上滑动翻页"
   }
 ]

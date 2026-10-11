@@ -1,10 +1,12 @@
 import math
 import time
+from copy import deepcopy
 
 from module.atom.click import RuleClick
 from module.atom.gif import RuleGif
 from module.atom.image import RuleImage
 from module.atom.ocr import RuleOcr
+from module.base.timer import Timer
 from module.image.operators import threshold_bgr_to_inverted_rgb
 from module.logger import logger
 from tasks.Component.SwitchAccount.assets import SwitchAccountAssets
@@ -19,12 +21,97 @@ class LoginAccount(BaseTask, SwitchAccountAssets):
         ocrRes = self.O_SA_LOGIN_FORM_SVR_NAME.ocr(self.device.image)
         return ocrRes
 
+    def _is_region_select_page(self) -> bool:
+        """2026-10 新版「选择区域」界面：区域页签 + 角色卡片网格"""
+        return self.ocr_appear(self.O_SA_CHECK_SELECT_REGION) or self.ocr_appear(self.O_SA_CHECK_SELECT_SVR)
+
+    @staticmethod
+    def _region_match_card(texts, keyword: str) -> int:
+        """在卡片网格 OCR 文本中匹配目标名字，返回命中的下标，未找到返回 -1
+
+        游戏内角色名/区服名存在 OCR 误识（如 逆迴→逆迎、恵→善），
+        精确包含之外再按字重合度兜底，判定方式与旧版服务器列表一致
+        """
+        for index, text in enumerate(texts):
+            stripped = text.lstrip('1234567890 ([<>])【】（）》《》')
+            for candidate in (stripped, text):
+                if len(candidate) < 2:
+                    continue
+                if keyword in candidate:
+                    return index
+                common = set(keyword) & set(candidate)
+                if len(common) > max(len(keyword), len(candidate)) * 0.5:
+                    return index
+        return -1
+
+    def _region_find_card(self, keyword: str, click_dy: int):
+        """在「选择区域」卡片网格中查找目标文本，返回点击坐标 (cx, cy)
+
+        @param click_dy: 相对文本框顶部的纵向偏移，角色名在卡片下方取负、区服名在卡片上方取正
+        找不到时返回 None（由调用方负责关闭面板）
+        """
+        ocr_rule = self.O_SA_SELECT_SVR_CHARACTER_LIST
+        last_texts = None
+        while 1:
+            self.screenshot()
+            ocr_res = ocr_rule.detect_and_ocr(self.device.image)
+            texts = [res.ocr_text for res in ocr_res]
+            hit = self._region_match_card(texts, keyword)
+            if hit >= 0:
+                box = ocr_res[hit].box
+                cx = int(ocr_rule.roi[0] + (box[0][0] + box[2][0]) / 2)
+                cy = int(ocr_rule.roi[1] + box[0][1] + click_dy)
+                logger.info("[切换账号] 在选择区域找到 %s，点击卡片 (%d, %d)", keyword, cx, cy)
+                return cx, cy
+            # 两次 OCR 结果相同表示已滑动到尽头
+            if last_texts == texts:
+                logger.warning("[切换账号] 选择区域未找到 %s", keyword)
+                break
+            last_texts = texts
+            logger.info("[切换账号] 未找到 %s，向上滑动卡片列表", keyword)
+            self.swipe(self.S_SA_REGION_GRID_SCROLL)
+            time.sleep(2)
+        return None
+
+    def _region_select_and_enter(self, keyword: str, click_dy: int) -> bool:
+        """选择区域界面：找到卡片后交替点击卡片与「进入游戏」直到面板关闭
+
+        点卡片可能直接进游戏，也可能停在选中态需要再点「进入游戏」，交替点击覆盖两种行为
+        """
+        point = self._region_find_card(keyword, click_dy)
+        if point is None:
+            self.click(self.C_SA_REGION_CLOSE_BTN, 1.5)
+            return False
+        cx, cy = point
+        tmp_click = RuleClick(roi_back=deepcopy(self.O_SA_SELECT_SVR_CHARACTER_LIST.roi),
+                              roi_front=[cx - 50, cy - 20, 100, 40], name="tmp_region_card")
+        logger.info("[切换账号] 开始在选择区域确认进入 %s", keyword)
+        deadline = Timer(20).start()
+        click_card = True
+        while not deadline.reached():
+            self.screenshot()
+            if not self._is_region_select_page():
+                logger.info("[切换账号] 已离开选择区域界面")
+                return True
+            if click_card:
+                self.click(tmp_click, interval=1.5)
+            else:
+                self.click(self.C_SA_REGION_ENTER_GAME_BTN, interval=1.5)
+            click_card = not click_card
+            time.sleep(0.5)
+        logger.warning("[切换账号] 选择区域确认进入超时")
+        self.click(self.C_SA_REGION_CLOSE_BTN, 1.5)
+        return False
+
     def switch_svr(self, svrName: str):
         """
             需保证账号已登录 且处于登录界面
         @param svrName:
         @type svrName:
         """
+        # 2026-10 新版「选择区域」界面：卡片网格上直接按区服名选择（区服名在卡片上方，点击向下偏移）
+        if self._is_region_select_page():
+            return self._region_select_and_enter(svrName, 45)
         self.O_SA_LOGIN_FORM_SVR_NAME.keyword = svrName
         if self.ocr_appear(self.O_SA_LOGIN_FORM_SVR_NAME):
             return True
@@ -83,6 +170,9 @@ class LoginAccount(BaseTask, SwitchAccountAssets):
         logger.info("[切换账号] 开始切换角色")
         # 改成对比是否出现 已有角色 
         self.ui_click(self.C_SA_LOGIN_FORM_SWITCH_SVR_BTN, self.O_SA_CHECK_SELECT_SVR)
+        # 2026-10 新版「选择区域」界面：卡片网格上直接按角色名选择（角色名在卡片下方，点击向上偏移）
+        if self._is_region_select_page():
+            return self._region_select_and_enter(characterName, -55)
         # 展开底部角色列表,显示角色所属服务器
         self.screenshot()
         while (not self.appear(self.I_SA_CHECK_SELECT_SVR_2)) and self.appear(self.I_SA_CHECK_SELECT_SVR_1):

@@ -64,5 +64,17 @@
     "roiFront": "205,570,815,40",
     "roiBack": "205,570,815,40",
     "description": "选择服务器界面 底部角色名 列表---与ocr.json中同名对象区域一致"
+  },
+  {
+    "itemName": "sa_region_enter_game_btn",
+    "roiFront": "545,565,200,60",
+    "roiBack": "545,565,200,60",
+    "description": "选择区域界面-底部进入游戏按钮"
+  },
+  {
+    "itemName": "sa_region_close_btn",
+    "roiFront": "1078,88,55,55",
+    "roiBack": "1078,88,55,55",
+    "description": "选择区域界面-右上角关闭按钮"
   }
 ]

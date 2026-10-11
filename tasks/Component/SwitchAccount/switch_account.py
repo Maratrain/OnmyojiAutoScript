@@ -1,3 +1,5 @@
+import time
+
 from adbutils import device
 
 from module.config.config import Config
@@ -33,6 +35,11 @@ class SwitchAccount(LoginAccount, ExitGame, GameUi, SwitchAccountAssets):
 
     def switchAccount(self):
         logger.info("[切换账号] 开始切换账号 %s-%s", self.to_account_info.character, self.to_account_info.svr)
+        # 处理上次切换失败可能残留的「选择区域」界面
+        if self._is_region_select_page():
+            logger.info("[切换账号] 检测到残留的选择区域界面，先关闭")
+            self.click(self.C_SA_REGION_CLOSE_BTN, 1.5)
+            time.sleep(1)
         # 判断所处界面
         curPage = self.get_current_page()
 
