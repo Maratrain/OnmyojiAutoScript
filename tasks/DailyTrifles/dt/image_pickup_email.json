@@ -38,11 +38,11 @@
   {
     "itemName": "harvest_mail_confirm",
     "imageName": "dt_harvest_mail_confirm.png",
-    "roiFront": "687,543,168,64",
-    "roiBack": "687,543,168,64",
+    "roiFront": "675,544,179,60",
+    "roiBack": "671,540,187,68",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "确认收取邮件"
+    "description": "全部领取弹窗-确定按钮（2026-10 新样式）"
   },
   {
     "itemName": "dt_harvest_mail_copy2",
