@@ -1546,6 +1546,34 @@
       "last_complete_time": "2023-01-01 00:00:00"
     }
   },
+  "alt_accounts": {
+    "scheduler": {
+      "enable": false,
+      "next_run": "2023-01-01 00:00:00",
+      "priority": 5,
+      "success_interval": "01 00:00:00",
+      "failure_interval": "00 00:30:00",
+      "server_update": "09:00:00",
+      "delay_date": 1,
+      "float_time": "00:00:00"
+    },
+    "alt_accounts_config": {
+      "alt_account_count": 1,
+      "run_daily_trifles": true,
+      "run_weekly_trifles": true,
+      "login_back_enable": false,
+      "login_back_character": ""
+    },
+    "alt_account_list_1": {
+      "character": "",
+      "svr": "",
+      "account": "",
+      "account_alias": "",
+      "apple_or_android": true,
+      "last_complete_time": "2023-01-01 00:00:00",
+      "weekly_complete_time": "2023-01-01 00:00:00"
+    }
+  },
   "memory_scrolls": {
     "scheduler": {
       "enable": false,

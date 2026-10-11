@@ -88,6 +88,7 @@ from tasks.Duel.config import Duel
 from tasks.Chess.config import Chess
 from tasks.NewbieStory.config import NewbieStory
 from tasks.LevelRush.config import LevelRush
+from tasks.AltAccounts.config import AltAccounts
 from tasks.OutingRitual.config import OutingRitual
 from tasks.DivineBarrier.config import DivineBarrier
 from tasks.BudokaiTournament.config import BudokaiTournament
@@ -156,6 +157,7 @@ class ConfigModel(ConfigBase):
     memory_scrolls: MemoryScrolls = Field(default_factory=MemoryScrolls)
     newbie_story: NewbieStory = Field(default_factory=NewbieStory)
     level_rush: LevelRush = Field(default_factory=LevelRush)
+    alt_accounts: AltAccounts = Field(default_factory=AltAccounts)
 
     # 这些是每周任务
     true_orochi: TrueOrochi = Field(default_factory=TrueOrochi)
