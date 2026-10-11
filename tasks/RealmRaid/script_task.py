@@ -22,7 +22,6 @@ from module.exception import TaskEnd
 from module.atom.image_grid import ImageGrid
 from module.atom.image import RuleImage
 from module.atom.click import RuleClick
-from module.atom.ocr import RuleOcr
 from module.base.timer import Timer
 
 
@@ -34,6 +33,8 @@ FRESH_WAIT_TIMEOUT = 600
 FRESH_POLL_INTERVAL = 30
 # fire() 对格子连续点击的上限，防止点到已攻破的格子时死循环
 FIRE_CLICK_LIMIT = 10
+# 卡级勋章信号：满场 9 个可进攻结界中 0 勋章数量达到该值即判定等级漂移
+ZERO_MEDAL_DRIFT = 6
 
 
 class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
@@ -320,19 +321,6 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         return True
 
     @cached_property
-    def level_ocr(self) -> list[RuleOcr]:
-        return [self.O_LEVEL_1, self.O_LEVEL_2, self.O_LEVEL_3, self.O_LEVEL_4, self.O_LEVEL_5,
-                self.O_LEVEL_6, self.O_LEVEL_7, self.O_LEVEL_8, self.O_LEVEL_9]
-
-    def read_levels(self) -> list[int]:
-        """
-        按位置 1~9 读取对手结界的等级，识别不到的记为 0
-        :return:
-        """
-        self.screenshot()
-        return [ocr.ocr(self.device.image) for ocr in self.level_ocr]
-
-    @cached_property
     def attackable_grid(self) -> ImageGrid:
         """
         勋章模板全集（不受进攻星级顺序配置影响）：格子上识别到勋章即代表该结界可进攻
@@ -361,51 +349,63 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             attackable[index] = True
         return attackable
 
+    def read_medal_stars(self) -> list:
+        """
+        按位置 1~9 读取勋章星级（0~5）。
+        同一格子可能被多个星级模板命中（如 1 星卡的 4 个空槽近似 0 星模板），
+        所以每个位置取匹配分最高的模板作为该格星级，模板顺序即星级顺序；
+        无勋章命中（已攻破等）记为 None
+        :return: 长度 9 的列表，元素为 0~5 或 None
+        """
+        self.screenshot()
+        stars = [None] * len(self.partition)
+        found = self.attackable_grid.find_everyone(self.device.image)
+        if not found:
+            return stars
+        centers = [(click.roi_front[0] + click.roi_front[2] / 2,
+                    click.roi_front[1] + click.roi_front[3] / 2) for click in self.partition]
+        best = {}
+        for image, score, (x, y, w, h) in found:
+            star = next((i for i, tpl in enumerate(self.attackable_grid.images) if tpl is image), None)
+            if star is None:
+                continue
+            center_x, center_y = x + w / 2, y + h / 2
+            index = min(range(len(centers)),
+                        key=lambda i: (centers[i][0] - center_x) ** 2 + (centers[i][1] - center_y) ** 2)
+            if index not in best or score > best[index][0]:
+                best[index] = (score, star)
+        for index, (_, star) in best.items():
+            stars[index] = star
+        return stars
+
     def ensure_level_cap(self) -> bool:
         """
-        卡级重置：对手等级只会以相邻两档出现（卡在 57 时牌面是 57/58 混合），
-        所以场上还有目标等级就说明没有越线；目标等级消失且最高等级高于目标，
-        即已经滑到更高一档，此时连续撤退九场再刷新，直到目标等级重新出现
-        牌面整体低于目标等级时不处理，否则会朝一个方向一直退下去
+        卡级重置（勋章识别）：满场 9 个可进攻结界中 0 勋章数量过多，
+        说明等级漂移高了，此时连续撤退九场再刷新，直到漂移信号消失
+        场上结界不满（含已全部攻破）= 当前批推进中，不是系统换批漂移，不重置
         :return: False 表示突破券已不可用，调用方应该收工
         """
         con = self.config.realm_raid.raid_config
         if not con.level_cap:
             return True
-        target = con.cap_level
         for round_ in range(1, DEMOTE_MAX_ROUNDS + 1):
             if not self.check_ticket(con.number_base):
                 return False
             attackable = self.read_attackable()
-            # 只统计可进攻格子的等级：已攻破格子的等级徽章被印章遮挡，OCR 会读出假值
-            levels = [level for level, ok in zip(self.read_levels(), attackable) if ok and level]
+            stars = self.read_medal_stars()
             attackable_count = sum(attackable)
-            # 场上结界不满（含已全部攻破）= 当前批推进中把目标等级打光，
+            # 勋章为 0 的可进攻结界数量（已攻破格子无勋章，不算 0 勋章）
+            zero_medal = sum(1 for star, ok in zip(stars, attackable) if ok and star == 0)
+            # 场上结界不满（含已全部攻破）= 当前批推进中把结界打光，
             # 不是系统换批漂移，走正常逻辑（满场才可能触发撤退重置）
-            if attackable_count < len(self.level_ocr):
-                if target in levels:
-                    logger.info(f'[个人突破] 卡级达标，场上已出现 {target} 级结界'
-                                f'（{attackable_count}/9 可进攻）')
-                else:
-                    logger.info(f'[个人突破] 场上 {attackable_count}/9 个结界可进攻，'
-                                f'本批已推进，正常推进不重置')
+            if attackable_count < len(self.partition):
+                logger.info(f'[个人突破] 场上 {attackable_count}/9 个结界可进攻，'
+                            f'本批已推进，正常推进不重置')
                 return True
-            if not levels:
-                logger.warning('[个人突破] 未识别到结界等级，跳过卡级')
+            if zero_medal < ZERO_MEDAL_DRIFT:
+                logger.info(f'[个人突破] 场上 9 个结界仅 {zero_medal} 个勋章为 0，卡级达标')
                 return True
-            highest = max(levels)
-            if target in levels:
-                logger.info(f'[个人突破] 卡级达标，场上已出现 {target} 级结界，最高 {highest} 级')
-                return True
-            if highest <= target:
-                logger.info(f'[个人突破] 场上最高 {highest} 级未超过目标，无需重置')
-                return True
-            # 满场但等级未全部识别（徽章 OCR 偶发失败），漏读的可能恰是目标等级，保守不重置
-            if len(levels) < len(self.level_ocr):
-                logger.info(f'[个人突破] 场上 9 个结界仅识别出 {len(levels)} 个等级，'
-                            f'保守跳过本轮重置')
-                return True
-            logger.info(f'[个人突破] 场上已无 {target} 级且最高 {highest} 级，'
+            logger.info(f'[个人突破] 场上 9 个结界有 {zero_medal} 个勋章为 0，判定等级漂移，'
                         f'第 {round_} 轮重置：连续撤退 {DEMOTE_RETREAT_TIMES} 场')
             if not self.retreat_battles(DEMOTE_RETREAT_TIMES):
                 logger.warning('[个人突破] 重置撤退未完成，跳过卡级')
@@ -413,7 +413,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             if not self.wait_fresh():
                 logger.warning('[个人突破] 未能刷新对手，跳过卡级')
                 return True
-        logger.warning(f'[个人突破] 连续重置 {DEMOTE_MAX_ROUNDS} 轮仍压不住等级，继续正常进攻')
+        logger.warning(f'[个人突破] 连续重置 {DEMOTE_MAX_ROUNDS} 轮仍压不住漂移，继续正常进攻')
         return True
 
     def retreat_battles(self, times: int) -> bool:
