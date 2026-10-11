@@ -112,6 +112,10 @@ class GeneralBattleAssets:
 	C_END_2_6 = RuleClick(roi_front=(942,312,100,100), roi_back=(942,312,100,100), name="end_2_6")
 	# 结算页奖励物品行(兵藏秘境等结算页自带一排物品, 误触会弹出物品详情浮窗)
 	C_END_3 = RuleClick(roi_front=(210,405,865,118), roi_back=(210,405,865,118), name="end_3")
+	# 败北结算页底部三选项(提升式神御魂/提升阴阳师御灵/再次挑战, 新版UI按钮下沿至y≈595), 误触会弹出"确认退出当前副本"对话框且散点无法关闭
+	C_END_LOSE_BUTTONS = RuleClick(roi_front=(210,515,865,90), roi_back=(210,515,865,90), name="end_lose_buttons")
+	# 战斗数据统计插页底部"点击屏幕继续"文字行(仅文字笔画密集带 y≈686-704 接收点击, 文字上方散点会被吸收导致页面无法推进)
+	C_BATTLE_STATE_CONTINUE = RuleClick(roi_front=(560,688,160,16), roi_back=(560,688,160,16), name="battle_state_continue")
 
 
 	# Image Rule Assets

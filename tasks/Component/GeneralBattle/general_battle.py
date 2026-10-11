@@ -680,7 +680,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """结算页需要排除的控件区域资产名(含玩家名片, 防止拟人点击误开个人主页)。"""
         return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
                 'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD',
-                'C_END_3']
+                'C_END_3', 'C_END_LOSE_BUTTONS']
 
     @cached_property
     def _exclude_button_stage_2(self) -> list[str]:
@@ -720,6 +720,11 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             BattleAction: 当前轮结算页处理后的动作决策。
         """
         context.reward_no_battle_ts = None
+        # 新版战斗数据统计插页命中 I_BATTLE_STATE_INFO, 表格区域会吸收散点导致页面无法推进,
+        # 识别到就点底部"点击屏幕继续"区域; 在此之前不更新 is_win, 保留真实结算页的胜负判定
+        if self.appear(self.I_BATTLE_STATE_INFO):
+            self.click(self.C_BATTLE_STATE_CONTINUE, interval=1.5)
+            return BattleAction.CONTINUE
         context.is_win = not self.appear(self.I_FALSE, threshold=0.8)
         if context.last_page != page_battle_result:
             self.device.click_record_clear()
