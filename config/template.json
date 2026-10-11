@@ -1562,7 +1562,8 @@
       "run_daily_trifles": true,
       "run_weekly_trifles": true,
       "login_back_enable": false,
-      "login_back_character": ""
+      "login_back_character": "",
+      "run_area_boss": true
     },
     "alt_account_list_1": {
       "character": "",
@@ -1571,7 +1572,8 @@
       "account_alias": "",
       "apple_or_android": true,
       "last_complete_time": "2023-01-01 00:00:00",
-      "weekly_complete_time": "2023-01-01 00:00:00"
+      "weekly_complete_time": "2023-01-01 00:00:00",
+      "area_boss_complete_time": "2023-01-01 00:00:00"
     }
   },
   "memory_scrolls": {

@@ -24,6 +24,11 @@ class AltAccountInfo(AccountInfo):
         default=DateTime.fromisoformat("2023-01-01 00:00:00"),
         description='alt_weekly_complete_time_help',
     )
+    # 本小号上次完成地域鬼王的时间，由脚本自动记录
+    area_boss_complete_time: DateTime = Field(
+        default=DateTime.fromisoformat("2023-01-01 00:00:00"),
+        description='alt_area_boss_complete_time_help',
+    )
 
 
 class AltAccountsConfig(ConfigBase):
@@ -33,6 +38,8 @@ class AltAccountsConfig(ConfigBase):
     run_daily_trifles: bool = Field(default=True, description='alt_run_daily_trifles_help')
     # 每个小号登录后是否执行每周琐事（具体项目在「每周琐事」配置页设置）
     run_weekly_trifles: bool = Field(default=True, description='alt_run_weekly_trifles_help')
+    # 每个小号登录后是否挑战地域鬼王（挑战设置在「地域鬼王」配置页设置）
+    run_area_boss: bool = Field(default=True, description='alt_run_area_boss_help')
     # 全部小号跑完后是否切回主力角色，避免后续任务登录在小号上
     login_back_enable: bool = Field(default=False, description='alt_login_back_enable_help')
     # 切回的主力角色名（需与本账号下已存在的角色名完全一致）
@@ -45,14 +52,17 @@ class AltAccounts(ConfigBase):
     # 小号信息：同一账号下不同区服的角色列表
     alt_account_list: list[AltAccountInfo] = None
 
-    def update_account_complete_time(self, account: AccountInfo, weekly: bool = False):
+    # kind: daily=每日琐事 weekly=每周琐事 area_boss=地域鬼王
+    def update_account_complete_time(self, account: AccountInfo, kind: str = 'daily'):
+        field = {
+            'daily': 'last_complete_time',
+            'weekly': 'weekly_complete_time',
+            'area_boss': 'area_boss_complete_time',
+        }[kind]
         for info in self.alt_account_list:
             if info.character != account.character or info.svr != account.svr:
                 continue
-            if weekly:
-                info.weekly_complete_time = datetime.now()
-            else:
-                info.last_complete_time = datetime.now()
+            setattr(info, field, datetime.now())
             break
 
     @model_validator(mode='before')

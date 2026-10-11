@@ -1,10 +1,11 @@
 # This Python file uses the following encoding: utf-8
 # 小号轮换：同一账号下不同区服的角色逐个登录，执行每日琐事/每周琐事后切换下一个
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 
 from module.exception import TaskEnd, RequestHumanTakeover
 from module.logger import logger
 
+from tasks.AreaBoss.script_task import ScriptTask as AreaBossScriptTask
 from tasks.Component.SwitchAccount.switch_account import SwitchAccount
 from tasks.Component.SwitchAccount.switch_account_config import AccountInfo
 from tasks.DailyTrifles.config import DoneRecord
@@ -43,6 +44,12 @@ class _InnerWeeklyTrifles(WeeklyTriflesScriptTask):
         pass
 
 
+class _InnerAreaBoss(AreaBossScriptTask):
+    def set_next_run(self, *args, **kwargs):
+        # 地域鬼王由轮换任务统一调度，不更新「地域鬼王」独立任务的下次运行时间
+        pass
+
+
 class ScriptTask(GameUi):
 
     def run(self):
@@ -55,7 +62,8 @@ class ScriptTask(GameUi):
                 continue
             daily_due = settings.run_daily_trifles and self._daily_not_done(accountInfo)
             weekly_due = settings.run_weekly_trifles and self._weekly_due(accountInfo)
-            if not daily_due and not weekly_due:
+            area_due = settings.run_area_boss and self._area_boss_not_done(accountInfo)
+            if not daily_due and not weekly_due and not area_due:
                 logger.info('[小号轮换] %s-%s 今日任务已完成，跳过',
                             accountInfo.character, accountInfo.svr)
                 continue
@@ -96,7 +104,19 @@ class ScriptTask(GameUi):
                 except Exception as e:
                     logger.error('[小号轮换] %s 每周琐事执行异常: %s', accountInfo.character, e)
                     had_error = True
-                conf.update_account_complete_time(accountInfo, weekly=True)
+                conf.update_account_complete_time(accountInfo, kind='weekly')
+            if area_due:
+                try:
+                    self._run_area_boss()
+                    logger.info('[小号轮换] %s 地域鬼王完成', accountInfo.character)
+                except RequestHumanTakeover:
+                    raise
+                except TaskEnd:
+                    logger.info('[小号轮换] %s 地域鬼王任务结束', accountInfo.character)
+                except Exception as e:
+                    logger.error('[小号轮换] %s 地域鬼王执行异常: %s', accountInfo.character, e)
+                    had_error = True
+                conf.update_account_complete_time(accountInfo, kind='area_boss')
             self.config.save()
         # 全部跑完后按需切回主力角色，避免同配置的后续任务登录在小号上
         if settings.login_back_enable and settings.login_back_character:
@@ -120,6 +140,12 @@ class ScriptTask(GameUi):
         """距上次完成每周琐事是否已满 6 天（不固定周几，停机错过也不漏）"""
         return datetime.now() - accountInfo.weekly_complete_time >= timedelta(days=6)
 
+    def _area_boss_not_done(self, accountInfo: AccountInfo) -> bool:
+        """本小号今天是否还没打过地域鬼王；0-6 点鬼王未刷新不可挑战"""
+        if dt_time(0, 0) <= datetime.now().time() <= dt_time(6, 0):
+            return False
+        return accountInfo.area_boss_complete_time.date() != datetime.now().date()
+
     def _run_daily_trifles(self):
         """以独立配置节运行每日琐事：每个小号各自重置当日完成记录"""
         section = self.config.daily_trifles.model_copy(deep=True)
@@ -132,6 +158,12 @@ class ScriptTask(GameUi):
         section = self.config.weekly_trifles.model_copy(deep=True)
         proxy = _ConfigSectionProxy(self.config, {'weekly_trifles': section})
         _InnerWeeklyTrifles(config=proxy, device=self.device).run()
+
+    def _run_area_boss(self):
+        """以独立配置节运行地域鬼王（挑战设置用「地域鬼王」配置页）"""
+        section = self.config.area_boss.model_copy(deep=True)
+        proxy = _ConfigSectionProxy(self.config, {'area_boss': section})
+        _InnerAreaBoss(config=proxy, device=self.device).run()
 
 
 if __name__ == '__main__':
