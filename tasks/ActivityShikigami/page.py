@@ -84,3 +84,44 @@ page_act.connect(
     ActivityShikigamiAssets.I_TO_BATTLE_BOSS,
     key="page_act->page_act_boss",
 )
+
+# 爬塔活动第2个页面（磐长故地等活动地图页）
+# 模块级全局注册：中断残留该页面时, 任意任务的导航 session 都能识别并经 ↩ 返回键退出
+page_act_2 = Page(ActivityShikigamiAssets.I_AS_CHECK_MAIN_2)
+page_act_2.add_enter_success_hooks(GlobalGameAssets.I_UI_BACK_RED)
+page_act.connect(
+    page_act_2,
+    ActivityShikigamiAssets.I_TO_BATTLE_MAIN,
+    key="page_act->page_act_2",
+)
+page_act_2.connect(
+    page_act, GlobalGameAssets.I_UI_BACK_CIRCLE, key="page_act_2->page_act"
+)
+# 门票和活动页面2关联
+page_act_pass.connect(
+    page_act_2,
+    GlobalGameAssets.I_UI_BACK_YELLOW,
+    key="page_act_pass->page_act_2",
+)
+page_act_2.connect(
+    page_act_pass,
+    ActivityShikigamiAssets.I_AS_TO_PASS,
+    key="page_act_2->page_act_pass",
+)
+# 主界面和体力页面关联
+page_act.connect(
+    page_act_ap,
+    ActivityShikigamiAssets.I_TO_BATTLE_AP,
+    key="page_act->page_act_ap",
+)
+# 100体和活动页面2关联
+page_act_ap100.connect(
+    page_act_2,
+    GlobalGameAssets.I_UI_BACK_YELLOW,
+    key="page_act_ap100->page_act_2",
+)
+page_act_2.connect(
+    page_act_ap100,
+    ActivityShikigamiAssets.O_ENTER_AP100,
+    key="page_act_2->page_act_ap100",
+)

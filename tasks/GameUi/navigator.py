@@ -47,6 +47,7 @@ class GameUi(BaseTask, GameUiAssets):
         GlobalGameAssets.I_UI_CONFIRM,
         ExplorationAssets.I_E_EXIT_CONFIRM,
         GameUiAssets.I_BACK_DAILY,
+        GlobalGameAssets.I_UI_BACK_CIRCLE,
         GlobalGameAssets.I_UI_BACK_YELLOW,
         SixRealmsAssets.I_EXIT_SIXREALMS,
         GlobalGameAssets.I_UI_BACK_BLUE,
