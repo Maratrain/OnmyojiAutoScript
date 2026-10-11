@@ -1563,7 +1563,8 @@
       "run_weekly_trifles": true,
       "login_back_enable": false,
       "login_back_character": "",
-      "run_area_boss": true
+      "run_area_boss": true,
+      "weekly_anchor_weekday": 0
     },
     "alt_account_list_1": {
       "character": "",

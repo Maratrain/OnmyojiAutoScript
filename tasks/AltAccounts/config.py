@@ -38,6 +38,8 @@ class AltAccountsConfig(ConfigBase):
     run_daily_trifles: bool = Field(default=True, description='alt_run_daily_trifles_help')
     # 每个小号登录后是否执行每周琐事（具体项目在「每周琐事」配置页设置）
     run_weekly_trifles: bool = Field(default=True, description='alt_run_weekly_trifles_help')
+    # 每周琐事锚定星期：0=周一 … 6=周日；本周未完成且到达该星期后统一执行，错过则本周内补跑
+    weekly_anchor_weekday: int = Field(default=0, ge=0, le=6, description='alt_weekly_anchor_weekday_help')
     # 每个小号登录后是否挑战地域鬼王（挑战设置在「地域鬼王」配置页设置）
     run_area_boss: bool = Field(default=True, description='alt_run_area_boss_help')
     # 全部小号跑完后是否切回主力角色，避免后续任务登录在小号上

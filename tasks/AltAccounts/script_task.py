@@ -1,6 +1,6 @@
 # This Python file uses the following encoding: utf-8
 # 小号轮换：同一账号下不同区服的角色逐个登录，执行每日琐事/每周琐事后切换下一个
-from datetime import datetime, timedelta, time as dt_time
+from datetime import datetime, time as dt_time
 
 from module.exception import TaskEnd, RequestHumanTakeover
 from module.logger import logger
@@ -137,8 +137,12 @@ class ScriptTask(GameUi):
         return accountInfo.last_complete_time.date() != datetime.now().date()
 
     def _weekly_due(self, accountInfo: AccountInfo) -> bool:
-        """距上次完成每周琐事是否已满 6 天（不固定周几，停机错过也不漏）"""
-        return datetime.now() - accountInfo.weekly_complete_time >= timedelta(days=6)
+        """每周琐事：本自然周未完成且已到锚定星期（默认周一，错过则本周内补跑）"""
+        now = datetime.now()
+        if accountInfo.weekly_complete_time.isocalendar()[:2] == now.isocalendar()[:2]:
+            return False
+        anchor = self.config.alt_accounts.alt_accounts_config.weekly_anchor_weekday
+        return now.weekday() >= anchor
 
     def _area_boss_not_done(self, accountInfo: AccountInfo) -> bool:
         """本小号今天是否还没打过地域鬼王；0-6 点鬼王未刷新不可挑战"""

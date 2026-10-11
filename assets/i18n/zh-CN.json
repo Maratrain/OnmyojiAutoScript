@@ -347,6 +347,8 @@
   "alt_login_back_enable_help": "全部小号跑完后切回下方角色，避免本配置的后续任务登录在小号上",
   "run_area_boss": "地域鬼王",
   "alt_run_area_boss_help": "每个小号登录后挑战地域鬼王；挑战对象与战斗设置在「地域鬼王」配置页设置，各小号共用；0-6 点鬼王未刷新会跳过",
+  "weekly_anchor_weekday": "每周琐事锚定星期",
+  "alt_weekly_anchor_weekday_help": "0=周一 … 6=周日；所有小号统一在「本周未完成且已到该星期」时执行，错过周一的本周内第一次轮换补跑",
   "area_boss_complete_time": "上次完成地域鬼王",
   "alt_area_boss_complete_time_help": "上次完成地域鬼王的时间，由脚本自动记录，无需手动修改",
   "login_back_character": "主力角色名",
