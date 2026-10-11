@@ -48,10 +48,10 @@ class SwitchAccountAssets:
 	O_SA_ACCOUNT_ACCOUNT_SELECTED = RuleOcr(roi=(460,280,370,50), area=(460,280,370,50), mode="SINGLE", method="Default", keyword="", name="sa_account_account_selected")
 	# 登录界面 用户中心(区别于游戏内用户中心) 账户名 
 	O_SA_LOGIN_FORM_USER_CENTER_ACCOUNT = RuleOcr(roi=(290,185,290,50), area=(290,185,290,50), mode="SINGLE", method="Default", keyword="", name="sa_login_form_user_center_account")
-	# 判断是否在 选择服务器/选择区域 界面的页签文本（2026-10 新界面 ROI 扩到整页签，关键词取子串） 
-	O_SA_CHECK_SELECT_SVR = RuleOcr(roi=(225,140,120,45), area=(221,136,128,49), mode="Single", method="Default", keyword="有角色", name="sa_check_select_svr")
-	# 判断是否在 选择区域 界面的标题文本（2026-10 新版界面） 
-	O_SA_CHECK_SELECT_REGION = RuleOcr(roi=(495,28,280,70), area=(495,28,280,70), mode="Single", method="Default", keyword="选择区域", name="sa_check_select_region")
+	# 判断是否在 选择服务器/选择区域 界面的页签文本（2026-10 新界面 ROI 扩到整页签；Full 模式子串匹配，兼容 OCR 裁字） 
+	O_SA_CHECK_SELECT_SVR = RuleOcr(roi=(225,140,120,45), area=(221,136,128,49), mode="Full", method="Default", keyword="有角色", name="sa_check_select_svr")
+	# 判断是否在 选择区域 界面的标题文本（2026-10 新版界面；Full 模式子串匹配） 
+	O_SA_CHECK_SELECT_REGION = RuleOcr(roi=(495,28,280,70), area=(495,28,280,70), mode="Full", method="Default", keyword="选择区域", name="sa_check_select_region")
 	# 选择区域界面-底部进入游戏按钮 
 	C_SA_REGION_ENTER_GAME_BTN = RuleClick(roi_front=(545,565,200,60), roi_back=(545,565,200,60), name="sa_region_enter_game_btn")
 	# 选择区域界面-右上角关闭按钮 
