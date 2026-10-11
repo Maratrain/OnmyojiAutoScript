@@ -1,47 +1,56 @@
 [
-  {
-    "itemName": "check_main_17",
-    "imageName": "main17_check_main_17.png",
-    "roiFront": "853,149,43,46",
-    "roiBack": "790,102,175,160",
-    "method": "Template matching",
-    "threshold": 0.75,
-    "description": "狐栖归处庭院判定"
-  },
-  {
-    "itemName": "main_goto_exploration_17",
-    "imageName": "main17_main_goto_exploration_17.png",
-    "roiFront": "727,227,37,49",
-    "roiBack": "653,158,167,178",
-    "method": "Template matching",
-    "threshold": 0.55,
-    "description": "探索"
-  },
-  {
-    "itemName": "main_goto_summon_17",
-    "imageName": "main17_main_goto_summon_17.png",
-    "roiFront": "960,204,67,73",
-    "roiBack": "894,151,203,144",
-    "method": "Template matching",
-    "threshold": 0.55,
-    "description": "召唤屋"
-  },
-  {
-    "itemName": "main_goto_town_17",
-    "imageName": "main17_main_goto_town_17.png",
-    "roiFront": "1010,342,28,43",
-    "roiBack": "936,292,179,150",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "町中"
-  },
-  {
-    "itemName": "pet_house_17",
-    "imageName": "main17_pet_house_17.png",
-    "roiFront": "1244,428,33,28",
-    "roiBack": "1239,358,40,160",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "宠物屋"
-  }
+ {
+  "itemName": "check_main_17",
+  "imageName": "main17_check_main_17.png",
+  "roiFront": "853,149,43,46",
+  "roiBack": "790,102,175,160",
+  "method": "Template matching",
+  "threshold": 0.75,
+  "description": "狐栖归处庭院判定"
+ },
+ {
+  "itemName": "main_goto_exploration_17",
+  "imageName": "main17_main_goto_exploration_17.png",
+  "roiFront": "727,227,37,49",
+  "roiBack": "653,158,167,178",
+  "method": "Template matching",
+  "threshold": 0.55,
+  "description": "探索"
+ },
+ {
+  "itemName": "main_goto_summon_17",
+  "imageName": "main17_main_goto_summon_17.png",
+  "roiFront": "960,204,67,73",
+  "roiBack": "894,151,203,144",
+  "method": "Template matching",
+  "threshold": 0.55,
+  "description": "召唤屋"
+ },
+ {
+  "itemName": "main_goto_town_17",
+  "imageName": "main17_main_goto_town_17.png",
+  "roiFront": "1010,342,28,43",
+  "roiBack": "936,292,179,150",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "町中"
+ },
+ {
+  "itemName": "pet_house_17",
+  "imageName": "main17_pet_house_17.png",
+  "roiFront": "1244,428,33,28",
+  "roiBack": "1239,358,40,160",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "宠物屋"
+ },
+ {
+  "itemName": "enter_courtyard_affairs_17",
+  "imageName": "main17_enter_courtyard_affairs_17.png",
+  "roiFront": "466,440,52,44",
+  "roiBack": "280,330,680,270",
+  "method": "Template matching",
+  "threshold": 0.8,
+  "description": "庭院事务入口（勾玉上方金圈徽章）"
+ }
 ]

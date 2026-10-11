@@ -36,6 +36,7 @@ main_costume_model = {
         'I_HARVEST_MAIL': f'I_HARVEST_MAIL_{i}',
         'I_HARVEST_SOUL': f'I_HARVEST_SOUL_{i}',
         'I_HARVEST_GUILD_REWARD': f'I_HARVEST_GUILD_REWARD_{i}',
+        'I_ENTER_COURTYARD_AFFAIRS': f'I_ENTER_COURTYARD_AFFAIRS_{i}',
     }
     for i in range(1, 18)
 }
