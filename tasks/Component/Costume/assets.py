@@ -21,6 +21,8 @@ class CostumeAssets:
 	I_MAIN_GOTO_TOWN_1 = RuleImage(roi_front=(573,348,26,44), roi_back=(380,330,540,80), threshold=0.68, method="Template matching", file="./tasks/Component/Costume/main1/main1_main_goto_town_1.png")
 	# description 
 	I_PET_HOUSE_1 = RuleImage(roi_front=(1250,439,25,26), roi_back=(1198,362,81,147), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main1/main1_pet_house_1.png")
+	# 庭院事务入口（织梦莲庭）
+	I_ENTER_COURTYARD_AFFAIRS_1 = RuleImage(roi_front=(343,440,25,30), roi_back=(280,330,680,270), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main1/main1_enter_courtyard_affairs_1.png")
 
 
 	# Image Rule Assets

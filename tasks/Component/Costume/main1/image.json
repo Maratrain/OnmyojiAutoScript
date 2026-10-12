@@ -43,5 +43,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "description"
+  },
+  {
+    "itemName": "enter_courtyard_affairs_1",
+    "imageName": "main1_enter_courtyard_affairs_1.png",
+    "roiFront": "343,440,25,30",
+    "roiBack": "280,330,680,270",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "庭院事务入口（织梦莲庭）"
   }
 ]
