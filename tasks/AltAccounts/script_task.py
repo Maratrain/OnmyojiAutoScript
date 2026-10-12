@@ -75,7 +75,7 @@ class ScriptTask(GameUi):
             daily_due = settings.run_daily_trifles and self._daily_not_done(accountInfo)
             weekly_due = settings.run_weekly_trifles and self._weekly_due(accountInfo)
             area_due = settings.run_area_boss and self._area_boss_not_done(accountInfo)
-            consignment_due = settings.run_consignment and self._consignment_not_done(accountInfo)
+            consignment_due = settings.run_consignment and self._consignment_due(accountInfo)
             if not daily_due and not weekly_due and not area_due and not consignment_due:
                 logger.info('[小号轮换] %s-%s 今日任务已完成，跳过',
                             accountInfo.character, accountInfo.svr)
@@ -163,8 +163,15 @@ class ScriptTask(GameUi):
 
     def _weekly_due(self, accountInfo: AccountInfo) -> bool:
         """每周琐事：本自然周未完成且已到锚定星期（默认周一，错过则本周内补跑）"""
+        return self._weekly_anchor_due(accountInfo.weekly_complete_time)
+
+    def _consignment_due(self, accountInfo: AccountInfo) -> bool:
+        """寄售屋：与每周琐事同周期，本自然周未完成且已到锚定星期才购买"""
+        return self._weekly_anchor_due(accountInfo.consignment_complete_time)
+
+    def _weekly_anchor_due(self, complete_time) -> bool:
         now = datetime.now()
-        if accountInfo.weekly_complete_time.isocalendar()[:2] == now.isocalendar()[:2]:
+        if complete_time.isocalendar()[:2] == now.isocalendar()[:2]:
             return False
         anchor = self.config.alt_accounts.alt_accounts_config.weekly_anchor_weekday
         return now.weekday() >= anchor
@@ -174,10 +181,6 @@ class ScriptTask(GameUi):
         if dt_time(0, 0) <= datetime.now().time() <= dt_time(6, 0):
             return False
         return accountInfo.area_boss_complete_time.date() != datetime.now().date()
-
-    def _consignment_not_done(self, accountInfo: AccountInfo) -> bool:
-        """本小号今天是否还没跑过寄售屋"""
-        return accountInfo.consignment_complete_time.date() != datetime.now().date()
 
     def _run_daily_trifles(self):
         """以独立配置节运行每日琐事：每个小号各自重置当日完成记录"""
