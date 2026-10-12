@@ -177,8 +177,20 @@ class ThousandThings(GameUi, RichManAssets):
         # 进入界面
         self.ui_click(self.I_TT_BORROW, self.I_TT_CONFIGURE)
         self.ui_click(self.I_TT_CONFIGURE, self.I_TT_CONFIRM)
-        #替换式神
-        self.ui_click(self.I_TT_SHIKIGAMI, self.I_TT_SHIKIGAMI_REPLACE)
+        # 替换式神
+        # 点式神等待替换弹窗，加 9 次点击保护：弹窗未弹出时不要死循环撞 GameTooManyClickError
+        shikigami_click = 0
+        while 1:
+            self.screenshot()
+            if self.appear(self.I_TT_SHIKIGAMI_REPLACE):
+                break
+            if shikigami_click >= 9:
+                logger.warning('[大富翁] 跳过此次替换')
+                self.ui_click(self.I_UI_BACK_RED, self.I_TT_ENTER)
+                return
+            if self.appear_then_click(self.I_TT_SHIKIGAMI, interval=1):
+                shikigami_click += 1
+                continue
         while 1:
             self.screenshot()
             if not self.appear(self.I_TT_SHIKIGAMI_REPLACE):
