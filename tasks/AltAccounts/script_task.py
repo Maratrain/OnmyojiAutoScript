@@ -10,8 +10,10 @@ from tasks.Component.SwitchAccount.switch_account import SwitchAccount
 from tasks.Component.SwitchAccount.switch_account_config import AccountInfo
 from tasks.DailyTrifles.config import DoneRecord
 from tasks.DailyTrifles.script_task import ScriptTask as DailyTriflesScriptTask
-from tasks.WeeklyTrifles.script_task import ScriptTask as WeeklyTriflesScriptTask
 from tasks.GameUi.game_ui import GameUi
+from tasks.GameUi.page import page_main, page_mall
+from tasks.RichMan.mall.consignment import Consignment as ConsignmentMixin
+from tasks.WeeklyTrifles.script_task import ScriptTask as WeeklyTriflesScriptTask
 
 
 class _ConfigSectionProxy:
@@ -50,6 +52,16 @@ class _InnerAreaBoss(AreaBossScriptTask):
         pass
 
 
+class _InnerConsignment(ConsignmentMixin):
+    """复用 RichMan 的寄售屋流程：进商店后执行 execute_consignment。
+
+    RichMan 任务本身的调度不应开启（避免重复跑全套商店）；只读 rich_man.consignment 配置。
+    """
+    def run_consignment(self):
+        self.goto_page(page_mall, confirm_wait=2.5)
+        self.execute_consignment(self.config.rich_man.consignment)
+
+
 class ScriptTask(GameUi):
 
     def run(self):
@@ -63,7 +75,8 @@ class ScriptTask(GameUi):
             daily_due = settings.run_daily_trifles and self._daily_not_done(accountInfo)
             weekly_due = settings.run_weekly_trifles and self._weekly_due(accountInfo)
             area_due = settings.run_area_boss and self._area_boss_not_done(accountInfo)
-            if not daily_due and not weekly_due and not area_due:
+            consignment_due = settings.run_consignment and self._consignment_not_done(accountInfo)
+            if not daily_due and not weekly_due and not area_due and not consignment_due:
                 logger.info('[小号轮换] %s-%s 今日任务已完成，跳过',
                             accountInfo.character, accountInfo.svr)
                 continue
@@ -117,6 +130,18 @@ class ScriptTask(GameUi):
                     logger.error('[小号轮换] %s 地域鬼王执行异常: %s', accountInfo.character, e)
                     had_error = True
                 conf.update_account_complete_time(accountInfo, kind='area_boss')
+            if consignment_due:
+                try:
+                    _InnerConsignment(config=self.config, device=self.device).run_consignment()
+                    logger.info('[小号轮换] %s 寄售屋完成', accountInfo.character)
+                except RequestHumanTakeover:
+                    raise
+                except TaskEnd:
+                    logger.info('[小号轮换] %s 寄售屋任务结束', accountInfo.character)
+                except Exception as e:
+                    logger.error('[小号轮换] %s 寄售屋执行异常: %s', accountInfo.character, e)
+                    had_error = True
+                conf.update_account_complete_time(accountInfo, kind='consignment')
             self.config.save()
         # 全部跑完后按需切回主力角色，避免同配置的后续任务登录在小号上
         if settings.login_back_enable and settings.login_back_character:
@@ -149,6 +174,10 @@ class ScriptTask(GameUi):
         if dt_time(0, 0) <= datetime.now().time() <= dt_time(6, 0):
             return False
         return accountInfo.area_boss_complete_time.date() != datetime.now().date()
+
+    def _consignment_not_done(self, accountInfo: AccountInfo) -> bool:
+        """本小号今天是否还没跑过寄售屋"""
+        return accountInfo.consignment_complete_time.date() != datetime.now().date()
 
     def _run_daily_trifles(self):
         """以独立配置节运行每日琐事：每个小号各自重置当日完成记录"""

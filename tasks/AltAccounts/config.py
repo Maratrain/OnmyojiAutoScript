@@ -29,6 +29,11 @@ class AltAccountInfo(AccountInfo):
         default=DateTime.fromisoformat("2023-01-01 00:00:00"),
         description='alt_area_boss_complete_time_help',
     )
+    # 本小号上次完成寄售屋的时间，由脚本自动记录
+    consignment_complete_time: DateTime = Field(
+        default=DateTime.fromisoformat("2023-01-01 00:00:00"),
+        description='alt_consignment_complete_time_help',
+    )
 
 
 class AltAccountsConfig(ConfigBase):
@@ -42,6 +47,8 @@ class AltAccountsConfig(ConfigBase):
     weekly_anchor_weekday: int = Field(default=0, ge=0, le=6, description='alt_weekly_anchor_weekday_help')
     # 每个小号登录后是否挑战地域鬼王（挑战设置在「地域鬼王」配置页设置）
     run_area_boss: bool = Field(default=True, description='alt_run_area_boss_help')
+    # 每个小号登录后是否跑寄售屋（购买设置在「大富翁」配置页的寄售屋段设置）
+    run_consignment: bool = Field(default=True, description='alt_run_consignment_help')
     # 全部小号跑完后是否切回主力角色，避免后续任务登录在小号上
     login_back_enable: bool = Field(default=False, description='alt_login_back_enable_help')
     # 切回的主力角色名（需与本账号下已存在的角色名完全一致）
@@ -54,12 +61,13 @@ class AltAccounts(ConfigBase):
     # 小号信息：同一账号下不同区服的角色列表
     alt_account_list: list[AltAccountInfo] = None
 
-    # kind: daily=每日琐事 weekly=每周琐事 area_boss=地域鬼王
+    # kind: daily=每日琐事 weekly=每周琐事 area_boss=地域鬼王 consignment=寄售屋
     def update_account_complete_time(self, account: AccountInfo, kind: str = 'daily'):
         field = {
             'daily': 'last_complete_time',
             'weekly': 'weekly_complete_time',
             'area_boss': 'area_boss_complete_time',
+            'consignment': 'consignment_complete_time',
         }[kind]
         for info in self.alt_account_list:
             if info.character != account.character or info.svr != account.svr:
