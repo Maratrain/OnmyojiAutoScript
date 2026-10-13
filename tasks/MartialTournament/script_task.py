@@ -288,7 +288,7 @@ class ScriptTask(GameUi, SwitchSoul, QuickLoadout, BaseActivity, GeneralBattle, 
                 logger.warning('[武道大会] 搜寻首领超时')
                 return False
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1) or \
-                    self.appear_then_click(self.I_UI_CONFIRM, interval=1):
+                    self.click_ui_confirm(interval=1):
                 continue
             if search_times >= max_times:
                 if not click_limit_logged:
@@ -332,7 +332,7 @@ class ScriptTask(GameUi, SwitchSoul, QuickLoadout, BaseActivity, GeneralBattle, 
                 logger.warning('[武道大会] 无法进入战斗，点击次数达上限')
                 raise TicketsNotEnough
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1) or \
-                    self.appear_then_click(self.I_UI_CONFIRM, interval=1):
+                    self.click_ui_confirm(interval=1):
                 continue
             if self.appear_then_click(self.I_MT_CHALLENGE, interval=1.5):
                 self.device.click_record_clear()
@@ -357,7 +357,7 @@ class ScriptTask(GameUi, SwitchSoul, QuickLoadout, BaseActivity, GeneralBattle, 
                     return False
                 raise TicketsNotEnough
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1) or \
-                    self.appear_then_click(self.I_UI_CONFIRM, interval=1):
+                    self.click_ui_confirm(interval=1):
                 continue
             if self.appear_then_click(self.I_MT_CHALLENGE_AP, interval=1.5):
                 self.device.click_record_clear()

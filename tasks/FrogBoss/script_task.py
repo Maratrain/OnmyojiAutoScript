@@ -333,7 +333,7 @@ class ScriptTask(RightActivity, FrogBossAssets, GeneralBattleAssets):
                 logger.info('[对弈竞猜] 检测到获胜奖励说明弹窗，点击左侧空白关闭')
                 self.click(self.C_RANDOM_LEFT, interval=2)
                 continue
-            if self.appear_then_click(self.I_UI_CONFIRM, interval=2):
+            if self.click_ui_confirm(interval=2):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=2):
                 continue
