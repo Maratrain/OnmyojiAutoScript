@@ -38,7 +38,7 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
                 orientation_timer.reset()
 
             self.screenshot()
-            if self.appear_then_click(self.I_CANCEL_BATTLE, interval=0.8):
+            if self.appear_then_click(self.I_UI_CANCEL_SAMLL, interval=0.8):
                 logger.info('[登录] 取消继续战斗')
                 continue
             if self.appear(self.I_CHECK_MAIN, interval=0.2) and not self.appear(self.I_MAIN_GOTO_SHIKIGAMI_RECORDS):
@@ -68,7 +68,7 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
             if self.appear_then_click(self.I_LOGIN_LOAD_DOWN, interval=1):
                 logger.info('[登录] 下载补间动画')
                 continue
-            if self.appear_then_click(self.I_WATCH_VIDEO_CANCEL, interval=0.6):
+            if self.appear_then_click(self.I_UI_CANCEL_SAMLL, interval=0.6):
                 logger.info('[登录] 关闭视频')
                 continue
             if self.appear_then_click(self.I_LOGIN_RED_CLOSE, interval=0.6):
@@ -80,7 +80,7 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
             if self.appear_then_click(self.I_LOGIN_LOGIN_GOTO_BIND_PHONE):
                 while 1:
                     self.screenshot()
-                    if self.appear_then_click(self.I_LOGIN_LOGIN_CANCEL_BIND_PHONE):
+                    if self.appear_then_click(self.I_UI_CANCEL_SAMLL):
                         logger.info("[登录] 关闭绑定手机弹窗")
                         break
                 continue

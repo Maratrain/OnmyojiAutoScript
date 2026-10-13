@@ -40,11 +40,11 @@ class GlobalGameAssets:
 
 	# Image Rule Assets
 	# 长一点的确认
-	I_UI_CONFIRM = RuleImage(roi_front=(666,406,175,64), roi_back=(547,368,322,122), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_confirm.png")
+	I_UI_CONFIRM = RuleImage(roi_front=(666,406,175,64), roi_back=(643,345,231,320), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_confirm.png")
 	# 长一点的确认（旧）, 10月 UI 改版前红棕描边样式, 旧版弹窗兜底
 	I_UI_CONFIRM_OLD = RuleImage(roi_front=(685,376,179,66), roi_back=(663,334,232,193), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_confirm_old.png")
 	# 长一点的取消
-	I_UI_CANCEL = RuleImage(roi_front=(438,405,177,62), roi_back=(406,379,246,116), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_cancel.png")
+	I_UI_CANCEL = RuleImage(roi_front=(438,405,177,62), roi_back=(356,384,275,256), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_cancel.png")
 	# '获得奖励' 四个大字
 	I_UI_REWARD = RuleImage(roi_front=(524,251,232,25), roi_back=(464,142,350,145), threshold=0.73, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_reward.png")
 	# 右上角红色关闭按钮 (部分全屏弹层如庭院皮肤展示页的关闭钮紧贴顶边, 搜索带需覆盖到 y=0)

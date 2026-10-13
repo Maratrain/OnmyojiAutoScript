@@ -36,15 +36,6 @@
     "description": "一键已读所有邮件"
   },
   {
-    "itemName": "harvest_mail_confirm",
-    "imageName": "dt_harvest_mail_confirm.png",
-    "roiFront": "675,544,179,60",
-    "roiBack": "671,540,187,68",
-    "method": "Template matching",
-    "threshold": 0.8,
-    "description": "全部领取弹窗-确定按钮（2026-10 新样式）"
-  },
-  {
     "itemName": "dt_harvest_mail_copy2",
     "imageName": "dt_harvest_mail_copy2.png",
     "roiFront": "1158,18,22,20",

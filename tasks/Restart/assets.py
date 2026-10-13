@@ -81,21 +81,17 @@ class RestartAssets:
 	I_LOGIN_RED_CLOSE = RuleImage(roi_front=(800,0,480,290), roi_back=(800,0,480,290), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_red_close.png")
 	# description 
 	I_LOGIN_YELLOW_CLOSE = RuleImage(roi_front=(29,17,46,44), roi_back=(0,0,94,86), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_yellow_close.png")
-	# 用于判断是否出现登录选区的 
+	# 用于判断是否出现登录选区的
 	I_LOGIN_8 = RuleImage(roi_front=(178,572,53,60), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_8.png")
-	# 登录时候不观看CG视频 
-	I_WATCH_VIDEO_CANCEL = RuleImage(roi_front=(466,396,130,61), roi_back=(466,396,130,61), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_watch_video_cancel.png")
-	# 指定角色进入游戏,默认第一个 
+	# 指定角色进入游戏,默认第一个
 	I_LOGIN_SPECIFIC_SERVE = RuleImage(roi_front=(0,0,120,120), roi_back=(0,0,120,120), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_specific_serve.png")
 	# 下载插画 
 	I_LOGIN_LOAD_DOWN = RuleImage(roi_front=(711,450,153,58), roi_back=(711,450,153,58), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_load_down.png")
 	# 登录界面 弹出框 前往绑定 手机 
 	I_LOGIN_LOGIN_GOTO_BIND_PHONE = RuleImage(roi_front=(940,430,170,150), roi_back=(940,430,170,150), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_goto_bind_phone.png")
-	# 登录界面 弹出框 确定绑定手机 
+	# 登录界面 弹出框 确定绑定手机
 	I_LOGIN_LOGIN_ENSURE_BIND_PHONE = RuleImage(roi_front=(670,460,160,100), roi_back=(670,460,160,100), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_ensure_bind_phone.png")
-	# 登录界面 弹出框 取消绑定手机 
-	I_LOGIN_LOGIN_CANCEL_BIND_PHONE = RuleImage(roi_front=(450,460,160,100), roi_back=(450,460,160,100), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_cancel_bind_phone.png")
-	# 登录界面 弹出框 阴阳师精灵 
+	# 登录界面 弹出框 阴阳师精灵
 	I_LOGIN_LOGIN_ONMYOJI_GENIE = RuleImage(roi_front=(80,110,280,120), roi_back=(80,110,280,120), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_onmyoji_genie.png")
 	# 已有角色 
 	I_CHARACTARS = RuleImage(roi_front=(246,535,100,31), roi_back=(219,523,173,57), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_charactars.png")
@@ -103,10 +99,8 @@ class RestartAssets:
 	I_CREATE_ACCOUNT = RuleImage(roi_front=(555,636,169,52), roi_back=(504,614,263,100), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_create_account.png")
 	# 进入体验服过快出现弹窗 
 	I_EARLY_SERVER = RuleImage(roi_front=(596,269,115,33), roi_back=(596,269,115,33), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_early_server.png")
-	# 取消体验服切换弹窗 
+	# 取消体验服切换弹窗
 	I_EARLY_SERVER_CANCEL = RuleImage(roi_front=(435,404,172,56), roi_back=(435,404,172,56), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_early_server_cancel.png")
-	# 取消继续战斗 
-	I_CANCEL_BATTLE = RuleImage(roi_front=(471,395,129,55), roi_back=(367,227,545,296), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_cancel_battle.png")
 
 
 	# Ocr Rule Assets

@@ -3,7 +3,7 @@
     "itemName": "ui_confirm",
     "imageName": "ui_ui_confirm.png",
     "roiFront": "666,406,175,64",
-    "roiBack": "547,368,322,122",
+    "roiBack": "643,345,231,320",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "长一点的确认"
@@ -12,7 +12,7 @@
     "itemName": "ui_cancel",
     "imageName": "ui_ui_cancel.png",
     "roiFront": "438,405,177,62",
-    "roiBack": "406,379,246,116",
+    "roiBack": "356,384,275,256",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "长一点的取消"
