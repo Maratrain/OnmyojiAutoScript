@@ -209,16 +209,16 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
             if timeout_timer.reached():
                 break
             if not self.is_in_room() and \
-                    not self.appear_then_click(GeneralInviteAssets.I_GI_SURE, interval=0.8) and \
+                    not self.appear_then_click(GeneralInviteAssets.I_UI_CONFIRM, interval=0.8) and \
                     not self.appear(self.I_BACK_YELLOW):
                 return True
-            if self.appear_then_click(GeneralInviteAssets.I_GI_SURE, interval=0.5):
+            if self.appear_then_click(GeneralInviteAssets.I_UI_CONFIRM, interval=0.5):
                 continue
-            if not self.appear(GeneralInviteAssets.I_GI_SURE) and self.appear_then_click(self.I_BACK_YELLOW, interval=0.8):
-                self.wait_until_appear(GeneralInviteAssets.I_GI_SURE, wait_time=0.8)
+            if not self.appear(GeneralInviteAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW, interval=0.8):
+                self.wait_until_appear(GeneralInviteAssets.I_UI_CONFIRM, wait_time=0.8)
                 continue
-            if not self.appear(GeneralInviteAssets.I_GI_SURE) and self.appear_then_click(self.I_BACK_YELLOW_SEA, interval=0.8):
-                self.wait_until_appear(GeneralInviteAssets.I_GI_SURE, wait_time=0.8)
+            if not self.appear(GeneralInviteAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW_SEA, interval=0.8):
+                self.wait_until_appear(GeneralInviteAssets.I_UI_CONFIRM, wait_time=0.8)
                 continue
         return False
 
@@ -605,33 +605,33 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         # 判断是否进入界面
         while 1:
             self.screenshot()
-            if self.appear(self.I_GI_SURE):
+            if self.appear(self.I_UI_CONFIRM):
                 break
         # 如果勾选了默认邀请
         if default_invite:
             logger.info('[通用邀请] 勾选默认邀请')
             while 1:
                 self.screenshot()
-                if self.appear(self.I_I_DEFAULT):
+                if self.appear(self.I_UI_CHECK):
                     break
-                if self.appear_then_click(self.I_I_NO_DEFAULT, interval=1):
+                if self.appear_then_click(self.I_UI_UNCHECK, interval=1):
                     continue
         else:
             logger.info('[通用邀请] 取消默认邀请')
             while 1:
                 self.screenshot()
-                if self.appear(self.I_I_NO_DEFAULT):
+                if self.appear(self.I_UI_UNCHECK):
                     break
-                if self.appear_then_click(self.I_I_DEFAULT, interval=1):
+                if self.appear_then_click(self.I_UI_CHECK, interval=1):
                     continue
 
         # 点击确认
         logger.info('[通用邀请] 点击邀请确认')
         while 1:
             self.screenshot()
-            if not self.appear(self.I_GI_SURE):
+            if not self.appear(self.I_UI_CONFIRM):
                 break
-            if self.appear_then_click(self.I_GI_SURE):
+            if self.appear_then_click(self.I_UI_CONFIRM):
                 continue
 
     def check_and_invite(self, default_invite: bool=True) -> bool:
@@ -640,29 +640,29 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         :param default_invite:
         :return:
         """
-        if not self.appear(self.I_GI_SURE):
+        if not self.appear(self.I_UI_CONFIRM):
             return False
 
         if default_invite:
             # 有可能是挑战失败的
-            if self.appear(self.I_I_DEFAULT) or self.appear(self.I_I_NO_DEFAULT):
+            if self.appear(self.I_UI_CHECK) or self.appear(self.I_UI_UNCHECK):
                 logger.info('[通用邀请] 勾选默认邀请')
                 while 1:
                     self.screenshot()
                     if self.is_in_room(False):
                         break
-                    if self.appear(self.I_I_DEFAULT):
+                    if self.appear(self.I_UI_CHECK):
                         break
-                    if self.appear_then_click(self.I_I_NO_DEFAULT, interval=1):
+                    if self.appear_then_click(self.I_UI_UNCHECK, interval=3):
                         continue
         # 点击确认
         while 1:
             self.screenshot()
             if self.is_in_room(False):
                 break
-            if not self.appear(self.I_GI_SURE):
+            if not self.appear(self.I_UI_CONFIRM):
                 break
-            if self.appear_then_click(self.I_GI_SURE, interval=1):
+            if self.appear_then_click(self.I_UI_CONFIRM, interval=3):
                 continue
 
         return True
@@ -683,9 +683,9 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
             # https://github.com/runhey/OnmyojiAutoScript/issues/230
             if self.appear(GeneralBattleAssets.I_EXIT):
                 return False
-            if self.appear_then_click(self.I_I_NO_DEFAULT, interval=1):
+            if self.appear_then_click(self.I_UI_UNCHECK, interval=1):
                 continue
-            if self.appear_then_click(self.I_GI_SURE, interval=1):
+            if self.appear_then_click(self.I_UI_CONFIRM, interval=1):
                 continue
             if self.appear_then_click(self.I_I_ACCEPT_DEFAULT, interval=1):
                 continue
