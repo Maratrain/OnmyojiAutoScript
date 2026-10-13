@@ -288,10 +288,10 @@ class CostumeAssets:
 	I_MAIN_GOTO_TOWN_18_C = RuleImage(roi_front=(1008,343,29,43), roi_back=(960,300,100,120), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_main_goto_town_18_c.png")
 	# Image Rule Assets
 	# 宠物屋 a 
-	I_PET_HOUSE_18_A = RuleImage(roi_front=(1226,423,34,37), roi_back=(1191,340,89,152), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_a.png")
+	I_PET_HOUSE_18_A = RuleImage(roi_front=(1249,404,23,56), roi_back=(1231,340,49,154), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_a.png")
 	# Image Rule Assets
 	# 宠物屋 b 
-	I_PET_HOUSE_18_B = RuleImage(roi_front=(1221,422,33,39), roi_back=(1191,366,89,116), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_b.png")
+	I_PET_HOUSE_18_B = RuleImage(roi_front=(1251,417,19,45), roi_back=(1231,366,49,124), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_b.png")
 	# Image Rule Assets
 	# 宠物屋 c 
-	I_PET_HOUSE_18_C = RuleImage(roi_front=(1226,417,42,45), roi_back=(1210,340,70,140), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_c.png")
+	I_PET_HOUSE_18_C = RuleImage(roi_front=(1248,406,19,59), roi_back=(1228,340,52,176), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main18/main18_pet_house_18_c.png")
