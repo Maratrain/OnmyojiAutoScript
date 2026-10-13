@@ -83,7 +83,7 @@
   {
     "itemName": "ui_uncheck",
     "imageName": "ui_ui_uncheck.png",
-    "roiFront": "567,343,33,36",
+    "roiFront": "545,343,33,36",
     "roiBack": "497,303,216,100",
     "method": "Template matching",
     "threshold": 0.8,

@@ -60,7 +60,7 @@ class GlobalGameAssets:
 	# 短一点的取消 
 	I_UI_CANCEL_SAMLL = RuleImage(roi_front=(472,389,128,62), roi_back=(266,353,347,208), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_cancel_samll.png")
 	# description 
-	I_UI_UNCHECK = RuleImage(roi_front=(567,343,33,36), roi_back=(497,303,216,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_uncheck.png")
+	I_UI_UNCHECK = RuleImage(roi_front=(545,343,33,36), roi_back=(497,303,216,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_uncheck.png")
 	# 勾选 
 	I_UI_CHECK = RuleImage(roi_front=(564,341,40,38), roi_back=(512,329,164,78), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/ui/ui_ui_check.png")
 	# 弯曲返回按钮
