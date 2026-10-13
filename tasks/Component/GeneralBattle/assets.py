@@ -179,6 +179,8 @@ class GeneralBattleAssets:
 	I_GB_CHECK_TEAM_EXIT = RuleImage(roi_front=(507,288,270,54), roi_back=(411,233,452,247), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_gb_check_team_exit.png")
 	# 御魂溢出
 	I_OVER_GHOST = RuleImage(roi_front=(697,409,89,32), roi_back=(697,409,89,32), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_over_ghost.png")
+	# 新_退出确认
+	I_NEW_EXIT_ENSURE = RuleImage(roi_front=(665,409,178,59), roi_back=(665,409,178,59), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_new_exit_ensure.png")
 	# description
 	I_END_FIX_1 = RuleImage(roi_front=(721,119,89,58), roi_back=(119,66,1136,620), threshold=0.85, method="Template matching", file="./tasks/Component/GeneralBattle/gw/gw_end_fix_1.png")
 	# description
