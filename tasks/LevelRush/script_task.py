@@ -233,9 +233,7 @@ class ScriptTask(
         while 1:
             sleep(1)
             self.screenshot()
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=5, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=5):
                 first_exp_flag = True
                 continue
             if self.appear_then_click(self.I_GUIDE_FAN, interval=1.2):
@@ -454,9 +452,7 @@ class ScriptTask(
 
         while 1:
             self.screenshot()
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=1.2, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1.2):
                 continue
             if self.appear(GameUiAssets.I_MAIN_GOTO_SHIKIGAMI_RECORDS):
                 break
@@ -598,9 +594,7 @@ class ScriptTask(
         while 1:
             sleep(1.2)
             self.screenshot()
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=1.2, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1.2):
                 continue
             if self.appear_then_click(self.I_RED_CLOSE, interval=1.2):
                 continue
@@ -679,11 +673,9 @@ class ScriptTask(
             if self.appear_then_click(self.I_DOT_DIALOG_POPUP, interval=3):
                 self.device.click_record_clear()
                 continue
-            if self.ocr_appear_click(self.O_CLICK_BLANK_CLOSE, interval=1, log=False):
+            if self.ocr_appear_click(self.O_CLICK_BLANK_CLOSE, interval=1):
                 continue
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=1, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1):
                 continue
             # 退出标志-跳过剧情
             if self.config.level_rush.level_rush_config.skip_to_30_mark:
@@ -712,9 +704,7 @@ class ScriptTask(
         while 1:
             sleep(1.2)
             self.screenshot()
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=1, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1):
                 continue
             if self.appear(self.I_FIRST_BORROW_GET, interval=1):
                 logger.info(f"成功借取协战姑获鸟")
@@ -764,13 +754,11 @@ class ScriptTask(
             self.screenshot()
             if self.ui_reward_appear_click():
                 continue
-            if self.ocr_appear_click(
-                self.O_CLICK_ANYWHERE_CONTINUE, interval=1, log=False
-            ):
+            if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1):
                 continue
             if self.appear_then_click(self.I_RED_CLOSE, interval=1):
                 continue
-            if self.ocr_appear_click(self.O_CLICK_BLANK_CLOSE, interval=1, log=False):
+            if self.ocr_appear_click(self.O_CLICK_BLANK_CLOSE, interval=1):
                 continue
             if self.appear(self.I_LEVEK_7):
                 logger.info(f"七级前剧情完成")
