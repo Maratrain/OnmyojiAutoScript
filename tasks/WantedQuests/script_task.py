@@ -10,10 +10,11 @@ from typing import List, Callable, Optional
 
 from cached_property import cached_property
 
+from module.atom.click import RuleClick
 from module.atom.image import RuleImage
 from module.atom.ocr import RuleOcr
 from module.base.timer import Timer
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GameStuckError
 from module.image.recipes import match_highlight_rule
 from module.logger import logger
 from tasks.Component.Costume.config import MainType
@@ -271,6 +272,9 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         """获取需要执行的悬赏(按优先级选择最靠前的)"""
         for wq_info in ordered_wq_infos:
             if WQType.CHALLENGE == wq_info.type:
+                if getattr(self, '_challenge_tickets_empty', False):
+                    logger.warning('[悬赏] 挑战票已确认耗尽，跳过挑战类路线')
+                    continue
                 number_challenge = self.O_WQ_NUMBER.ocr(self.device.image)
                 if number_challenge < 5:  # 挑战卷5张都没有了, 省着点吧试试别的
                     logger.warning("[悬赏] 挑战券数量不足 5 张，跳过")
@@ -333,25 +337,69 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         do_num = num_want // wq_number + (num_want % wq_number > 0)
         return WQInfo(wq_type, wq_dest, wq_number, goto_btn_rule, do_num)
 
+    def enter_shikigami_challenge(self) -> bool:
+        """读挑战票数量并有界地点击进入战斗：连续读到 0 票返回 False，读不到数或进不去战斗则超时报错"""
+        tickets = RuleOcr(roi=(625, 13, 60, 30), area=(625, 13, 60, 30),
+                          mode='Single', method='Default', keyword='', name='wanted_challenge_tickets')
+        timeout = Timer(15).start()
+        zero_reads = 0
+        clicks = 0
+        while not timeout.reached():
+            self.screenshot()
+            if not self.appear(self.I_WQC_FIRE):
+                return True
+            text = str(tickets.ocr(self.device.image)).strip()
+            if text == '0':
+                zero_reads += 1
+                if zero_reads >= 2:
+                    logger.warning('[悬赏] 挑战票数量为 0，本轮跳过挑战类路线')
+                    return False
+                continue
+            zero_reads = 0
+            if not text.isascii() or not text.isdigit():
+                continue
+            if clicks < 3 and self.appear_then_click(self.I_WQC_FIRE, interval=2):
+                clicks += 1
+        raise GameStuckError('[悬赏] 挑战票数量或战斗进入状态未确认')
+
     def challenge(self, goto_btn, num):
         self.ui_click(goto_btn, self.I_WQC_FIRE)
         self.ui_click(self.I_WQC_UNLOCK, self.I_WQC_LOCK)
-        self.ui_click_until_disappear(self.I_WQC_FIRE)
+        if not self.enter_shikigami_challenge():
+            self._challenge_tickets_empty = True
+            self.goto_page(page_exploration)
+            return False
         # 锁定阵容进入战斗
         wq_config = GeneralBattleConfig(lock_team_enable=True)
         self.run_general_battle(config=wq_config, exit_matcher=self.I_WQC_FIRE)
 
+    def advance_secret_story(self, chat: RuleClick, interval=1):
+        """推进秘闻对话：读到新台词才清点击记录，长对话既不卡死也不误触连续点击护栏"""
+        reader = RuleOcr(roi=(300, 605, 710, 80), area=(300, 605, 710, 80),
+                         mode='Full', method='Default', keyword='', name='secret_dialogue_text')
+        text = ''.join(r.ocr_text.strip() for r in reader.detect_and_ocr(self.device.image))
+        previous = getattr(self, '_secret_dialogue_text', None)
+        if text and text != previous:
+            logger.info('[悬赏] 秘闻对话推进到新台词')
+            self.device.click_record_clear()
+            self._secret_dialogue_text = text
+        self.click(chat, interval=interval)
+
     def secret(self, goto, num=1):
+        self._secret_dialogue_text = None
+        # 对话点击区用本任务局部规则，不动共享资产
+        chat = RuleClick(roi_front=(480, 625, 340, 45), roi_back=(480, 625, 340, 45),
+                         name='secret_chat_dialogue')
         self.ui_click(goto, self.I_WQSE_FIRE)
         for i in range(num):
             self.screenshot()
             # 若是当周特殊秘闻则禁止连续进攻, 战斗结束之后直接退到探索页面重新进入挑战(避免当周秘闻没打结果跳转到第一层)
             if self.appear(self.I_WQSE_SPECIAL_FIRE):
                 logger.warning('[悬赏] 当前是特殊秘闻，退出并重试')
-                return 
-            # 又臭又长的对话针的是服了这个网易
-            click_count = 0
-            while 1:
+                return
+            # 又臭又长的对话真的是服了网易
+            entry_timer = Timer(90).start()
+            while not entry_timer.reached():
                 self.screenshot()
                 if self.get_current_page() in [page_battle_prepare, page_battle]:
                     self.run_general_battle(self.battle_config, exit_matcher=any_of(self.I_UI_BACK_RED, self.I_WQSE_SPECIAL_FIRE))
@@ -359,12 +407,10 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
                 if self.appear_then_click(self.I_WQSE_FIRE, interval=1):
                     continue
                 if self.appear(self.I_UI_BACK_RED, threshold=0.7) and not self.appear(self.I_WQSE_FIRE):
-                    self.click(self.C_SECRET_CHAT, interval=0.8)
-                    click_count += 1
-                    if click_count >= 6:
-                        logger.warning('[悬赏] 秘闻任务对话过长，强制关闭')
-                        click_count = 0
-                        self.device.click_record_clear()
+                    self.advance_secret_story(chat, interval=0.8)
+                    continue
+            else:
+                raise GameStuckError('[悬赏] 秘闻任务未能在 90 秒内离开对话进入战斗')
         logger.info('[悬赏] 秘闻任务完成')
 
     def invite_random(self, add_button: RuleImage):
