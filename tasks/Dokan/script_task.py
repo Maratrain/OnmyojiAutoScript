@@ -11,7 +11,7 @@ from time import sleep
 from future.backports.datetime import datetime
 
 from module.base.timer import Timer
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GameStuckError
 from module.logger import logger
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle, ExitMatcher, BattleBehaviorScope, BattleContext, \
@@ -92,8 +92,13 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
             综上,点击左上角退出按钮区域
         """
         logger.info("[道馆] 尝试退出战斗")
-        while True:
+        timeout = Timer(20).start()
+        while not timeout.reached():
             self.screenshot()
+            # 观战期间道馆可能已结算：排名/胜利结算屏出现即无需再退（败北结算由 battle_result 页检测覆盖）
+            if self.appear(self.I_RYOU_DOKAN_TOPPA_RANK) or self.appear(self.I_RYOU_DOKAN_WIN):
+                logger.info('[道馆] 道馆已进入结算，无需退出战斗')
+                return True
             if self.appear(self.I_RYOU_DOKAN_CENTER_TOP):
                 return True
             if self.appear(self.I_RYOU_DOKAN_QUIT_BATTLE_ENSURE):
@@ -104,7 +109,7 @@ class ScriptTask(GameUi, SwitchSoul, GeneralBattle, DokanAssets):
                 self.click(self.C_DOKAN_BATTLE_QUIT_AREA, interval=3)
                 continue
             self.wait_until_appear(self.I_RYOU_DOKAN_CENTER_TOP, True, 3)
-        return False
+        raise GameStuckError('[道馆] 20 秒内未能退出战斗回到集结界面或结算屏')
 
     def before_run(self):
         self.dokan_owner_battle = False
