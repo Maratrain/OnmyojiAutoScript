@@ -24,6 +24,8 @@ class SixRealmsAssets:
 	C_NPC_FIRE_RIGHT = RuleClick(roi_front=(792,278,90,129), roi_back=(792,278,90,129), name="npc_fire_right")
 	# 中间的精英 
 	C_NPC_FIRE_CENTER = RuleClick(roi_front=(668,211,110,171), roi_back=(668,211,110,171), name="npc_fire_center")
+	# 月之海首领奖励大弹层的空白关闭点
+	C_MS_REWARD_DISMISS = RuleClick(roi_front=(580,610,100,40), roi_back=(580,610,100,40), name="ms_reward_dismiss")
 	# 默认的 
 	C_ISLAND_ENTER = RuleClick(roi_front=(1,0,101,101), roi_back=(1,0,101,101), name="island_enter")
 
@@ -80,9 +82,11 @@ class SixRealmsAssets:
 	I_BOSS_GET_EXP = RuleImage(roi_front=(561,109,171,45), roi_back=(492,86,281,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_get_exp.png")
 	# description 
 	I_BOSS_SHARE = RuleImage(roi_front=(1090,604,70,74), roi_back=(1074,587,100,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_share.png")
-	# 结算的椒图 
+	# 结算的椒图
 	I_BOSS_SHUTU = RuleImage(roi_front=(108,141,173,122), roi_back=(53,70,273,278), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_shutu.png")
-	# description 
+	# 月之海首领奖励大弹层标题（与通用获得奖励标题不同）
+	I_MS_BOSS_REWARD_TITLE = RuleImage(roi_front=(520,119,241,64), roi_back=(470,80,350,140), threshold=0.85, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_reward_title.png")
+	# description
 	I_BOSS_BATTLE_AGAIN = RuleImage(roi_front=(435,403,173,64), roi_back=(409,390,212,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_battle_again.png")
 	# description 
 	I_BOSS_BATTLE_GIVEUP = RuleImage(roi_front=(671,399,175,59), roi_back=(649,381,219,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_battle_giveup.png")
@@ -128,8 +132,14 @@ class SixRealmsAssets:
 	I_MISTERY_IMITATE = RuleImage(roi_front=(1157,598,100,100), roi_back=(1143,577,127,132), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mistery_imitate.png")
 	# 仿造的技能 
 	I_MISTERY_IMITATE_SKILL_101 = RuleImage(roi_front=(839,194,59,44), roi_back=(794,174,358,268), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mistery_imitate_skill_101.png")
-	# description 
+	# description
 	I_MISTERY_IMITATE_SUCCESS = RuleImage(roi_front=(535,143,209,54), roi_back=(429,122,414,100), threshold=0.7, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mistery_imitate_success.png")
+	# 离开神秘之屿确认弹窗标题
+	I_MS_LEAVE_TITLE = RuleImage(roi_front=(515,280,250,38), roi_back=(500,270,280,60), threshold=0.9, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_leave_title.png")
+	# 离开确认弹窗·不再提示勾选框（未勾选态）
+	I_MS_LEAVE_UNCHECKED = RuleImage(roi_front=(567,343,33,36), roi_back=(560,335,50,50), threshold=0.9, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_leave_unchecked.png")
+	# 离开确认弹窗·确定按钮
+	I_MS_LEAVE_CONFIRM = RuleImage(roi_front=(698,418,114,43), roi_back=(680,400,155,80), threshold=0.9, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_leave_confirm.png")
 
 
 	# Image Rule Assets
@@ -170,6 +180,8 @@ class SixRealmsAssets:
 
 
 	# Ocr Rule Assets
+	# 双倍奖励剩余次数
+	O_MS_DOUBLE_COUNT = RuleOcr(roi=(1140,15,85,30), area=(1140,15,85,30), mode="Single", method="Default", keyword="", name="ms_double_reward_count")
 	# 有多少钱 
 	O_COIN_NUM = RuleOcr(roi=(1171,23,59,31), area=(1171,23,59,31), mode="Digit", method="Default", keyword="", name="coin_num")
 	# 剩余回合 

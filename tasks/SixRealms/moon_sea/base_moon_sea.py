@@ -30,6 +30,11 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
 
     def _handle_result(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
         context.reward_no_battle_ts = None
+        # 首领奖励大弹层标题与通用获得奖励不同, 识别到就点下方空白推进
+        if self.appear_then_click(self.I_MS_BOSS_REWARD_TITLE,
+                                  action=self.C_MS_REWARD_DISMISS, interval=1.2):
+            logger.info('[六道-月之海] 关闭首领奖励大弹层')
+            return BattleAction.CONTINUE
         # 打输了, 直接放弃
         if self.appear(self.I_BOSS_BATTLE_GIVEUP):
             context.is_win = False
@@ -52,6 +57,11 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
 
     def _handle_reward(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
         context.reward_no_battle_ts = None
+        # 首领奖励大弹层标题与通用获得奖励不同, 识别到就点下方空白推进
+        if self.appear_then_click(self.I_MS_BOSS_REWARD_TITLE,
+                                  action=self.C_MS_REWARD_DISMISS, interval=1.2):
+            logger.info('[六道-月之海] 关闭首领奖励大弹层')
+            return BattleAction.CONTINUE
         if self.appear(self.I_BOSS_SHUTU):  # 极表示boss战赢了
             context.is_win = True
         if context.is_win and self.appear_then_click(self.I_SR_DOUBLE_REWARD_USE, interval=1.5):

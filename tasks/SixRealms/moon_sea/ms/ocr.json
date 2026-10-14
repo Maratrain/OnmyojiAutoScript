@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "ms_double_reward_count",
+    "roiFront": "1140,15,85,30",
+    "roiBack": "1140,15,85,30",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "入场页双倍奖励剩余次数"
+  },
+  {
     "itemName": "coin_num",
     "roiFront": "1171,23,59,31",
     "roiBack": "1171,23,59,31",

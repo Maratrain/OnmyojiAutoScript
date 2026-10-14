@@ -12,7 +12,7 @@ from tasks.SixRealms.config import SixRealmsType, SixRealms
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.GameUi.page import page_main, page_shikigami_records
 from module.logger import logger
-from tasks.SixRealms.moon_sea.moon_sea import MoonSea
+from tasks.SixRealms.moon_sea.moon_sea import MoonSea, MoonSeaExhausted
 from tasks.SixRealms.peacock_kingdom.peacock_kingdom import PeacockKingdom
 
 
@@ -31,7 +31,8 @@ class ScriptTask(GameUi, SwitchSoul):
         _config = self.config.model.six_realms
         cnt = 0
         while True:
-            if cnt >= _config.six_realms_gate.limit_count:
+            # 只打双倍奖励模式下次数限制不生效，真正的配额是入场页读到的双倍剩余次数
+            if not _config.six_realms_gate.double_rewards_only and cnt >= _config.six_realms_gate.limit_count:
                 logger.info('[六道] 次数已用完，退出')
                 break
             if datetime.now() - self.start_time >= _config.six_realms_gate.limit_time_v:
@@ -40,7 +41,11 @@ class ScriptTask(GameUi, SwitchSoul):
             match _config.six_realms_gate.six_realms_type:
                 case SixRealmsType.MOON_SEA:
                     self.switch_current_soul(_config.switch_soul_config)
-                    self.moon_sea.run()
+                    try:
+                        self.moon_sea.run()
+                    except MoonSeaExhausted:
+                        logger.info('[六道] 月之海双倍奖励已耗尽，保留进度提前收尾')
+                        break
                 case SixRealmsType.PEACOCK_KINGDOM:
                     self.switch_current_soul(_config.pk_switch_soul_conf)
                     self.peacock_kingdom.run()

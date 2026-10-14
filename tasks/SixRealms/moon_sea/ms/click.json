@@ -1,5 +1,11 @@
 [
   {
+    "itemName": "ms_reward_dismiss",
+    "roiFront": "580,610,100,40",
+    "roiBack": "580,610,100,40",
+    "description": "月之海首领奖励大弹层空白关闭点"
+  },
+  {
     "itemName": "npc_fire_left",
     "roiFront": "465,258,102,123",
     "roiBack": "465,258,102,123",

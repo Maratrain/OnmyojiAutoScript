@@ -20,6 +20,8 @@ class SixRealmsType(str, Enum):
 class SixRealmsGate(BaseModel):
     # 限制时间
     limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
+    # 只打双倍奖励
+    double_rewards_only: bool = Field(default=False, description='double_rewards_only_help')
     # 限制次数
     limit_count: int = Field(default=1, description='limit_count_help')
     six_realms_type: SixRealmsType = Field(default=SixRealmsType.MOON_SEA, description='six_realms_type_help')

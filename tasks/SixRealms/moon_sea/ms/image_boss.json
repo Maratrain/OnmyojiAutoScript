@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "boss_reward_title",
+    "imageName": "ms_boss_reward_title.png",
+    "roiFront": "520,119,241,64",
+    "roiBack": "470,80,350,140",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "月之海首领奖励大弹层标题"
+  },
+  {
     "itemName": "boss_fire",
     "imageName": "ms_boss_fire.png",
     "roiFront": "1128,576,100,100",
