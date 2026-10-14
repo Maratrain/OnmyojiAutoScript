@@ -16,10 +16,14 @@ page_guild_card.connect(page_guild_realm, GlobalGameAssets.I_UI_BACK_RED, key="p
 
 
 def _enter_card(task) -> bool:
-    """进入挂卡界面: 招牌为竖排书法字, OCR 命中率低会导致反复进出结界; 依次尝试招牌模板、多尺度按钮模板, OCR 找「卡」字兜底"""
+    """进入挂卡界面: 招牌为竖排书法字, OCR 命中率低会导致反复进出结界; 依次尝试招牌模板、多尺度按钮模板、紧凑态按钮模板（含收取后的空牌匾态）, OCR 找「卡」字兜底"""
     if task.appear_then_click(task.I_REALM_CARD_SIGN, interval=1):
         return True
     if task.appear_then_click(task.I_SHI_CARD, interval=1):
+        return True
+    if task.appear_then_click(task.I_SHI_CARD_COMPACT, interval=1.5):
+        return True
+    if task.appear_then_click(task.I_SHI_CARD_COMPACT_EMPTY, interval=1.5):
         return True
     return task.ocr_appear_click(task.O_R_REALM, interval=1)
 

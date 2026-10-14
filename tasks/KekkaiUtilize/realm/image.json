@@ -54,6 +54,24 @@
     "description": "结界卡按钮（多尺度适配结界皮肤缩放）"
   },
   {
+    "itemName": "shi_card_compact",
+    "imageName": "realm_shi_card_compact.png",
+    "roiFront": "820,420,26,60",
+    "roiBack": "760,330,190,210",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "结界卡按钮紧凑态（部分结界布局下入口收窄）"
+  },
+  {
+    "itemName": "shi_card_compact_empty",
+    "imageName": "realm_shi_card_compact_empty.png",
+    "roiFront": "820,420,26,60",
+    "roiBack": "760,330,190,210",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "结界卡按钮紧凑态·空牌匾（收取后牌匾熄灭变样, 与带卡状态分开识别）"
+  },
+  {
     "itemName": "realm_card_sign",
     "imageName": "realm_realm_card_sign.png",
     "roiFront": "883,357,26,43",

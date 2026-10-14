@@ -630,6 +630,13 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         # 判断好友的有两个位置还是一个坑位
         stop_image = None
         self.screenshot()
+        if not self.in_shikigami_growth():
+            # 好友寄养页可能没有式神录图标, 多标记识别仍不命中说明停留在别处
+            logger.warning('[结界蹭卡] 进入好友结界后未识别到式神育成界面')
+            return self._record_utilize_failure(
+                '进入好友结界后未识别到式神育成界面',
+                entered_realm=True,
+            )
         if self.appear(self.I_U_ADD_1):  # 右侧第一个有（无论左侧有没有）
             logger.info('[结界蹭卡] 右侧有一个空位')
             stop_image = self.I_U_ADD_1
@@ -645,8 +652,8 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
                 entered_realm=True,
             )
         try:
-            # 切换式神的类型
-            self.switch_shikigami_class(shikigami_class)
+            # 切换式神的类型（require_growth: 中途离开育成界面立即报错, 防止在错误页面乱点）
+            self.switch_shikigami_class(shikigami_class, require_growth=True)
             # 上式神
             self.set_shikigami(shikigami_order, stop_image)
         except (GamePageUnknownError, GameStuckError) as error:

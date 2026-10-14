@@ -18,16 +18,20 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
     def in_shikigami_growth(self, screenshot=False) -> bool:
         # 判定是否在式神育成界面
         # 判定的依据是是否出现了 式神录 这个图片
+        # 好友寄养页面不一定有式神录图标, 用好友结界标识兜底
         if screenshot:
             self.screenshot()
-        return self.appear(self.I_RS_RECORDS_SHIKI, interval=0.5)
+        return (self.appear(self.I_RS_RECORDS_SHIKI)
+                or self.appear(self.I_CHECK_FRIEND_REALM_1)
+                or self.appear(self.I_CHECK_FRIEND_REALM_3))
 
-    def switch_shikigami_class(self, shikigami_class: ShikigamiClass = ShikigamiClass.N):
+    def switch_shikigami_class(self, shikigami_class: ShikigamiClass = ShikigamiClass.N,
+                               require_growth: bool = False):
         """
         要求在式神育成的界面
         切换分类
         :param shikigami_class:
-        :param shikigami_order:
+        :param require_growth: 为 True 时若中途离开育成界面立即报错, 避免在错误页面上乱点
         :return:
         """
         match_selected = {ShikigamiClass.MATERIAL: self.I_RS_MATERIAL_SELECTED,
@@ -47,7 +51,8 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
         check_selected = match_selected[shikigami_class]
         check_click = match_click[shikigami_class]
         # 选择式神的种类
-        while 1:
+        selection_timer = Timer(20).start()
+        while not selection_timer.reached():
             self.screenshot()
             if self.appear(check_selected, interval=1):
                 break
@@ -57,7 +62,47 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                 continue
             if self.appear_then_click(self.I_RS_ALL_SELECTED, interval=5):
                 continue
+            if require_growth and not self.in_shikigami_growth():
+                raise GameStuckError('[更换式神] 切换分类前已离开式神育成界面')
+        else:
+            raise GameStuckError('[更换式神] 切换式神分类 20 秒未确认')
         logger.info('[更换式神] 选择式神类别: %s' % shikigami_class)
+
+    def _fill_own_growth(self, preferred: int, slots: dict) -> bool:
+        """
+        自身育成填充: 满级式神不能喂给自身育成, 按配置优先位再从高到低逐个可见候选试一次,
+        跳过满级候选, 而不是在 7/6 号位之间来回换
+        :param preferred: 配置优先的坑位号
+        :param slots: 坑位点击规则表 (set_shikigami 的 _click_match)
+        :return: 是否填满所有坑位
+        """
+        order = [preferred] + [i for i in range(7, 0, -1) if i != preferred]
+        for index in order:
+            self.screenshot()
+            if not self.in_shikigami_growth():
+                raise GameStuckError('[更换式神] 自身育成填充期间页面丢失')
+            if not self.appear(self.I_RS_NO_ADD):
+                return True
+            x = max(0, slots[index].roi_front[0] - 15)
+            full = RuleImage(roi_front=(x, 487, 60, 53), roi_back=(x, 487, 60, 53),
+                             threshold=0.8, method='Template matching',
+                             file=self.I_RS_LEVEL_MAX.file)
+            if self.appear(full):
+                continue
+            self.click(slots[index], interval=1.5)
+            time.sleep(1.5)
+            self.screenshot()
+            if (self.appear_then_click(self.I_U_CONFIRM_SMALL, interval=0.5)
+                    or self.appear_then_click(self.I_UI_CONFIRM, interval=1)
+                    or self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1)):
+                time.sleep(1)
+        self.screenshot()
+        if not self.in_shikigami_growth():
+            raise GameStuckError('[更换式神] 自身育成填充完成后页面丢失')
+        filled = not self.appear(self.I_RS_NO_ADD)
+        if not filled:
+            logger.warning('[更换式神] 没有更多可用的非满级式神，剩余育成坑位留空')
+        return filled
 
     def unset_shikigami_max_lv(self):
         """
@@ -89,6 +134,9 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                         5: self.C_SHIKIGAMI_LEFT_5,
                         6: self.C_SHIKIGAMI_LEFT_6,
                         7: self.C_SHIKIGAMI_LEFT_7}
+        # 自身育成（stop_image 为「无空位」标记）不能使用满级式神，走跳过满级的填充路径
+        if stop_image == self.I_RS_NO_ADD:
+            return self._fill_own_growth(shikigami_order, _click_match)
         click_match = _click_match[shikigami_order]
         TIMEOUT_SEC = 120          # 超时时长（秒）
         start_time = time.time()   # 记录起始时间

@@ -59,6 +59,10 @@ class KekkaiUtilizeAssets:
 	I_SHI_GROWN = RuleImage(roi_front=(595,291,35,38), roi_back=(530,220,202,267), threshold=0.6, method="Multi-scale template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_grown.png")
 	# 结界卡按钮（多尺度匹配适配结界皮肤缩放）
 	I_SHI_CARD = RuleImage(roi_front=(891,300,31,55), roi_back=(823,210,252,297), threshold=0.6, method="Multi-scale template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_card.png")
+	# 结界卡按钮紧凑态（部分结界布局下入口收窄, 常规模板不命中）
+	I_SHI_CARD_COMPACT = RuleImage(roi_front=(820,420,26,60), roi_back=(760,330,190,210), threshold=0.85, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_card_compact.png")
+	# 结界卡按钮紧凑态·空牌匾（收取后牌匾熄灭变样, 与带卡状态分开识别）
+	I_SHI_CARD_COMPACT_EMPTY = RuleImage(roi_front=(820,420,26,60), roi_back=(760,330,190,210), threshold=0.85, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_shi_card_compact_empty.png")
 	# 结界卡按钮（竖排招牌补充模板, 与当前结界外观逐像素同源, 优先于多尺度模板与 OCR）
 	I_REALM_CARD_SIGN = RuleImage(roi_front=(883,357,26,43), roi_back=(823,210,252,297), threshold=0.8, method="Template matching", file="./tasks/KekkaiUtilize/realm/realm_realm_card_sign.png")
 	# 防守按钮（多尺度匹配适配结界皮肤缩放）

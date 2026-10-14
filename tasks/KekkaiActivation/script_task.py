@@ -36,8 +36,8 @@ class ScriptTask(KU, KekkaiActivationAssets):
 
         if con.exchange_before:
             self.check_max_lv(con.shikigami_class, con.auto_fill)
-        # 收取经验
-        self.harvest_card()
+        # 卡还在生效时经验宝箱也会显示，先由 run_activation 查卡剩余时长：
+        # 过期卡走 collect_expired_card 收取，这里不再无条件先收卡
         # 开始挂卡
         self.run_activation(con)
         self.goto_page(page_guild_realm)
@@ -93,6 +93,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
         self.goto_page(page_guild_card)
         # 太诡异了 为什么有这么长的动画, 那么长的动画先休息一会
         logger.hr('开始挂卡')
+        expired_retries = 0
         time.sleep(0.5)
         while 1:
             self.screenshot()
@@ -113,6 +114,13 @@ class ScriptTask(KU, KekkaiActivationAssets):
             if card_status and card_effect:
                 logger.info('[结界挂卡] 卡片生效中')
                 interval = self.ocr_time()
+                if interval == timedelta(0):
+                    # 读数为 0 说明卡已过期，先收取再重新挂
+                    if expired_retries >= 2:
+                        raise GameStuckError('[结界挂卡] 两次收取后过期卡仍在挂卡位')
+                    expired_retries += 1
+                    self.collect_expired_card()
+                    continue
                 self.set_next_run("KekkaiActivation", target=interval+datetime.now())
                 return False
             # 如果已经选中这张卡了， 那就激活这张卡
@@ -128,6 +136,9 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     if self.appear_then_click(self.I_A_ACTIVATE_YELLOW, interval=1):
                         continue
                 interval = self.ocr_time(True)
+                if interval == timedelta(0):
+                    # 激活后读数仍为 0，回到外层走过期收取分支
+                    continue
                 self.set_next_run("KekkaiActivation", target=interval + datetime.now())
                 return True
             # 如果是什么都没有，那就是可以开始挂卡了
@@ -167,18 +178,37 @@ class ScriptTask(KU, KekkaiActivationAssets):
             elif self.appear(self.I_A_ACTIVATE_GRAY):
                 return False
 
-    def ocr_time(self, screenshot=False) -> timedelta or None:
+    def ocr_time(self, screenshot=False) -> timedelta:
         if screenshot:
             self.screenshot()
-        delta = self.O_CARD_ALL_TIME.ocr_duration(self.device.image)
-        if not isinstance(delta, timedelta):
-            logger.warning('[结界挂卡] OCR 识别失败')
-            return None
-        if delta == timedelta(0):
-            logger.error('[结界挂卡] 识别到该卡剩余时间为 0')
-            logger.error('[结界挂卡] 可能是卡片尚未收取')
-            raise GameStuckError
-        return delta
+        zero_reads = 0
+        for attempt in range(3):
+            if attempt:
+                time.sleep(0.5)
+                self.screenshot()
+            delta = self.O_CARD_ALL_TIME.ocr_duration(self.device.image)
+            if isinstance(delta, timedelta):
+                if delta > timedelta(0):
+                    return delta
+                if delta == timedelta(0):
+                    zero_reads += 1
+        if zero_reads == 3:
+            logger.info('[结界挂卡] 连续三帧卡时长读数为 0，判定卡已过期')
+            return timedelta(0)
+        raise GameStuckError('[结界挂卡] 卡片剩余时长读取不稳定')
+
+    def collect_expired_card(self):
+        """过期卡只收取不卸下，收完后回到挂卡界面。"""
+        timeout = Timer(12).start()
+        while not timeout.reached():
+            self.screenshot()
+            if self.appear(self.I_REALM_SHIN) or self.appear(self.I_SHI_GROWN):
+                break
+            self.appear_then_click(self.I_UI_BACK_RED, interval=1)
+        else:
+            raise GameStuckError('[结界挂卡] 无法返回结界收取过期卡')
+        self.harvest_card()
+        self.goto_page(page_guild_card)
 
     def screening_card(self, rule: str):
         """
@@ -335,11 +365,35 @@ class ScriptTask(KU, KekkaiActivationAssets):
         收卡的经验
         :return:
         """
-        self.appear_then_click(self.I_A_HARVEST_EXP)  # 如果到最后没有领的话有下面的一些图片
-        self.appear_then_click(self.I_A_HARVEST_FISH4)  # 斗鱼4/5区别不大 斗鱼的如果一直没有领的话
-        self.appear_then_click(self.I_A_HARVEST_KAIKO_4)  # 太鼓4
-        self.appear_then_click(self.I_A_HARVEST_KAIKO_3)  # 太鼓3
-        self.appear_then_click(self.I_A_HARVEST_KAIKO_6)  # 太鼓6
-        self.appear_then_click(self.I_A_HARVEST_FISH_6)  # 斗鱼6
-        self.appear_then_click(self.I_A_HARVEST_MOON_3)  # 太阴3
-        self.appear_then_click(self.I_A_HARVEST_FISH_3)  # 斗鱼三
+        umbrella = self.I_A_HARVEST_UMBRELLA
+        cards = [
+            self.I_A_HARVEST_EXP,  # 如果到最后没有领的话有下面的一些图片
+            self.I_A_HARVEST_FISH4,  # 斗鱼4/5区别不大 斗鱼的如果一直没有领的话
+            self.I_A_HARVEST_KAIKO_4,  # 太鼓4
+            self.I_A_HARVEST_KAIKO_3,  # 太鼓3
+            self.I_A_HARVEST_KAIKO_6,  # 太鼓6
+            self.I_A_HARVEST_FISH_6,  # 斗鱼6
+            self.I_A_HARVEST_MOON_3,  # 太阴3
+            self.I_A_HARVEST_FISH_3,  # 斗鱼三
+        ]
+        # 紧凑结界皮肤的奖励出现在牌匾上方约 (835, 345)，常规皮肤的右上角
+        # 小搜索带套不住；用局部副本把搜索带扩到两者都覆盖，不改共享资产
+        cards = [RuleImage(
+            roi_front=tuple(card.roi_front), roi_back=(780, 120, 240, 285),
+            threshold=card.threshold, method=card.method, file=card.file,
+        ) for card in cards]
+        timeout = Timer(8).start()
+        while not timeout.reached():
+            self.screenshot()
+            if self.ui_reward_appear_click():
+                continue
+            if self.appear_then_click(umbrella, threshold=0.8, interval=1):
+                time.sleep(0.5)
+                continue
+            for card in cards:
+                if self.appear_then_click(card, threshold=0.7, interval=1):
+                    time.sleep(0.5)
+                    break
+            else:
+                time.sleep(0.3)
+        logger.info('[结界挂卡] 结界卡收取完成')
