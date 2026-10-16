@@ -179,6 +179,7 @@ TASK_NAME_CN = {
     "SixRealms": "六道之门",
     "FrogBoss": "对弈竞猜",
     "FloatParade": "花车巡游",
+    "LBS": "LBS鬼王",
     "Quiz": "智力竞赛",
     "HeroTest": "英杰试炼",
     "AbyssShadows": "狭间暗域",

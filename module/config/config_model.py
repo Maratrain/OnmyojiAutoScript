@@ -62,6 +62,7 @@ from tasks.FrogBoss.config import FrogBoss
 from tasks.CubWar.config import CubWar
 from tasks.FrogChallenge.config import FrogChallenge
 from tasks.FloatParade.config import FloatParade
+from tasks.LBS.config import LBS
 from tasks.Quiz.config import Quiz
 from tasks.KittyShop.config import KittyShop
 from tasks.DyeTrials.config import DyeTrials
@@ -138,6 +139,7 @@ class ConfigModel(ConfigBase):
     cub_war: CubWar = Field(default_factory=CubWar)
     frog_challenge: FrogChallenge = Field(default_factory=FrogChallenge)
     float_parade: FloatParade = Field(default_factory=FloatParade)
+    lbs: LBS = Field(default_factory=LBS)
     quiz: Quiz = Field(default_factory=Quiz)
     kitty_shop: KittyShop = Field(default_factory=KittyShop)
     dye_trials: DyeTrials = Field(default_factory=DyeTrials)
