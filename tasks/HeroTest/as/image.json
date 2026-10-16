@@ -191,11 +191,11 @@
   {
     "itemName": "start_challenge",
     "imageName": "as_start_challenge.png",
-    "roiFront": "685,407,142,47",
-    "roiBack": "685,407,142,47",
+    "roiFront": "664,407,177,65",
+    "roiBack": "615,380,275,120",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "周一点击确认开始挑战"
+    "description": "每周首次挑战确认弹窗-开始挑战"
   },
   {
     "itemName": "check_hero2",

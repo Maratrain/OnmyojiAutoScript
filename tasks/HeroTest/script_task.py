@@ -97,14 +97,16 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         :return: True:进入成功 False:进入失败
         """
         logger.info("点击挑战")
-        click_cnt, max_click = 0, random.randint(3, 4)
+        # 每周首次挑战的确认弹窗约在首次点击挑战后4~6秒才弹出（战斗加载完成后），
+        # 重试预算必须覆盖到弹窗出现，否则循环提前放弃、弹窗留在屏幕上挡住后续任务
+        click_cnt, max_click = 0, random.randint(6, 8)
         while True:
             self.screenshot()
             if self.is_in_battle(False):
                 return True  # 成功进入战斗
             if click_cnt >= max_click:  # 异常情况,怎么都无法进入
                 break
-            if self.appear_then_click(self.I_START_CHALLENGE, interval=1):  # 兵藏秘境确认挑战
+            if self.appear_then_click(self.I_START_CHALLENGE, interval=1):  # 每周首次挑战确认弹窗-开始挑战
                 continue
             if self.appear_then_click(self.I_BCMJ_RESET_CONFIRM, interval=1):  # 兵藏秘境确认重置
                 continue
