@@ -25,6 +25,22 @@ class DoneRecord(ConfigBase):
     guild_donate_finish: bool = Field(default=False)
 
 
+class IncomeSnapshot(ConfigBase):
+    """一次收益快照。读不到的项目留 -1，不要用 0 顶替，否则差值会凭空多出来。"""
+    dt: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"))
+    # 庭院
+    gold: int = Field(default=-1)
+    jade: int = Field(default=-1)
+    ap: int = Field(default=-1)
+    # 秘卷屋
+    sca_orochi_scales: int = Field(default=-1)
+    sca_reverse_scale: int = Field(default=-1)
+    sca_demon_souls: int = Field(default=-1)
+    sca_picture_book: int = Field(default=-1)
+    # 商城
+    mystery_amulet: int = Field(default=-1)
+
+
 class DailyGuildDonate(ConfigBase):
     enable: bool = Field(default=False)
     auto_get_rewards: bool = Field(default=True)
@@ -62,6 +78,8 @@ class DailyTriflesConfig(BaseModel):
     store_sign: bool = Field(title='Store Sign', default=False, description='store_sign_help')
     # 每天购买体力数量
     buy_sushi_count: int = Field(title='Buy Sushi Count', default=-1)
+    # 统计每日收益
+    income_stat: bool = Field(title='统计每日收益', default=False)
 
     hide_fields = dynamic_hide('draw_mystery_pattern')
 

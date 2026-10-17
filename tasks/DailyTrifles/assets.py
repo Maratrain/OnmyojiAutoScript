@@ -170,5 +170,21 @@ class DailyTriflesAssets:
 	O_SELECT_SM3 = RuleOcr(roi=(26,304,45,38), area=(26,304,45,38), mode="Single", method="Default", keyword="", name="select_sm3")
 	# description 
 	O_SELECT_SM4 = RuleOcr(roi=(26,397,45,38), area=(26,397,45,38), mode="Single", method="Default", keyword="", name="select_sm4")
+	# 统计每日收益：识别金币 
+	O_INCOME_GOLD = RuleOcr(roi=(524,17,102,30), area=(524,17,102,30), mode="Quantity", method="Default", keyword="", name="income_gold")
+	# 统计每日收益：识别勾玉 
+	O_INCOME_JADE = RuleOcr(roi=(698,18,104,29), area=(698,18,104,29), mode="Quantity", method="Default", keyword="", name="income_jade")
+	# 统计每日收益：识别体力 
+	O_INCOME_AP = RuleOcr(roi=(880,18,101,30), area=(880,18,101,30), mode="Single", method="Default", keyword="", name="income_ap")
+	# 统计每日收益：识别八岐大蛇鳞片 
+	O_INCOME_SCA_OROCHI_SCALES = RuleOcr(roi=(521,12,162,33), area=(521,12,162,33), mode="Quantity", method="Default", keyword="", name="income_sca_orochi_scales")
+	# 统计每日收益：识别大蛇的逆鳞 
+	O_INCOME_SCA_REVERSE_SCALE = RuleOcr(roi=(704,12,162,33), area=(704,12,162,33), mode="Single", method="Default", keyword="", name="income_sca_reverse_scale")
+	# 统计每日收益：识别逢魔之魂 
+	O_INCOME_SCA_DEMON_SOULS = RuleOcr(roi=(900,9,162,33), area=(900,9,162,33), mode="Single", method="Default", keyword="", name="income_sca_demon_souls")
+	# 统计每日收益：识别被遗忘的绘本 
+	O_INCOME_SCA_PICTURE_BOOK = RuleOcr(roi=(1093,11,162,33), area=(1093,11,162,33), mode="Single", method="Default", keyword="", name="income_sca_picture_book")
+	# 统计每日收益：识别神秘的符咒 
+	O_INCOME_MYSTERY_AMULET = RuleOcr(roi=(789,14,96,31), area=(789,14,96,31), mode="Single", method="Default", keyword="", name="income_mystery_amulet")
 
 

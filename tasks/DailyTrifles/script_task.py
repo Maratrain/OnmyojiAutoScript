@@ -13,17 +13,78 @@ from tasks.Component.config_base import Time
 from tasks.DailyTrifles.page import page_store_gift_room, page_friends_luck, page_guild_wish
 
 from tasks.GameUi.game_ui import GameUi
-from tasks.GameUi.page import page_main, page_summon, page_guild, page_mall, page_friends, page_courtyard_affairs
-from tasks.DailyTrifles.config import DailyTriflesConfig
+from tasks.GameUi.page import page_main, page_summon, page_guild, page_mall, page_friends, page_courtyard_affairs, page_mall_recommend
+from tasks.DailyTrifles.config import DailyTriflesConfig, IncomeSnapshot
 from tasks.DailyTrifles.assets import DailyTriflesAssets
 from tasks.Component.Summon.summon import Summon
 
+from tasks.GlobalGame.assets import GlobalGameAssets
+
+from module.atom.ocr import RuleOcr
 from module.logger import logger
 from module.exception import TaskEnd
 from module.base.timer import Timer
+from decimal import Decimal
+from module.log_income import (
+    INCOME_FIELDS as INCOME_LOG_FIELDS,
+    INCOME_LOG_PREFIX,
+    find_income_baseline,
+    write_income_day,
+)
 from tasks.DailyTrifles.config import SummonType
 import re
 from typing import Any, Optional, List, Callable
+
+
+# 统计每日收益的资源：(中文名, 资产名, 上限)
+# 前三个在庭院，中间四个在秘卷屋，最后一个在商城热门推荐页。
+# 字段顺序以 module.log_income.INCOME_FIELDS 为准，这里只补中文名和资产。
+INCOME_ITEMS = {
+    'gold': ('金币', 'O_INCOME_GOLD', 10 ** 11),
+    'jade': ('勾玉', 'O_INCOME_JADE', 10 ** 8),
+    'ap': ('体力', 'O_INCOME_AP', 10 ** 6),
+    'sca_orochi_scales': ('八岐大蛇鳞片', 'O_INCOME_SCA_OROCHI_SCALES', 10 ** 7),
+    'sca_reverse_scale': ('大蛇的逆鳞', 'O_INCOME_SCA_REVERSE_SCALE', 10 ** 7),
+    'sca_demon_souls': ('逢魔之魂', 'O_INCOME_SCA_DEMON_SOULS', 10 ** 7),
+    'sca_picture_book': ('被遗忘的绘本', 'O_INCOME_SCA_PICTURE_BOOK', 10 ** 7),
+    'mystery_amulet': ('神秘的符咒', 'O_INCOME_MYSTERY_AMULET', 10 ** 7),
+}
+# 名字对不上会直接 KeyError，比静默少统计一项好
+INCOME_FIELDS = tuple((name, *INCOME_ITEMS[name]) for name in INCOME_LOG_FIELDS)
+# 按读取位置分组：庭院顶栏 / 秘卷屋 / 商城热门推荐页
+INCOME_MAIN = tuple((name, *INCOME_ITEMS[name]) for name in ('gold', 'jade', 'ap'))
+INCOME_SCALES = tuple((name, *INCOME_ITEMS[name]) for name in (
+    'sca_orochi_scales',
+    'sca_reverse_scale',
+    'sca_demon_souls',
+    'sca_picture_book',
+))
+INCOME_MALL = tuple((name, *INCOME_ITEMS[name]) for name in ('mystery_amulet',))
+# 三组必须正好覆盖全部字段；漏一组或重一个，导入的时候就炸，不要等到跑任务
+assert {item[0] for item in INCOME_MAIN + INCOME_SCALES + INCOME_MALL} == set(INCOME_LOG_FIELDS)
+
+INCOME_UNITS = {'': 1, '千': 1000, '万': 10000, '亿': 100000000}
+INCOME_NUMBER = re.compile(r'(\d+(?:\.\d+)?)([千万亿]?)')
+
+
+def parse_income_number(text: str) -> Optional[int]:
+    """解析顶栏数字，支持 "1234"、"1.2万"、"6.33亿"、"5000/5000"。
+
+    判不准一律返回 None。OCR 把「万」认成「方/力」时会连单位一起滤掉，
+    1.2万 就变成 1.2 再被截成 1，差四个数量级；这种错值比没有值更糟。
+    """
+    text = text.replace(' ', '').replace(',', '').replace('，', '')
+    for old, new in (('I', '1'), ('D', '0'), ('S', '5'), ('B', '8'),
+                     ('？', '2'), ('d', '6'), ('o', '0'), ('O', '0')):
+        text = text.replace(old, new)
+    # 体力之类的会写成 A/B，只取斜杠前面
+    tokens = INCOME_NUMBER.findall(text.split('/')[0])
+    if len(tokens) != 1:
+        return None
+    number, unit = tokens[0]
+    if '.' in number and not unit:
+        return None
+    return int(Decimal(number) * INCOME_UNITS[unit])
 
 
 class ScriptTask(GameUi, Summon, DailyTriflesAssets):
@@ -45,9 +106,84 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         # 商店签到 or 购买寿司
         if con.store_sign or con.buy_sushi_count > 0:
             self.run_store()
+        # 统计每日收益
+        if con.income_stat:
+            self.run_income_stat()
         self.config.save()
         self.plan_next_dt()
         raise TaskEnd('DailyTrifles')
+
+    def run_income_stat(self):
+        """统计每日收益：庭院资源、商城符咒、秘卷屋鳞片各记一次快照"""
+        logger.hr('统计每日收益', 2)
+        # 放在函数内导入，和 run_buy_sushi 保持一致，避免任务模块互相牵连
+        from tasks.RichMan.assets import RichManAssets
+
+        snapshot = IncomeSnapshot(dt=datetime.now())
+        self.goto_page(page_main)
+        self.read_income_group(snapshot, INCOME_MAIN)
+
+        # 符咒在商城的「热门推荐」页读，不必再跑一趟召唤页
+        self.goto_page(page_mall_recommend, confirm_wait=2.5)
+        self.read_income_group(snapshot, INCOME_MALL)
+
+        self.goto_page(page_mall)
+        if self.ui_click_until_appear_or_timeout(
+                RichManAssets.I_MALL_SCCALES, RichManAssets.I_MALL_SCCALES_CHECK,
+                interval=1, timeout=10):
+            self.read_income_group(snapshot, INCOME_SCALES)
+            # 秘卷屋不是注册页面，先退回商城再交给导航
+            self.ui_click_until_appear_or_timeout(
+                GlobalGameAssets.I_UI_BACK_YELLOW, self.I_CHECK_MALL, interval=1, timeout=10)
+        else:
+            logger.warning('[收益] 未能进入秘卷屋，跳过鳞片类四项')
+
+        self.goto_page(page_main)
+        self.record_income(snapshot)
+
+    def read_income_group(self, snapshot: IncomeSnapshot, fields: tuple):
+        for field, name, asset, upper in fields:
+            value = self.read_income(name, getattr(self, asset), upper)
+            setattr(snapshot, field, value)
+
+    def read_income(self, name: str, rule: RuleOcr, upper: int) -> int:
+        """读一次顶栏数字，读不出或者超出合理范围就返回 -1 留给下一次运行"""
+        self.screenshot()
+        # 走文本检测 + 识别，和标注工具的测试按钮同一条路径
+        # （Single/Digit 的 ocr() 只做识别，ROI 里带图标时会读出「路421+」）
+        text = rule.detect_text(self.device.image)
+        value = parse_income_number(text)
+        if value is None or not 0 <= value <= upper:
+            logger.warning(f'[收益] {name}: 放弃本次识别, 原文 [{text}]')
+            return -1
+        logger.info(f'[收益] {name}: {value}')
+        return value
+
+    def record_income(self, snapshot: IncomeSnapshot):
+        """快照写进日志（人可读）和日汇总（长期保留），再拿上一个有记录的日子做差"""
+        logger.info(INCOME_LOG_PREFIX + ' '.join(
+            f'{field}={getattr(snapshot, field)}' for field, _, _, _ in INCOME_FIELDS))
+
+        # 日汇总不受日志 7 天清理影响，是收益历史的正主；日志那行只作兜底
+        day = snapshot.dt.date()
+        write_income_day(self.config.config_name, day, {
+            'dt': snapshot.dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'values': {field: int(getattr(snapshot, field)) for field in INCOME_LOG_FIELDS},
+        })
+
+        baseline = find_income_baseline(self.config.config_name, day)
+        if baseline is None:
+            logger.info('[收益] 今天之前没有记录，跳过做差')
+            return
+        baseline_day, previous = baseline
+        logger.hr('今日收益', 2)
+        logger.info(f'[收益] 对比基准日: {baseline_day}')
+        for field, name, _, _ in INCOME_FIELDS:
+            now, before = getattr(snapshot, field), previous['values'].get(field, -1)
+            if now < 0 or before < 0:
+                logger.warning(f'[收益] {name}: 不完整，跳过做差, {before} -> {now}')
+                continue
+            logger.info(f'[收益] {name}: {before} -> {now} ({now - before:+d})')
 
     def run_one_summon(self):
         logger.hr('每日召唤', 2)
