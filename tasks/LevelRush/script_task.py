@@ -127,13 +127,16 @@ class ScriptTask(
         # 七级前流程
         if not self.conf.level_rush_config.level_7_mark:
             # 1.七级前的手动剧情流程
-            self._run_before_level_7()
-            # 2.达到七级领取邮件初始奖励
-            self.run_pickup_email()
-            # 3.前往新手活动借取姑获鸟
-            self._run_borrow_gh_bird()
-            # 4.领取新手体力奖励
-            self._get_rookie_reward()
+            if self._run_before_level_7():
+                # 2.达到七级领取邮件初始奖励
+                self.run_pickup_email()
+                # 3.前往新手活动借取姑获鸟
+                self._run_borrow_gh_bird()
+                # 4.领取新手体力奖励
+                self._get_rookie_reward()
+            else:
+                # 剧情被等级锁住时到不了七级, 邮件/借取姑获鸟/新手奖励都依赖七级后的状态, 一并跳过
+                logger.info("七级前剧情被等级锁定，跳过邮件领取、借取姑获鸟与新手奖励，转入推剧情与探索升级")
             self.config.level_rush.level_rush_config.level_7_mark = True
             self.config.save()
         self.goto_page(page_main)
@@ -746,23 +749,31 @@ class ScriptTask(
         self.device.click(click_x, click_y)
         return True
 
-    def _run_before_level_7(self):
-        "7级解锁借五星姑获鸟之前的剧情，无法开启自动"
+    def _run_before_level_7(self) -> bool:
+        """7级解锁借五星姑获鸟之前的剧情，无法开启自动
+
+        :return: True 已到达七级正常完成; False 剧情被等级锁定, 无法继续推进
+        """
         logger.hr("七级前剧情", 2)
         while 1:
             sleep(1.25)
             self.screenshot()
             if self.ui_reward_appear_click():
                 continue
+            # 到达七级即完成七级前剧情
+            if self.appear(self.I_LEVEK_7):
+                logger.info(f"七级前剧情完成")
+                return True
+            # 剧情被等级锁住时点击对话框不会有任何进展, 退出交由推剧情与探索升级处理
+            if self.appear(self.I_LEVEL_LOCKED):
+                logger.info("剧情进度已锁定，需先提升等级")
+                return False
             if self.ocr_appear_click(self.O_CLICK_ANYWHERE_CONTINUE, interval=1):
                 continue
             if self.appear_then_click(self.I_RED_CLOSE, interval=1):
                 continue
             if self.ocr_appear_click(self.O_CLICK_BLANK_CLOSE, interval=1):
                 continue
-            if self.appear(self.I_LEVEK_7):
-                logger.info(f"七级前剧情完成")
-                break
             if self.appear(self.I_CHECK_AGREE):
                 self.appear_then_click(self.I_CANCEL_BEFORE_7, interval=1)
                 continue
