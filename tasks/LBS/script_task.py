@@ -68,10 +68,11 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
     def _reach_exit(self, limit_count: int) -> bool:
         """三种模式共用的循环退出判断：想打次数达到 或 活动剩余次数耗尽。"""
         self.screenshot()
-        # DigitCounter 返回 (已用, 剩余, 总数)，与逢魔/寮任务等本地用法一致
-        current, remain, total = self.O_LBS_COUNT.ocr(self.device.image)
+        # 界面显示的是「剩余次数/总次数」，0/40 才是打完；DigitCounter 只按文本顺序返回
+        # (第一个数字, 总数-第一个数字, 总数)，故解包为 (剩余, 已用, 总数)，不能拿第二项判耗尽
+        remain, used, total = self.O_LBS_COUNT.ocr(self.device.image)
         if total > 0 and remain <= 0:
-            logger.info(f'[LBS鬼王] 挑战次数已用完: {current}/{total}')
+            logger.info(f'[LBS鬼王] 挑战次数已用完: 剩余 {remain}/{total}')
             return True
         if total == 0:
             logger.warning('[LBS鬼王] 挑战次数识别失败，按时间限制继续')
