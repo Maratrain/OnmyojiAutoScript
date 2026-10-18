@@ -112,6 +112,22 @@ class NewbieStoryAssets:
     # 圆盘直径跨场景 68~114px，模板按 76px 采集，多尺度覆盖其余尺寸
     I_STORY_BATTLE_ICON_DISK.scale_range = (0.9, 1.5, 0.05)
 
+    # 绿枝夜景段的圆盘战斗图标：86px，公告文字带（屏幕 y 66~101）横穿圆盘
+    # 中上部，粉色花瓣漂在盘底。与下午模板虽同属圆盘资产，但花瓣位置
+    # （盘顶 vs 盘底）、盘体尺寸（76 vs 86px）、背景（紫底 vs 绿/棕底）
+    # 差异大，下午模板对该场景全屏多尺度最佳仅 0.44，低于阈值整段漏检，
+    # 剧情被空白点击卡死（实机日志连续 102 秒无进展）。
+    # 注意：该规则不进 controls 循环，由 script_task 的掩码多尺度匹配使用
+    # （模板 + 同目录 _mask.png 排除公告带/花瓣/盘外背景，阈值 0.80）；
+    # 实测同场景两帧互匹 1.000，跨场景（下午干净帧）0.992。
+    I_STORY_BATTLE_ICON_DISK_NIGHT = RuleImage(
+        roi_front=(869, 57, 86, 86),
+        roi_back=(0, 0, 1280, 260),
+        threshold=0.80,
+        method='Masked template matching',
+        file='./tasks/NewbieStory/res/story_battle_icon_disk_night.png',
+    )
+
     # 战斗图标下半部分被中上方弹幕遮挡时，只匹配露在弹幕上方的部分。
     I_STORY_BATTLE_ICON_DANMAKU = RuleImage(
         roi_front=(960, 0, 115, 64),

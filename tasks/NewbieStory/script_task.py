@@ -34,6 +34,19 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
     # 问号兜底匹配的及格线。实测 0.54~0.67 分区间命中全部是场景高光、
     # 公告文字一类误报（真问号核心匹配得分均在 0.96+），阈值上调到 0.68。
     QUESTION_FALLBACK_SCORE = 0.68
+    # 圆盘多场景匹配（掩码 + 多尺度）的搜索窗：与既有圆盘规则一致，
+    # 覆盖整个顶部公告带（圆盘随角色位置在 x 300~1100 间移动）。
+    DISK_SEARCH_BOTTOM = 260
+    # 步长 0.1：实测圆盘缩放 ±8% 内得分仍有 0.99，步长 0.1 时最差距
+    # 真实缩放 5%，在容忍范围内；相比 0.05 步长识别耗时减半。
+    DISK_SCALES = tuple(round(0.80 + 0.10 * i, 2) for i in range(8))  # 0.80~1.50
+    # 掩码多尺度匹配的及格线。实测真阳性：下午场景 1.000（干净帧）/0.961
+    # （公告遮挡帧）、夜景场景 1.000；花瓣飘动 ±25 行、圆盘漂移 ±8px、
+    # 缩放 ±8% 时仍 0.95+。负样本回归（粉色波浪/探索地图/式神录等 8 帧）
+    # 上限 0.618，阈值 0.80 两侧各留约 0.18 余量。
+    DISK_MATCH_SCORE = 0.80
+    # 低于该分数的候选也记录日志，便于排查"差一点命中"的场景变体。
+    DISK_NEAR_MISS_SCORE = 0.70
 
     @cached_property
     def _config(self):
@@ -112,6 +125,95 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
                 continue
             templates.append((name, template))
         return templates
+
+    @cached_property
+    def _disk_templates(self):
+        """多场景圆盘战斗图标模板（灰度图 + 同目录派生掩码）。
+
+        掩码排除三类内容：圆盘外背景、公告文字带（屏幕 y 66~101，横穿圆盘
+        中上部且文字持续滚动）、粉色花瓣（漂浮粒子，下午场景在盘顶、夜景
+        场景在盘底）。排除带在模板坐标里是一条"不在乎"区域，匹配时可供
+        滑动覆盖公告带，因此圆盘在公告带里上下漂移 ±8px 仍稳定命中。
+        模板按运行库约定读入（BGR -> RGB -> 灰度），与生产帧颜色序一致。
+        """
+        folder = Path(__file__).with_name('res')
+        templates = []
+        for name in (
+            'story_battle_icon_disk.png',
+            'story_battle_icon_disk_night.png',
+        ):
+            image = cv2.imdecode(
+                np.fromfile(folder / name, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if image is None:
+                logger.warning(f'[新手剧情] 无法加载圆盘模板: {name}')
+                continue
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mask_path = folder / f'{Path(name).stem}_mask.png'
+            mask = cv2.imdecode(
+                np.fromfile(mask_path, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+            if mask is None or mask.shape[:2] != image.shape[:2]:
+                logger.warning(f'[新手剧情] 无法加载圆盘掩码: {mask_path}')
+                continue
+            templates.append((name, cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), mask))
+        return templates
+
+    def _match_disk_template(self, search_gray, template_gray, mask):
+        """单模板多尺度掩码匹配，返回 (得分, 中心x, 中心y, 缩放)。"""
+        best = (0.0, None, None, None)
+        for scale in self.DISK_SCALES:
+            resized = cv2.resize(
+                template_gray, None, fx=scale, fy=scale,
+                interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC)
+            height, width = resized.shape
+            if height > search_gray.shape[0] or width > search_gray.shape[1]:
+                continue
+            scaled_mask = cv2.resize(
+                mask, (width, height), interpolation=cv2.INTER_NEAREST)
+            if scaled_mask.max() == 0:
+                continue
+            result = cv2.matchTemplate(
+                search_gray, resized, cv2.TM_CCOEFF_NORMED, mask=scaled_mask)
+            _, score, _, location = cv2.minMaxLoc(result)
+            if score > best[0]:
+                best = (float(score), location[0] + width // 2,
+                        location[1] + height // 2, scale)
+                if score >= 0.99:
+                    # 已接近满分，其余缩放最多再提升 0.01，提前收工。
+                    break
+        return best
+
+    def find_story_disk(self, image):
+        """多场景圆盘战斗图标识别。
+
+        返回 (得分, 中心x, 中心y, 半径, 模板名)；无及格命中返回 None。
+        半径按模板半径 × 命中缩放换算，供点击安全点计算使用。
+        """
+        if not self._disk_templates:
+            return None
+        search_gray = cv2.cvtColor(
+            image[:self.DISK_SEARCH_BOTTOM], cv2.COLOR_RGB2GRAY)
+        best = None
+        for name, template_gray, mask in self._disk_templates:
+            score, center_x, center_y, scale = self._match_disk_template(
+                search_gray, template_gray, mask)
+            if best is None or score > best[0]:
+                radius = int(round(template_gray.shape[0] / 2 * scale))
+                best = (score, center_x, center_y, radius, name)
+            if best[0] >= 0.99:
+                # 已接近满分，其余场景模板最多再提升 0.01，无需再跑。
+                break
+        if best is None:
+            return None
+        if best[0] >= self.DISK_NEAR_MISS_SCORE:
+            reached = best[0] >= self.DISK_MATCH_SCORE
+            logger.info(
+                f'[新手剧情] 圆盘候选: {best[4]} 得分 {best[0]:.3f}, '
+                f'中心 ({best[1]},{best[2]}), 半径 {best[3]}'
+                + ('' if reached else '（未达阈值，跳过）')
+            )
+        if best[0] < self.DISK_MATCH_SCORE:
+            return None
+        return best
 
     @staticmethod
     def _in_danmaku_forbidden_area(point):
@@ -247,7 +349,17 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         return center_x, max(y + 6, click_y)
 
     def _click_story_disk(self):
-        """识别异想剧情段的圆盘战斗图标，点击避开公告禁点区的位置。"""
+        """识别异想剧情段的圆盘战斗图标，点击避开公告禁点区的位置。
+
+        两条识别路径：下午场景的既有单模板多尺度规则（生产验证过），
+        以及掩码多场景匹配（下午 + 夜景两个模板，排除公告带/花瓣/盘外背景）。
+        """
+        if self._click_story_disk_rule():
+            return True
+        return self._click_story_disk_multiscene()
+
+    def _click_story_disk_rule(self):
+        """下午场景圆盘的既有规则路径（单模板多尺度，无掩码）。"""
         target = self.I_STORY_BATTLE_ICON_DISK
         if not self.appear(target, interval=0.8):
             return False
@@ -260,6 +372,43 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         self.device.click(x, y, control_name=target.name)
         self.device.click_record_clear()
         logger.info(f'[新手剧情] 点击战斗图标（圆盘）: ({x}, {y})')
+        return True
+
+    def _click_story_disk_multiscene(self):
+        """掩码多场景匹配路径：下午/夜景模板并行，覆盖各场景圆盘变体。"""
+        found = self.find_story_disk(self.device.image)
+        if found is None:
+            return False
+        score, center_x, center_y, radius, name = found
+        logger.info(
+            f'[新手剧情] 圆盘战斗图标命中: {name} 得分 {score:.3f}, '
+            f'中心 ({center_x},{center_y})'
+        )
+        self._wait_before_recognition_click()
+        # 圆盘随角色动画轻微漂移，等待后重新匹配，只接受仍然存在的目标。
+        refreshed = None
+        for attempt in range(3):
+            self.screenshot()
+            candidate = self.find_story_disk(self.device.image)
+            if candidate is not None:
+                if attempt:
+                    logger.info(
+                        f'[新手剧情] 等待后圆盘位置刷新: '
+                        f'({center_x},{center_y}) -> ({candidate[1]},{candidate[2]})'
+                    )
+                refreshed = candidate
+                break
+            if attempt < 2:
+                sleep(0.15)
+        if refreshed is None:
+            logger.info('[新手剧情] 等待后圆盘战斗图标已移动或消失，跳过失效点击')
+            return False
+        _, center_x, center_y, radius, name = refreshed
+        x, y = self._story_disk_safe_point(
+            (center_x - radius, center_y - radius, radius * 2, radius * 2))
+        self.device.click(x, y, control_name='newbie_story_disk_multiscene')
+        self.device.click_record_clear()
+        logger.info(f'[新手剧情] 点击战斗图标（圆盘·多场景）: ({x}, {y})')
         return True
 
     def _appear_in_full_screen(self, target):
