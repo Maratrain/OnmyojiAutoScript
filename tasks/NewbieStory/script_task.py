@@ -228,6 +228,40 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         logger.info(f'[新手剧情] 点击弹幕下方露出的眼睛图标: ({x}, {safe_y})')
         return True
 
+    def _story_disk_safe_point(self, rect):
+        """圆盘与公告禁点区重叠时，点击禁点区上方露出的部分，避免点到公告。"""
+        x, y, w, h = rect
+        forbidden_top = self.DANMAKU_FORBIDDEN_AREA[1]
+        forbidden_bottom = self.DANMAKU_FORBIDDEN_AREA[3]
+        center_x = x + w // 2
+        if y + h <= forbidden_top or y >= forbidden_bottom:
+            # 圆盘整体在禁点区之外，直接点中心
+            return center_x, y + h // 2
+        if y < forbidden_top:
+            # 顶部露出在禁点区上方：尽量靠近禁点区上沿（与弹幕安全点的 8px 余量一致），
+            # 同时不超出圆盘本体
+            click_y = min(forbidden_top - 8, y + h - 6)
+        else:
+            # 整体落在禁点区内：没有完全安全的位置，尽量点顶边
+            click_y = y + 6
+        return center_x, max(y + 6, click_y)
+
+    def _click_story_disk(self):
+        """识别异想剧情段的圆盘战斗图标，点击避开公告禁点区的位置。"""
+        target = self.I_STORY_BATTLE_ICON_DISK
+        if not self.appear(target, interval=0.8):
+            return False
+        self._wait_before_recognition_click()
+        self.screenshot()
+        if not self.appear(target, interval=None):
+            logger.info(f'[新手剧情] 等待后 {target.name} 已移动或消失，跳过失效点击')
+            return False
+        x, y = self._story_disk_safe_point(target.roi_front)
+        self.device.click(x, y, control_name=target.name)
+        self.device.click_record_clear()
+        logger.info(f'[新手剧情] 点击战斗图标（圆盘）: ({x}, {y})')
+        return True
+
     def _appear_in_full_screen(self, target):
         """临时把搜索窗扩到全屏后识别，返回是否命中（用后恢复原窗口）。"""
         original_roi = target.roi_back
@@ -251,6 +285,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             (self.I_STORY_SKIP_DIALOG, '[新手剧情] 全屏复扫点击对白跳过'),
             (self.I_STORY_SKIP_DIALOG_PINK,
              '[新手剧情] 全屏复扫点击对白跳过（粉色场景）'),
+            (self.I_STORY_SKIP_DIALOG_TEXT,
+             '[新手剧情] 全屏复扫点击对白跳过（文字）'),
         ):
             if not self._appear_in_full_screen(target):
                 continue
@@ -267,6 +303,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         skip_controls = (
             (self.I_SKIP_BUTTON, '[新手剧情] 优先复查点击剧情跳过'),
             (self.I_CONFIRM_SKIP, '[新手剧情] 优先复查确认跳过'),
+            (self.I_STORY_SKIP_DIALOG_TEXT,
+             '[新手剧情] 优先复查点击对白跳过（文字）'),
             (self.I_STORY_SKIP_DIALOG, '[新手剧情] 优先复查点击对白跳过'),
             (self.I_STORY_SKIP_DIALOG_PINK,
              '[新手剧情] 优先复查点击对白跳过（粉色场景）'),
@@ -365,6 +403,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         controls = (
             (self.I_SKIP_BUTTON, '[新手剧情] 点击剧情跳过', None),
             (self.I_CONFIRM_SKIP, '[新手剧情] 点击确认跳过', None),
+            (self.I_STORY_SKIP_DIALOG_TEXT,
+             '[新手剧情] 点击对白跳过（文字）', None),
             (self.I_STORY_SKIP_DIALOG, '[新手剧情] 点击对白跳过', None),
             (self.I_STORY_SKIP_DIALOG_PINK,
              '[新手剧情] 点击对白跳过（粉色场景）', None),
@@ -374,6 +414,8 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
              '[新手剧情] 点击新手剧情战斗图标（备选样式）', None),
             (self.I_STORY_BATTLE_ICON_PURPLE,
              '[新手剧情] 点击新手剧情战斗图标（紫色场景）', None),
+            (self.I_STORY_BATTLE_ICON_DISK,
+             '[新手剧情] 点击战斗图标（圆盘）', None),
             (self.I_STORY_BATTLE_ICON_DANMAKU,
              '[新手剧情] 点击弹幕遮挡的战斗图标',
              self.C_STORY_BATTLE_DANMAKU_SAFE),
@@ -401,7 +443,7 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             return True
 
         # 确认跳过与对白跳过同样优先于主页结束判断。
-        for control in controls[1:4]:
+        for control in controls[1:5]:
             if self._click_story_control(*control):
                 return True
 
@@ -416,6 +458,10 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
             if self.ocr_appear_click(self.O_STORY_SKIP, interval=0.8):
                 self.device.click_record_clear()
                 logger.info('[新手剧情] 优先复查 OCR 点击剧情跳过')
+                return True
+            if self.ocr_appear_click(self.O_STORY_SKIP_DIALOG, interval=0.8):
+                self.device.click_record_clear()
+                logger.info('[新手剧情] 优先复查 OCR 点击对白区跳过')
                 return True
             refreshed_ellipsis = self.find_ellipsis_center(self.device.image)
             if refreshed_ellipsis is None:
@@ -447,6 +493,10 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         for control in controls[4:]:
             if control[0] is self.I_STORY_EYE_ICON_DANMAKU:
                 if self._click_danmaku_eye():
+                    return True
+                continue
+            if control[0] is self.I_STORY_BATTLE_ICON_DISK:
+                if self._click_story_disk():
                     return True
                 continue
             if self._click_story_control(*control):
@@ -499,6 +549,16 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         # 空白兜底前全屏复扫各跳过控件：按钮随对白框布局换位置后，
         # 固定搜索窗匹配不到时剧情会被空白点击一句一句磨过去。
         if self._click_full_screen_skip():
+            return True
+
+        # 空白兜底前的 OCR 兜底：以上模板层（含全屏复扫）全部落空时，按
+        # 文字找“跳过”。OCR 只认文字、与场景背景无关，是模板之外的通用
+        # 识别层；确认弹窗的文字同在该窗口内，可顺带兜底。走到这里说明
+        # 本帧没有任何可识别剧情控件，即便误匹配到对白文字，点击也等效
+        # 于推进对白，与随后的空白点击同效。
+        if self.ocr_appear_click(self.O_STORY_SKIP_DIALOG, interval=0.8):
+            self.device.click_record_clear()
+            logger.info('[新手剧情] OCR 识别点击对白区跳过')
             return True
 
         if self.click(self.C_STORY_BLANK, interval=1.2):

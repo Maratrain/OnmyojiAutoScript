@@ -95,6 +95,23 @@ class NewbieStoryAssets:
         file='./tasks/NewbieStory/res/story_battle_icon_purple.png',
     )
 
+    # 异想剧情段的战斗图标：圆盘只有 ~76px（既有模板 110px），且贴在顶部
+    # 公告带（y 45-140）上方，既有窗口（y>=80 或 x>=750）整体漏检，剧情被
+    # 空白点击卡死（实测连续 102 秒无进展）。按生产帧重裁圆盘模板，多尺度
+    # 兼容 68~114px 的各场景尺寸。生产链路实测：遮挡帧 0.7286、干净帧
+    # 1.0；公告文字横向滚过圆盘的 20 个模拟位置得分 0.61~1.0（均值 0.88，
+    # 仅最密字簇压盘时低于阈值，下一轮 1~2s 自愈）；77 帧误报回归上限
+    # 0.4715，阈值 0.7 对误报有 0.23 余量。
+    I_STORY_BATTLE_ICON_DISK = RuleImage(
+        roi_front=(717, 22, 76, 76),
+        roi_back=(0, 0, 1280, 260),
+        threshold=0.7,
+        method='Multi-scale template matching',
+        file='./tasks/NewbieStory/res/story_battle_icon_disk.png',
+    )
+    # 圆盘直径跨场景 68~114px，模板按 76px 采集，多尺度覆盖其余尺寸
+    I_STORY_BATTLE_ICON_DISK.scale_range = (0.9, 1.5, 0.05)
+
     # 战斗图标下半部分被中上方弹幕遮挡时，只匹配露在弹幕上方的部分。
     I_STORY_BATTLE_ICON_DANMAKU = RuleImage(
         roi_front=(960, 0, 115, 64),
@@ -137,6 +154,19 @@ class NewbieStoryAssets:
         threshold=0.74,
         method='Template matching',
         file='./tasks/NewbieStory/res/story_skip_dialog_pink.png',
+    )
+
+    # 对白框中“跳过”按钮的文字部分（紧贴文字裁剪、不含场景背景）。
+    # 整按钮模板会把采集时的场景背景一起烘焙进去，而按钮边框半透、
+    # 场景色温会透进来：换成紫色场景后 RGB 匹配只有 0.67，低于 0.76
+    # 阈值整段漏检（表现为只点三点气泡和空白、剧情一句句磨过去）。
+    # 文字部分跨场景完全一致（实测 0.98），与整按钮模板并联兜底。
+    I_STORY_SKIP_DIALOG_TEXT = RuleImage(
+        roi_front=(841, 558, 57, 27),
+        roi_back=(660, 460, 400, 220),
+        threshold=0.8,
+        method='Template matching',
+        file='./tasks/NewbieStory/res/story_skip_dialog_text.png',
     )
 
     # 弹幕剧情右上角的圆形“下一步/跳过”图标。只匹配内部的
@@ -183,6 +213,20 @@ class NewbieStoryAssets:
         method='Default',
         keyword='跳过',
         name='newbie_story_skip',
+    )
+
+    # 对白框整条区域的“跳过”OCR 兜底。模板匹配会把采集时的场景背景一起
+    # 烘焙进去（按钮边框半透、场景色温会透进来），换场景后得分掉到阈值
+    # 以下整段漏检；OCR 只认文字、与场景背景无关（实测 0.99+），作为模板
+    # 层之外的通用识别。Full 模式子串匹配，命中后点击文字框本身；若误匹配
+    # 到对白文字，点击等效于推进对白，无副作用。
+    O_STORY_SKIP_DIALOG = RuleOcr(
+        roi=(0, 460, 1280, 260),
+        area=(0, 460, 1280, 260),
+        mode='Full',
+        method='Default',
+        keyword='跳过',
+        name='newbie_story_skip_dialog',
     )
 
     # 缘初新手专用庭院的底部图标行（珍旅居/纳物库）。新手账号的庭院与
