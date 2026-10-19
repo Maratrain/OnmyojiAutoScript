@@ -695,6 +695,11 @@ class GameUi(BaseTask, GameUiAssets):
             # 关掉弹层后等待页面变化, 防止多次识别到同一弹层
             time.sleep(random.randrange(8, 16, 1) / 10)
             return True
+
+        # 客户端掉回登录态（掉线/被顶号）时页面上的标志全部不可信，点关闭动作
+        # 没有意义，交回 Restart 处理（登录流程会关掉弹窗）
+        if self.device.app_lost_login():
+            raise GameNotRunningError('客户端掉回登录态')
         for action in [*self.navigator.local_unknown_closers, *self.DEFAULT_UNKNOWN_CLOSERS]:
             action_name = self._action_name(action)
             # 若最后3次执行的都是该动作，则跳过该动作尝试其他动作

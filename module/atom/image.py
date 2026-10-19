@@ -13,6 +13,20 @@ from module.logger import logger
 from module.base.utils import is_approx_rectangle, random_roi_point_gaussian
 from module.base.utils.utils import random_normal_distribution_int
 
+# 模板匹配容差：把搜索区域（roi_back）四边各外扩该像素数，用于吸收非原生渲染
+# 环境相对模板截图环境的整体相位差（桌面客户端受 DPI 缩放重采样，约 1px）。
+# 仓库里约 1/3 的模板 roi_back 与模板等宽，此时 matchTemplate 结果只剩 1 列、
+# 横向一格都平移不了，1px 相位差就足以把「元素存在」判成「不存在」。
+# 桌面模式由 Device 置为 2，模拟器保持 0、行为逐位不变。
+ROI_MATCH_PAD = 0
+DESKTOP_ROI_MATCH_PAD = 2
+
+
+def set_roi_match_padding(pad: int) -> None:
+    """设置模板匹配的 roi_back 外扩容差（像素，四边同值）。0 表示不启用。"""
+    global ROI_MATCH_PAD
+    ROI_MATCH_PAD = max(0, int(pad))
+
 
 class RuleImage:
     debug_mode: bool = False
@@ -139,6 +153,85 @@ class RuleImage:
             self.load_kp_des()
         return self._des
 
+    @staticmethod
+    def _pad_roi(roi) -> tuple:
+        """
+        把 ROI 四边各外扩 ROI_MATCH_PAD 像素，返回 (x0, y0, w, h)。
+
+        左上侧必须夹到 0：numpy 对负索引按「倒数」语义取值，会把裁剪位置算错，
+        并连带把回算出的 roi_front 算偏；右/下侧越界由切片自然截断。
+        返回的 x0/y0 是外扩后的原点，命中回算必须以它做基准。
+        """
+        x, y, w, h = [int(v) for v in roi]
+        pad = ROI_MATCH_PAD
+        if pad <= 0:
+            return x, y, w, h
+        x0 = max(0, x - pad)
+        y0 = max(0, y - pad)
+        return x0, y0, x + w + pad - x0, y + h + pad - y0
+
+    @property
+    def mask(self):
+        """
+        掩码图，取模板同目录下 `xxx_mask.png`（`xxx.png` -> `xxx_mask.png`）。
+        语义为「非零参与匹配，零忽略」。文件缺失、读取失败或尺寸与模板不一致时
+        返回 None，由调用方回退到普通匹配，避免一张画错尺寸的掩码直接让规则报错。
+        :return:
+        """
+        if not self._mask_loaded:
+            self._mask_loaded = True
+            path = Path(self.file)
+            mask_path = path.with_name(f"{path.stem}_mask{path.suffix}")
+            try:
+                mask = cv2.imdecode(fromfile(str(mask_path), dtype=uint8), cv2.IMREAD_GRAYSCALE)
+            except OSError:
+                mask = None
+            if mask is None:
+                logger.debug(f"[图像-规则] {self.name} 模板掩码不可用，回退普通匹配: {mask_path}")
+            elif mask.shape[:2] != self.image.shape[:2]:
+                logger.error(
+                    f"[图像-规则] {self.name} 模板掩码尺寸不匹配 "
+                    f"{mask.shape[:2]} != {self.image.shape[:2]}，回退普通匹配"
+                )
+            else:
+                self._mask = mask
+        return self._mask
+
+    @staticmethod
+    def _template_is_degenerate(template: np.ndarray, mask: np.ndarray | None = None) -> bool:
+        """
+        判断模板在参与匹配的区域内是否逐通道恒为常量。
+
+        CCOEFF_NORMED 归一化时分母来自各通道的方差，参与区域内所有通道都完全没有起伏时，
+        分母才是 0，OpenCV 会走特判：无掩码时整张结果矩阵被填成 1.0（恒假阳性，且落点固定
+        在 roi_back 左上角），带掩码时整张变成 0/0 的 nan。两种都让这条规则失去意义，
+        这里提前拦掉，而不是把异常数值当成命中。
+        """
+        if template is None or template.size == 0:
+            return True
+        region = template if mask is None else template[mask > 0]
+        if region.size == 0:
+            return True
+        # 掩码取值后是 `(N, C)`、整体模板是 `(H, W, C)`、灰度图是 `(H, W)` 或 `(N,)`，
+        # 通道数只认模板本身，再统一摊平成 `(N, C)` 逐通道判断。
+        channels = 1 if template.ndim == 2 else template.shape[-1]
+        samples = region.reshape(-1, channels)
+        return all(float(samples[:, channel].std()) == 0.0 for channel in range(channels))
+
+    @staticmethod
+    def _sanitize_match_result(result: np.ndarray) -> np.ndarray:
+        """
+        压掉匹配结果矩阵里的非有限值。
+
+        源图窗口整块同色时 CCOEFF_NORMED 会算出 nan/inf：nan 会让
+        `max_val > threshold` 恒为假而静默漏检，inf 则会越过阈值并把命中位置指到随机
+        坐标（假阳性，点错位置）。这里统一替换为 -1.0，等价于「该位置判不匹配」。
+        """
+        if np.isfinite(result).all():
+            return result
+        logger.error("[图像-规则] 匹配结果含 nan/inf（源图整块同色），按不匹配处理")
+        return np.nan_to_num(result, nan=-1.0, posinf=-1.0, neginf=-1.0)
+
     def corp(self, image: np.array, roi: list = None) -> np.array:
         """
         截取图片
@@ -146,11 +239,7 @@ class RuleImage:
         :param roi
         :return:
         """
-        if roi is None:
-            x, y, w, h = self.roi_back
-        else:
-            x, y, w, h = roi
-        x, y, w, h = int(x), int(y), int(w), int(h)
+        x, y, w, h = self._pad_roi(self.roi_back if roi is None else roi)
         return image[y:y + h, x:x + w]
 
     def _template_image_invalid(self, mat: np.array) -> bool:
@@ -207,7 +296,9 @@ class RuleImage:
             logger.attr(self.name, f'匹配得分 {max_val:.5f}')
 
         if max_val > threshold:
-            self._update_roi_front(max_loc, (mat.shape[1], mat.shape[0]))
+            x0, y0, _, _ = self._pad_roi(self.roi_back)
+            self.roi_front[0] = max_loc[0] + x0
+            self.roi_front[1] = max_loc[1] + y0
             return True
         return False
 
@@ -261,8 +352,13 @@ class RuleImage:
                 best_shape = (scaled_w, scaled_h)
         if self.debug_mode:
             logger.attr(self.name, f'多尺度匹配得分 {best_val:.5f}')
+        self.last_score = float(best_val)
         if best_loc is not None and best_shape is not None and best_val > threshold:
-            self._update_roi_front(best_loc, best_shape)
+            x0, y0, _, _ = self._pad_roi(self.roi_back)
+            self.roi_front[0] = best_loc[0] + x0
+            self.roi_front[1] = best_loc[1] + y0
+            self.roi_front[2] = best_shape[0]
+            self.roi_front[3] = best_shape[1]
             return True
         return False
 
@@ -307,6 +403,8 @@ class RuleImage:
         :param roi:
         :param image:
         :param threshold:
+        :param nms_threshold:
+        :param frame_id:
         :return:
         """
         if roi is not None:
@@ -396,8 +494,9 @@ class RuleImage:
                 result = False
             else:
                 dst = int32(cv2.perspectiveTransform(pts, m))
-                self.roi_front[0] = dst[0, 0, 0] + self.roi_back[0]
-                self.roi_front[1] = dst[0, 0, 1] + self.roi_back[1]
+                x0, y0, _, _ = self._pad_roi(self.roi_back)
+                self.roi_front[0] = dst[0, 0, 0] + x0
+                self.roi_front[1] = dst[0, 0, 1] + y0
                 if show:
                     cv2.polylines(source, [dst], isClosed=True, color=(0, 0, 255), thickness=2)
                 if not is_approx_rectangle(np.array([pos[0] for pos in dst])):
