@@ -17,10 +17,11 @@ from tasks.Component.GeneralBattle.general_battle import ExitMatcher, GeneralBat
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.Component.GeneralBuff.config_buff import BuffClass
+from tasks.Component.ShareSecret.secret_share import SecretShare
 from tasks.WeeklyTrifles.assets import WeeklyTriflesAssets
 
 
-class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
+class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets, SecretShare):
     lay_list = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖', '拾']
 
     def _exit_matcher(self) -> ExitMatcher:
@@ -61,12 +62,14 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
 
         # 进入
         success = True
+        entered = True
         self.ui_click(self.I_SE_ENTER, self.I_SE_FIRE)
         time.sleep(1)  # 有一个很傻逼的动画
         self.screenshot()
         if not self.appear(self.I_SE_PLACEMENT):
             logger.warning('[秘闻副本] 进入失败，你可能已进入过秘闻副本')
             success = False
+            entered = False
 
         # 开始
         logger.info('[秘闻副本] 开始秘闻副本')
@@ -131,6 +134,14 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
                 self.click_battle()
                 success = self.run_general_battle(self.battle_config, battle_key="secret")
                 continue
+
+        # 收尾：此时通常还停在秘闻副本界面，分享按钮就在同一页面上，先就地分享再回庭院
+        if entered and con.secret_share:
+            self.screenshot()
+            if self.appear(self.I_SE_FIRE) or self.appear(self.I_WT_SE_RANK):
+                self.share_secret_inplace()
+            else:
+                self.share_secret()
 
         self.goto_page(page_main)
         if con.secret_gold_50 or con.secret_gold_100:

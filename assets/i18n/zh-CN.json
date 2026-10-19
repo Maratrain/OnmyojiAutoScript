@@ -483,6 +483,7 @@
   "quiz_per_round_help": "每轮答题数量，答题数超过该值后会故意答错以快速结束本轮；保持默认 150 表示全程正常作答",
   "secret_gold_50_help": "挑战 50 金币层的秘闻副本",
   "secret_gold_100_help": "挑战 100 金币层的秘闻副本",
+  "secret_share_help": "通关秘闻第十层后，自动前往秘闻界面完成每周分享",
   "layer_10_help": "挑战第 10 层",
   "find_true_orochi_help": "自动搜索真·八岐大蛇（真蛇）入口",
   "current_success_help": "本次已成功的挑战次数（脚本自动维护，无需手动修改）",

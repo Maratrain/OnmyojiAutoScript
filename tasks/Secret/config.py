@@ -18,6 +18,7 @@ class SecretConfig(BaseModel):
     secret_gold_100: bool = Field(title='Secret Gold 100', default=False, description='secret_gold_100_help')
     layer_10: bool = Field(title='Layer 10', default=False, description='layer_10_help')
     layer_9: bool = Field(title='Layer 9', default=False)
+    secret_share: bool = Field(title='Secret Share', default=True, description='secret_share_help')
 
 
 class Secret(ConfigBase):

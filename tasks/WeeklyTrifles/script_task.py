@@ -10,11 +10,11 @@ from module.base.timer import Timer
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_area_boss, page_secret_zones, page_summon, page_guild, random_click
-from tasks.WeeklyTrifles.assets import WeeklyTriflesAssets
+from tasks.Component.ShareSecret.secret_share import SecretShare
 from tasks.WeeklyTrifles.page import page_shikigami_share, page_touch_fish
 
 
-class ScriptTask(GameUi, WeeklyTriflesAssets):
+class ScriptTask(GameUi, SecretShare):
 
     def run(self):
         con = self.config.weekly_trifles.trifles
@@ -23,7 +23,7 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         if con.share_area_boss:
             self._share_area_boss()
         if con.share_secret:
-            self._share_secret()
+            self.share_secret()
         if con.save_touch_fish:
             self._save_touch_fish()
         if con.broken_amulet:
@@ -31,34 +31,6 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
 
         self.set_next_run(task='WeeklyTrifles', success=True, finish=True)
         raise TaskEnd('WeeklyTrifles')
-
-    def click_share(self, wechat) -> bool:
-        """
-        点击分享
-        :param wechat:
-        :return:
-        """
-        # 点击分享
-        # self.ui_click(wechat, self.I_WT_QR_CODE)
-        while 1:
-            self.screenshot()
-            if self.appear(self.I_WT_QR_CODE):
-                break
-            if self.appear_then_click(wechat, interval=2.5):
-                continue
-        logger.info('[每周琐事] 点击分享')
-        get_timer = Timer(7)
-        get_timer.start()
-        while 1:
-            self.screenshot()
-            if self.ui_reward_appear_click():
-                logger.info('[每周琐事] 获得奖励')
-                return True
-            if self.appear_then_click(self.I_WT_QR_CODE, self.C_WT_WECHAT, interval=4.8):
-                continue
-            if get_timer.reached():
-                logger.warning('[每周琐事] 分享等待超时，奖励可能已获得')
-                return False
 
     def _share_collect(self):
         """
@@ -121,46 +93,6 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
         if not obtained:
             # 点击分享
             self.click_share(self.I_WT_AB_WECHAT)
-        self.goto_page(page_main)
-
-    def _share_secret(self):
-        """
-        秘闻分享
-        :return:
-        """
-        logger.hr('秘闻分享')
-        self.goto_page(page_secret_zones)
-        # 一路进去
-        valid = False
-        while 1:
-            self.screenshot()
-            if self.appear(self.I_WT_SE_WECHAT):
-                self.wait_until_stable(self.I_WT_SE_WECHAT, skip_first_screenshot=True)
-                break
-            if self.appear_then_click(self.I_WT_ENTER_SE, interval=1):
-                continue
-            if self.appear_then_click(self.I_WT_SE_SHARE, interval=5):
-                valid = True
-                continue
-            if self.appear(self.I_WT_SE_RANK) and (not valid):
-                # 如果出现排名但是没有出现分享，那就是还没打，退出
-                self.wait_until_stable(self.I_WT_SE_SHARE, skip_first_screenshot=True)
-                if self.appear(self.I_WT_SE_SHARE):
-                    continue
-                logger.warning('[每周琐事] 本周尚未领取')
-                self.goto_page(page_main)
-                return
-        logger.info('[每周琐事] 进入秘闻')
-        # 判断是否已经领取
-        self.screenshot()
-        obtained = False
-        if not self.appear(self.I_WT_SE_JADE):
-            obtained = True
-            logger.warning('[每周琐事] 本周奖励已领取')
-        # 点击分享
-        if not obtained:
-            self.click_share(self.I_WT_SE_WECHAT)
-        # 返回
         self.goto_page(page_main)
 
     def _save_touch_fish(self):
