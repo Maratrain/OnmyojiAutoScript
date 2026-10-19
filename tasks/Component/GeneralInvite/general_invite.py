@@ -209,16 +209,16 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
             if timeout_timer.reached():
                 break
             if not self.is_in_room() and \
-                    not self.appear_then_click(GeneralInviteAssets.I_UI_CONFIRM, interval=0.8) and \
+                    not self.appear_then_click(GlobalGameAssets.I_UI_CONFIRM, interval=0.8) and \
                     not self.appear(self.I_BACK_YELLOW):
                 return True
-            if self.appear_then_click(GeneralInviteAssets.I_UI_CONFIRM, interval=0.5):
+            if self.appear_then_click(GlobalGameAssets.I_UI_CONFIRM, interval=0.5):
                 continue
-            if not self.appear(GeneralInviteAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW, interval=0.8):
-                self.wait_until_appear(GeneralInviteAssets.I_UI_CONFIRM, wait_time=0.8)
+            if not self.appear(GlobalGameAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW, interval=0.8):
+                self.wait_until_appear(GlobalGameAssets.I_UI_CONFIRM, wait_time=0.8)
                 continue
-            if not self.appear(GeneralInviteAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW_SEA, interval=0.8):
-                self.wait_until_appear(GeneralInviteAssets.I_UI_CONFIRM, wait_time=0.8)
+            if not self.appear(GlobalGameAssets.I_UI_CONFIRM) and self.appear_then_click(self.I_BACK_YELLOW_SEA, interval=0.8):
+                self.wait_until_appear(GlobalGameAssets.I_UI_CONFIRM, wait_time=0.8)
                 continue
         return False
 
