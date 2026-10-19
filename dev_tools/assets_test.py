@@ -48,7 +48,11 @@ def detect_image_detail(file: str, target: RuleImage) -> dict:
             "roiBack": _roi_to_text(target.roi_back),
             "message": "image_load_failed",
         }
+    return match_image_detail(img, target)
 
+
+def match_image_detail(img, target: RuleImage) -> dict:
+    """对已加载的截图计算单条图片规则的匹配详情, 供批量体检复用同一份截图。"""
     similarity = 0.0
     matched = False
     message = "not_match"
@@ -126,7 +130,11 @@ def detect_ocr_detail(file: str, target: RuleOcr) -> dict:
             "roiBack": _roi_to_text(target.area),
             "message": "image_load_failed",
         }
+    return match_ocr_detail(img, target)
 
+
+def match_ocr_detail(img, target: RuleOcr) -> dict:
+    """对已加载的截图计算单条 OCR 规则的识别详情, 供批量体检复用同一份截图。"""
     boxed = target.detect_and_ocr(img, logDisplay=False)
     selected = None
 
