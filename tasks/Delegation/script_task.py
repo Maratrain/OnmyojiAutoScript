@@ -44,34 +44,51 @@ class ScriptTask(GameUi, DelegationAssets):
         :return:
         """
         def ui_click(click, stop):
-            while 1:
-                self.screenshot()
-                if self.appear(stop):
-                    break
-                if self.click(click, interval=1.5):
-                    continue
+            # 选式神：目标没出现最多等 10 秒，页面已变时不再空转
+            if not self.ui_click_until_appear_or_timeout(click, stop, interval=1.5, timeout=10):
+                logger.warning('式神委派: 选择式神超时，跳过该位置')
         logger.hr('式神委派一', 2)
         self.O_D_NAME.keyword = name
         self.screenshot()
         if not self.ocr_appear(self.O_D_NAME):
             logger.warning(f'式神委派: 未找到 {name}')
             return False
+        enter_timer = Timer(15).start()
         while 1:
             self.screenshot()
             if self.appear(self.I_D_START):
                 break
+            if enter_timer.reached():
+                logger.warning(f'式神委派: {name} 进入超时')
+                return False
+            # 弹出的勾玉确认框优先取消，既保护勾玉也避免它挡住后续点击
+            if self.appear_then_click(self.I_UI_CANCEL, interval=1):
+                continue
             # 如果出现’召回‘ ’返回‘ 说明这个是现在委派中
             # 需要退出
             if self.appear(self.I_D_BACK):
                 logger.warning(f'式神委派: {name} 已在委派中')
-                self.ui_click_until_disappear(self.I_D_BACK)
-                self.wait_until_appear(self.I_REWARDS_MIN)
+                back_timer = Timer(6).start()
+                while 1:
+                    self.screenshot()
+                    if not self.appear(self.I_D_BACK):
+                        break
+                    if back_timer.reached():
+                        logger.warning('式神委派: 退出委派详情超时')
+                        break
+                    # 返回按钮被取消弹窗挡住时先关弹窗
+                    if self.appear_then_click(self.I_UI_CANCEL, interval=1):
+                        continue
+                    if self.appear_then_click(self.I_D_BACK, interval=1.2):
+                        continue
+                self.wait_until_appear(self.I_REWARDS_MIN, wait_time=3)
                 return False
             if self.appear_then_click(self.I_D_SKIP, interval=0.8):
                 continue
             if self.appear_then_click(self.I_D_CONFIRM, interval=0.8):
                 continue
-            if self.ocr_appear_click(self.O_D_NAME, interval=1):
+            # 点委派任务名：防抖 3 秒，避免跨页过渡时误触右上角"完成(30勾玉)"
+            if self.ocr_appear_click(self.O_D_NAME, interval=3):
                 continue
         # 进入委派  fefe e  fe
         logger.info(f'进入式神委派: {name}')
@@ -81,9 +98,13 @@ class ScriptTask(GameUi, DelegationAssets):
         ui_click(self.C_D_4, self.I_D_SELECT_4)
         # 委派开始
         logger.info(f'式神委派: {name} 开始')
+        start_timer = Timer(10).start()
         while 1:
             self.screenshot()
             if not self.appear(self.I_D_START):
+                break
+            if start_timer.reached():
+                logger.warning(f'式神委派: {name} 开始超时')
                 break
             if self.click(self.C_D_5, interval=0.8):
                 continue
@@ -118,6 +139,9 @@ class ScriptTask(GameUi, DelegationAssets):
 
 
             if not self.appear(self.I_REWARDS_MIN):
+                # 不在奖励页时也要能退出，否则计时到了也走不到下面的判断
+                if check_timer.reached():
+                    break
                 continue
             if check_timer.reached():
                 break
