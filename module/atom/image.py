@@ -7,11 +7,11 @@ import numpy as np
 from numpy import float32, int32, uint8, fromfile
 from pathlib import Path
 
+from module.atom.click import RuleClick
 from module.base.decorator import cached_property
 from module.image.rpc import get_image_client
 from module.logger import logger
-from module.base.utils import is_approx_rectangle, random_roi_point_gaussian
-from module.base.utils.utils import random_normal_distribution_int
+from module.base.utils import is_approx_rectangle
 
 # 模板匹配容差：把搜索区域（roi_back）四边各外扩该像素数，用于吸收非原生渲染
 # 环境相对模板截图环境的整体相位差（桌面客户端受 DPI 缩放重采样，约 1px）。
@@ -37,7 +37,15 @@ class RuleImage:
     DEFAULT_MULTI_SCALE_RANGE = (0.6, 1.2)
     DEFAULT_MULTI_SCALE_STEP = 0.1
 
-    def __init__(self, roi_front: tuple, roi_back: tuple, method: str, threshold: float, file: str) -> None:
+    def __init__(
+        self,
+        roi_front: tuple,
+        roi_back: tuple,
+        method: str,
+        threshold: float,
+        file: str,
+        profile: str = "High",
+    ) -> None:
         """
         初始化
         :param roi_front: 前置roi
@@ -56,6 +64,7 @@ class RuleImage:
         self.roi_back = roi_back
         self.threshold = threshold
         self.file = file
+        self.profile = profile
         self.scale_range: tuple[float, float] | tuple[float, float, float] | None = None
         self.scale_step: float = self.DEFAULT_MULTI_SCALE_STEP
 
@@ -271,6 +280,7 @@ class RuleImage:
             "roi_back": list(self.roi_back),
             "scale_range": scale_range,
             "scale_step": float(self.scale_step),
+            "grayscale": bool(getattr(self, 'grayscale', False)),
         }
 
     def _apply_match_result(self, result: dict) -> bool:
@@ -286,6 +296,10 @@ class RuleImage:
             threshold = self.threshold
         source = self.corp(image)
         mat = self.image
+
+        if getattr(self, 'grayscale', False):
+            source = cv2.cvtColor(source, cv2.COLOR_RGB2GRAY)
+            mat = cv2.cvtColor(mat, cv2.COLOR_RGB2GRAY)
 
         if self._template_image_invalid(mat):
             return True  # 如果模板图像无效，直接返回 True
@@ -422,17 +436,27 @@ class RuleImage:
 
     def coord(self) -> tuple:
         """
-        获取roi_front的随机的点击的坐标
+        通过 RuleClick 获取 roi_front 的点击坐标。
         :return:
         """
-        return random_roi_point_gaussian(self.roi_front)
+        return RuleClick(
+            roi_front=tuple(self.roi_front),
+            roi_back=tuple(self.roi_back),
+            name=self.name,
+            profile=self.profile,
+        ).coord()
 
     def coord_more(self) -> tuple:
         """
-         获取roi_back的随机的点击的坐标
+        通过 RuleClick 获取 roi_back 的点击坐标。
         :return:
         """
-        return random_roi_point_gaussian(self.roi_back)
+        return RuleClick(
+            roi_front=tuple(self.roi_front),
+            roi_back=tuple(self.roi_back),
+            name=self.name,
+            profile=self.profile,
+        ).coord_more()
 
     def front_center(self) -> tuple:
         """

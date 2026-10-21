@@ -1,25 +1,26 @@
 # This Python file uses the following encoding: utf-8
 
 import time
+from datetime import datetime, timedelta
 
 from module.exception import GameStuckError, TaskEnd
 from module.logger import logger
 from tasks.Chess.assets import ChessAssets
-from tasks.Chess.chess_battle import ChessBattleNavigationMixin
 from tasks.Chess.config import Chess
 from tasks.Chess.runtime.economy import ChessEconomyMixin
 from tasks.Chess.runtime.hand_operations import ChessHandOperationsMixin
+from tasks.Chess.runtime.hyakki_draft import ChessHyakkiDraftMixin
 from tasks.Chess.runtime.recognition import ChessRecognitionMixin
 from tasks.Chess.runtime.round_state import ChessRoundStateMixin
 from tasks.Chess.runtime.settings import ChessRuntimeSettings
+from tasks.Chess.runtime.state_loop import ChessStateLoopMixin
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.GameUi.game_ui import GameUi
-from tasks.Chess.page import page_chess
-from tasks.Chess.strategy.lineup import RANDOM_LINEUP_KEY, resolve_lineup_key
+from tasks.GameUi.page import page_chess
 
 
-class ScriptTask(
-    ChessBattleNavigationMixin,
+class ChessLegacyScriptTask(
+    ChessHyakkiDraftMixin,
     ChessRecognitionMixin,
     ChessHandOperationsMixin,
     ChessRoundStateMixin,
@@ -33,6 +34,27 @@ class ScriptTask(
 
     conf: Chess = None
 
+    def _burst(self) -> bool:
+        """棋局任务的所有截图均检查红叉，关闭遮挡操作的浮窗。"""
+        if super()._burst():
+            return True
+        if self.appear_then_click(self.I_CLOSE_RED, interval=0.8):
+            logger.info('[棋局] 关闭红叉浮窗')
+            return True
+        return False
+
+    def _wait_chess_action_state(self, condition) -> bool:
+        """限时确认动作结果；截图节奏交给设备层，不额外固定等待。"""
+        deadline = time.monotonic() + self.ACTION_ICON_WAIT_TIMEOUT
+        while time.monotonic() < deadline:
+            self.device.stuck_record_clear()
+            self.screenshot()
+            if condition():
+                return True
+        self.device.stuck_record_clear()
+        self.screenshot()
+        return bool(condition())
+
     def run(self):
         """按执行次数循环百鬼棋局，并可在鼬乐币刷满时提前结束。"""
         chess_task_config = getattr(self.config, 'chess', None)
@@ -43,14 +65,8 @@ class ScriptTask(
             self.DEFAULT_LINEUP_KEY,
         )
         strategy = self.select_lineup_strategy(selected_lineup)
-        lineup_display = (
-            '随机(每局轮换)'
-            if resolve_lineup_key(selected_lineup) == RANDOM_LINEUP_KEY
-            else f'{strategy["key"]} ({strategy["display_name"]})'
-        )
-        self._configured_lineup_key = resolve_lineup_key(selected_lineup)
 
-        # 启动恢复会主动退出遗留对局；正常循环只保留保段位退三局。
+        # 启动恢复会主动退出遗留对局；正常循环只保留保段位退两局。
         self._recover_interrupted_chess_game()
         self.goto_page(page_chess)
 
@@ -58,19 +74,37 @@ class ScriptTask(
         # self.config.chess.chess_config。旧配置未包含新字段时使用默认值，
         # 避免升级后任务在进入棋局大厅时直接崩溃。
         target_count = int(getattr(chess_config, 'run_count', 1))
+        configured_limit_time = getattr(chess_config, 'limit_time', None)
+        if configured_limit_time is None:
+            self.limit_time = timedelta(minutes=30)
+        else:
+            self.limit_time = timedelta(
+                hours=configured_limit_time.hour,
+                minutes=configured_limit_time.minute,
+                seconds=configured_limit_time.second,
+            )
         coin_full_exit = bool(
             getattr(chess_config, 'coin_full_exit', False)
         )
         rank_protection = bool(
             getattr(chess_config, 'rank_protection', False)
         )
+        self._matchmaking_timeout_seconds = max(
+            10,
+            int(getattr(chess_config, 'matchmaking_timeout_seconds', 60)),
+        )
+        self._consecutive_matchmaking_timeouts = 0
         completed = 0
+        coin_limit_reached = False
         rank_protection_exits_remaining = 0
+        next_game_already_started = False
         logger.info(
-            'Chess task constraints: '
-            f'lineup={lineup_display}, '
-            f'run_count={target_count}, coin_full_exit={coin_full_exit}, '
-            f'rank_protection={rank_protection}'
+            '[棋局] 任务约束: '
+            f'阵容={strategy["key"]} ({strategy["display_name"]}), '
+            f'运行局数={target_count}, 时限={self.limit_time}, '
+            f'币满退出={coin_full_exit}, '
+            f'保段位={rank_protection}, '
+            f'匹配超时={self._matchmaking_timeout_seconds}秒'
         )
 
         while (
@@ -78,17 +112,30 @@ class ScriptTask(
             or completed < target_count
             or rank_protection_exits_remaining > 0
         ):
-            self.screenshot()
-            if coin_full_exit and self._coin_is_full():
-                logger.info(
-                    'Stop Chess task before next game: coin reached 600/600'
-                )
-                break
+            # 排名页“再来一局”已经发起匹配时，本轮必须直接接管该局；
+            # 时间和满币条件已在点击按钮前检查，不能再次检查后把新局遗留。
+            game_already_started = next_game_already_started
+            next_game_already_started = False
+            if not game_already_started:
+                if datetime.now() - self.start_time >= self.limit_time:
+                    logger.info(
+                        '[棋局] 任务时间已到；'
+                        '在开始下一局前停止'
+                    )
+                    break
+                self.screenshot()
+                if coin_full_exit and self._coin_is_full():
+                    logger.info(
+                        '[棋局] 下一局前停止任务: '
+                        '鼬乐币已达 600/600'
+                    )
+                    coin_limit_reached = True
+                    break
 
             logger.debug(
-                'Chess game loop '
+                '[棋局] 对局循环'
                 f'{completed + 1}/'
-                f'{"infinite" if target_count == -1 else target_count}'
+                f'{"无限" if target_count == -1 else target_count}'
             )
             self._rank_protection_exit_requested = bool(
                 rank_protection and rank_protection_exits_remaining > 0
@@ -102,70 +149,103 @@ class ScriptTask(
             ):
                 rank_protection_exits_remaining -= 1
                 logger.info(
-                    'Chess rank-protection exit completed: '
-                    f'remaining={rank_protection_exits_remaining}/3, '
-                    f'completed_games={completed}'
+                    '[棋局] 保段位退出已完成: '
+                    f'剩余={rank_protection_exits_remaining}/'
+                    f'{self.RANK_PROTECTION_EXIT_COUNT}, '
+                    f'已完成局数={completed}'
                 )
+                if rank_protection_exits_remaining > 0:
+                    next_game_already_started = (
+                        self._restart_chess_game_from_result()
+                    )
+                else:
+                    self.return_to_chess_lobby()
                 continue
 
             completed += 1
             if rank_protection and game_rank is not None and game_rank <= 4:
-                rank_protection_exits_remaining = 3
+                rank_protection_exits_remaining = (
+                    self.RANK_PROTECTION_EXIT_COUNT
+                )
                 logger.info(
-                    'Chess rank protection activated: '
-                    f'last_rank=第{game_rank}名, schedule 3 active exits'
+                    '[棋局] 保段位已激活: '
+                    f'上局排名=第{game_rank}名，计划'
+                    f'{self.RANK_PROTECTION_EXIT_COUNT} 次主动退出'
                 )
             else:
                 rank_protection_exits_remaining = 0
                 if rank_protection:
                     logger.info(
-                        'Chess rank protection not activated: '
-                        f'last_rank='
+                        '[棋局] 保段位未激活: '
+                        f'上局排名='
                         f'{"未知" if game_rank is None else f"第{game_rank}名"}, '
-                        'requires 第1至第4名'
+                        '需要第1至第4名'
                     )
             logger.info(
-                f'Chess completed games: {completed}/'
-                f'{"infinite" if target_count == -1 else target_count}, '
-                f'rank_protection_exits_pending='
+                f'[棋局] 已完成局数: {completed}/'
+                f'{"无限" if target_count == -1 else target_count}, '
+                f'保段位待退出='
                 f'{rank_protection_exits_remaining}'
             )
 
-            # _run_round_loop 正常返回时已经回到棋局大厅，此处刷新后检查
-            # 本局获得的鼬乐币；勾选时次数和满币任一条件先满足即结束。
+            # “再来一局”只用于保段位的两次快速退出。正常对局即使还
+            # 有运行次数，也仍返回大厅，再由原大厅开局流程开始下一场。
+            if rank_protection_exits_remaining > 0:
+                if datetime.now() - self.start_time >= self.limit_time:
+                    logger.info(
+                        '[棋局] 任务时间已到；'
+                        '跳过保段位重开，返回大厅'
+                    )
+                    self.return_to_chess_lobby()
+                    break
+                next_game_already_started = (
+                    self._restart_chess_game_from_result()
+                )
+                continue
+
+            self.return_to_chess_lobby()
+
+            # 鼬乐币总数只在大厅可读；普通对局回到大厅后先核对，再
+            # 决定是否继续下一场。保段位两局一旦开始则连续执行完毕。
             if coin_full_exit:
                 self.screenshot()
                 if self._coin_is_full():
                     logger.info(
-                        'Stop Chess task after game: coin reached 600/600'
+                        '[棋局] 本局后停止任务: 鼬乐币已达 600/600'
                     )
+                    coin_limit_reached = True
                     break
 
         logger.info(
-            f'Chess task loop finished: completed={completed}, '
-            f'target={target_count}, coin_full_exit={coin_full_exit}, '
-            f'rank_protection={rank_protection}'
+            f'[棋局] 任务循环结束: 完成={completed}, '
+            f'目标={target_count}, 币满退出={coin_full_exit}, '
+            f'保段位={rank_protection}'
         )
-        self.set_next_run(task='Chess', success=True, finish=True)
+        if coin_limit_reached:
+            self.set_next_run_next_monday(
+                task='Chess', scheduler=self.config.chess.scheduler,
+            )
+        else:
+            self.set_next_run(task='Chess', success=True, finish=True)
         raise TaskEnd('Chess')
 
     def run_one_game(self) -> int | None:
-        """运行一局，并返回结算页 OCR 得到的实际名次。"""
+        """运行一局，停在结算流程并返回 OCR 得到的实际名次。"""
         self._start_chess_game()
         self._run_round_loop()
         rank = getattr(self, '_last_game_rank', None)
         if isinstance(rank, int) and 1 <= rank <= 8:
-            logger.info(f'Chess game ended: 第{rank}名')
+            logger.info(f'[棋局] 对局结束: 第{rank}名')
             return rank
         logger.warning(
-            f'Chess game ended: result-page rank OCR unavailable [{rank}]'
+            f'[棋局] 对局结束: 结算页排名 OCR 不可用 [{rank}]'
         )
         return None
 
     def run_one_round(self, round_no: int) -> int | None:
         """执行一个回目：回合开始 -> 备 -> 战/鬼/待 -> 等待新回合。"""
         self._current_round_no = int(round_no)
-        logger.debug(f'Chess round {round_no}')
+        logger.debug(f'[棋局] 第 {round_no} 回合')
         phase = 'await_preparation'
         preparation_done = False
         next_round_candidate = None
@@ -173,27 +253,29 @@ class ScriptTask(
         unknown_since = None
         battle_economy_done = False
         battle_hand_cleanup_done = False
+        hyakki_round_seen = False
+        hyakki_lineup_checked = False
 
         while True:
             self.device.stuck_record_clear()
             if self._refresh_round_state_screenshot():
-                time.sleep(self.ROUND_STATE_SCREENSHOT_INTERVAL)
+                time.sleep(self.SLOW_POLL_INTERVAL)
                 continue
-            if self._finish_chess_game_after_open_lineup_missing(
+            if self._finish_chess_game_after_markers_missing(
                 f'round_{round_no}'
             ):
                 return None
             if getattr(self, '_rank_protection_exit_requested', False):
                 logger.info(
-                    'Chess rank protection: actively exit this game; '
-                    'the game will not count toward completed runs'
+                    '[棋局] 保段位: 主动退出本局；'
+                    '本局不计入完成局数'
                 )
-                if self.exit_chess_battle():
+                if self.Chess_Exit(return_to_lobby=False):
                     self._rank_protection_exit_succeeded = True
                     return None
                 logger.warning(
-                    'Chess rank-protection exit was unavailable; '
-                    'retry on the next state refresh'
+                    '[棋局] 保段位退出不可用；'
+                    '下次状态刷新时重试'
                 )
             observed_round = self._read_round_number()
             mode = self._read_chess_mode()
@@ -207,10 +289,15 @@ class ScriptTask(
                     next_round_confirmed = 1
                 round_transition_pending = True
                 if next_round_confirmed >= self.ROUND_CONFIRM_FRAMES:
+                    if hyakki_round_seen and not hyakki_lineup_checked:
+                        self._reconcile_lineup_after_hyakki_round(
+                            next_round_no=observed_round,
+                        )
+                        hyakki_lineup_checked = True
                     logger.debug(
-                        f'Chess round boundary confirmed: {round_no} -> '
-                        f'{observed_round}, phase={phase}, '
-                        f'preparation_done={preparation_done}'
+                        f'[棋局] 回合边界已确认: {round_no} -> '
+                        f'{observed_round}, 阶段={phase}, '
+                        f'准备完成={preparation_done}'
                     )
                     return observed_round
             else:
@@ -219,7 +306,7 @@ class ScriptTask(
 
             # 回目数字第一次变化时暂停所有旧回目动作，等待第二帧确认。
             if round_transition_pending:
-                time.sleep(self.ROUND_STATE_SCREENSHOT_INTERVAL)
+                time.sleep(self.SLOW_POLL_INTERVAL)
                 continue
 
             in_game = mode is not None or self._is_in_chess_game()
@@ -229,10 +316,12 @@ class ScriptTask(
                 unknown_since = time.monotonic()
             elif time.monotonic() - unknown_since >= self.UNKNOWN_STATE_TIMEOUT:
                 raise GameStuckError(
-                    f'Chess: lost all markers during round {round_no}'
+                    f'[棋局] 第 {round_no} 回合丢失全部标记'
                 )
 
             if mode in ('战', '鬼', '待'):
+                if mode == '鬼':
+                    hyakki_round_seen = True
                 if mode == '战':
                     if not battle_hand_cleanup_done:
                         battle_hand_cleanup_done = (
@@ -254,8 +343,8 @@ class ScriptTask(
                     preparation_done = True
                     phase = 'await_battle_end'
                     logger.warning(
-                        f'Chess round {round_no}: resumed in passive mode '
-                        f'{mode}; treat preparation as already passed'
+                        f'[棋局] 第 {round_no} 回合: 被动模式恢复，'
+                        f'{mode}；准备阶段视为已通过'
                     )
 
             elif mode == '备':
@@ -263,7 +352,7 @@ class ScriptTask(
                 # phase/preparation_count；下一轮循环会把它当作新的同阶段备，
                 # 从上式神、上御魂的起点重新执行。
                 if self.appear(self.I_SELECT_GRIGRI):
-                    logger.debug('Chess preparation interrupted by grigri selection')
+                    logger.debug('[棋局] 准备阶段被御念选择打断')
                     self.select_grigri()
                     continue
 
@@ -273,20 +362,20 @@ class ScriptTask(
                     self.purchase_lineup_cards_once()
                     self._run_preparation_economy_until_time_limit()
                     if not self._is_preparation_mode():
-                        time.sleep(self.ROUND_STATE_SCREENSHOT_INTERVAL)
+                        time.sleep(self.SLOW_POLL_INTERVAL)
                         continue
                     if self._handle_preparation_stage(1):
                         preparation_done = True
                         phase = 'await_battle'
                         logger.debug(
-                            f'Chess round {round_no}: preparation '
-                            'complete; wait for 战/鬼/待'
+                            f'[棋局] 第 {round_no} 回合: 准备'
+                            '完成；等待 战/鬼/待'
                         )
 
             interval = (
-                self.HYAKKI_SCREENSHOT_INTERVAL
+                3 * self.SLOW_POLL_INTERVAL
                 if mode == '鬼'
-                else self.ROUND_STATE_SCREENSHOT_INTERVAL
+                else self.SLOW_POLL_INTERVAL
             )
             time.sleep(interval)
 
@@ -305,29 +394,13 @@ class ScriptTask(
             return False
         if not self._is_preparation_mode():
             return False
-        if getattr(self, '_board_position_reconcile_pending', set()):
-            if not self._ensure_shop_closed():
-                logger.warning(
-                    'Stop Chess preparation: shop could not be closed '
-                    'before merged-unit position reconciliation'
-                )
-                return False
-            self.screenshot()
-            if not self.reconcile_pending_lineup_positions():
-                logger.warning(
-                    'Pause Chess formation: merged-unit position '
-                    'reconciliation is still pending'
-                )
-                return False
-            if not self._is_preparation_mode():
-                return False
         # deploy_shikigami_from_hand 内部负责确认商店关闭、人数上限和
         # 每次拖动后的重新定位，准备阶段不重复实现这些约束。
         self.deploy_shikigami_from_hand()
         if self._is_shop_open() or not self._is_preparation_mode():
             logger.warning(
-                'Stop Chess preparation before soul phase: '
-                'shop is open or mode left preparation'
+                '[棋局] 式盘阶段前停止准备: '
+                '商店开着或模式已离开准备'
             )
             return False
         # 上式神与上御魂保持为两个独立操作，由准备阶段明确编排顺序。
@@ -337,7 +410,6 @@ class ScriptTask(
             if name in self.shikigami_deploy_positions
         }
         self.equip_souls_from_hand(verified_board_names)
-        self.retry_arakawa_goldfish_after_soul_equipment()
         return self._is_preparation_mode()
 
     def _run_preparation_economy_until_time_limit(self) -> None:
@@ -356,8 +428,8 @@ class ScriptTask(
             remaining = self._read_remaining_time()
             if remaining is not None and remaining < 15:
                 logger.info(
-                    'Stop Chess preparation upgrade/refresh loop: '
-                    f'remaining_time={remaining} < 15'
+                    '[棋局] 停止准备升级/刷新循环: '
+                    f'剩余时间={remaining} < 15'
                 )
                 return
             result = self._run_economy_atomic_batch(battle_mode=False)
@@ -382,8 +454,8 @@ class ScriptTask(
             remaining = self._read_remaining_time()
             if remaining is not None and remaining < 15:
                 logger.info(
-                    'Stop Chess battle upgrade/refresh loop: '
-                    f'remaining_time={remaining} < 15'
+                    '[棋局] 停止战斗升级/刷新循环: '
+                    f'剩余时间={remaining} < 15'
                 )
                 return
             result = self._run_economy_atomic_batch(battle_mode=True)
@@ -393,103 +465,73 @@ class ScriptTask(
 
     def _handle_preparation_stage(self, stage_index: int) -> bool:
         """执行一次完整备阶段；卖卡已移至独立的战阶段环节。"""
-        logger.debug(f'Chess preparation stage {stage_index}/2')
+        logger.debug(f'[棋局] 准备阶段 {stage_index}/2')
         return self._handle_preparation() and self._is_preparation_mode()
 
     def _handle_battle_sell_stage(self) -> bool:
         """战阶段独立卖卡：持续清理杂卡和纹章，直到确认手牌干净。"""
         if self._read_chess_mode() != '战':
             return False
-        logger.debug('Chess battle hand-card cleanup')
+        logger.debug('[棋局] 战斗手牌清理')
         sold = self.cleanup_non_lineup_hand_cards(allowed_modes=('战',))
-        logger.debug(f'Chess battle hand-card cleanup complete: sold={sold}')
+        logger.debug(f'[棋局] 战斗手牌清理完成: 售出={sold}')
         return self._read_chess_mode() == '战'
 
     def _handle_passive_stage(self, mode: str) -> bool:
-        """战、鬼、待阶段只等待，不主动改变商店状态。"""
+        """战和待阶段等待；鬼阶段执行试行投掷。"""
+        if mode == '鬼':
+            self._handle_hyakki_draft()
         return mode in ('战', '鬼', '待')
 
-    def _handle_battle_economy(self) -> str:
-        """卖卡完成后，在战阶段续跑一个尚未完成的经济原子动作。"""
-        if self._read_chess_mode() != '战':
-            return 'blocked'
-        if not getattr(self, '_economy_pending', False):
-            return 'complete'
-        logger.debug(
-            'Chess battle economy continuation: '
-            f'state={self._economy_step_state}'
-        )
-        return self._run_economy_atomic_batch(battle_mode=True)
 
-    def _handle_round_end(self) -> bool:
-        """在下一次可用的备阶段补做系统卡回收、上阵和御魂。"""
-        if not getattr(self, '_formation_pending', False):
-            return True
-        if not self._is_preparation_mode():
-            return False
-
-        logger.debug('Chess pending system-card recall')
-        if not self._ensure_shop_closed():
-            return False
-        if not self.recall_all_board_cards():
-            return False
-        time.sleep(self.BOARD_REDEPLOY_SETTLE_WAIT)
-        self.screenshot()
-        if not self._is_preparation_mode():
-            return False
-        # 回收之后先恢复阵容，再允许经济操作。
-        logger.debug('Chess immediate redeploy after pending recall')
-        if not self._handle_preparation():
-            return False
-
-        self._formation_pending = False
-        logger.debug('Chess pending formation recovery completed')
-        return True
 
     def _refresh_round_state_screenshot(self) -> bool:
         """刷新回目状态截图；选符咒出现时必须优先处理完毕。"""
         self.screenshot()
+        if self.select_chess_sixrealms_if_visible():
+            self.screenshot()
+            return True
         if not self.appear(self.I_SELECT_GRIGRI):
             return False
         logger.info(
-            'Chess round-state refresh interrupted by grigri selection; '
-            'resolve grigri before reading round and mode'
+            '[棋局] 回合状态刷新被御念选择打断；'
+            '先处理御念再读回合与模式'
         )
         self.select_grigri()
         self.screenshot()
         return True
 
-    def _finish_chess_game_after_open_lineup_missing(
+    def _finish_chess_game_after_markers_missing(
         self,
         context: str,
     ) -> bool:
-        """阵容入口连续三帧消失后，等待结算页并读取实际名次。"""
-        if self.appear(self.I_OPEN_LINEUP):
+        """两个局内标志连续三帧消失后，等待结算页并读取实际名次。"""
+        if self._is_in_chess_game():
             return False
 
         for frame in range(2, self.GAME_END_CONFIRM_FRAMES + 1):
-            time.sleep(self.GAME_END_CONFIRM_INTERVAL)
+            time.sleep(2 * self.SLOW_POLL_INTERVAL)
             self.device.stuck_record_clear()
             self.screenshot()
-            if self.appear(self.I_OPEN_LINEUP):
+            if self._is_in_chess_game():
                 logger.debug(
-                    'Chess game-end confirmation cancelled: '
-                    f'I_OPEN_LINEUP recovered at frame={frame}, '
-                    f'context={context}'
+                    '[棋局] 对局结束确认已取消: '
+                    f'局内标记在第 {frame} 帧恢复，'
+                    f'上下文={context}'
                 )
                 return False
 
         logger.info(
-            'Chess game end detected: I_OPEN_LINEUP absent for '
-            f'{self.GAME_END_CONFIRM_FRAMES} frames, context={context}'
+            '[棋局] 检测到对局结束: 局内标记全部消失持续'
+            f'{self.GAME_END_CONFIRM_FRAMES} 帧，上下文={context}'
         )
         deadline = time.monotonic() + self.GAME_OVER_WAIT_TIMEOUT
         while time.monotonic() < deadline:
             self.device.stuck_record_clear()
-            if self.appear(self.I_OPEN_LINEUP):
+            if self._is_in_chess_game():
                 logger.info(
-                    'Chess game-end wait cancelled: I_OPEN_LINEUP recovered; '
-                    f'reset missing-frame count, context={context}'
+                    '[棋局] 对局结束等待已取消: 局内标记恢复；'
+                    f'重置缺失帧计数，上下文={context}'
                 )
                 return False
             if self.appear(self.I_GAME_OVER_1) or self.appear(self.I_GAME_OVER_2):
@@ -497,20 +539,127 @@ class ScriptTask(
                 self._last_game_rank = rank
                 if rank is None:
                     logger.warning(
-                        f'Chess game-over rank OCR invalid: [{raw}]'
+                        f'[棋局] 结算排名 OCR 无效: [{raw}]'
                     )
                 else:
                     logger.info(
-                        f'Chess game-over rank OCR: [{raw}] -> 第{rank}名'
+                        f'[棋局] 结算排名 OCR: [{raw}] -> 第{rank}名'
                     )
-                self.return_to_chess_lobby()
                 return True
-            time.sleep(self.GAME_END_CONFIRM_INTERVAL)
+            time.sleep(2 * self.SLOW_POLL_INTERVAL)
             self.screenshot()
 
         raise GameStuckError(
-            'Chess: I_OPEN_LINEUP disappeared, but I_GAME_OVER did not '
-            f'appear within {self.GAME_OVER_WAIT_TIMEOUT:.0f}s'
+            '[棋局] 局内标记全部消失，但 '
+            f'{self.GAME_OVER_WAIT_TIMEOUT:.0f} 秒内未出现 I_GAME_OVER'
+        )
+
+    def _restart_chess_game_from_result(self) -> bool:
+        """推进到排名页并点击“再来一局”；回到大厅时返回 False。"""
+        logger.debug('[棋局] 结算流程: 从排名页重开')
+        self._chess_share_advancing = False
+        deadline = time.monotonic() + self.CHESS_EXIT_TIMEOUT
+        exit_clicked = False
+        share_seen = False
+        safe_clicks = 0
+        next_safe_click_at = 0.0
+        fallback_exit_at = time.monotonic() + 1.5
+
+        while time.monotonic() < deadline:
+            self.device.stuck_record_clear()
+            self.screenshot()
+
+            if self._advance_chess_result_stage():
+                exit_clicked = True
+                share_seen = True
+                time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                continue
+
+            if self.appear(self.I_RESTART_AGAIN):
+                for attempt in range(
+                    1,
+                    self.ACTION_ICON_MAX_ATTEMPTS + 1,
+                ):
+                    self.device.click_record_remove(self.I_RESTART_AGAIN)
+                    self.click(self.I_RESTART_AGAIN)
+                    if self._wait_chess_action_state(
+                        lambda: not self.appear(self.I_RESTART_AGAIN)
+                    ):
+                        logger.info(
+                            '[棋局] 已从排名页点击再次开始: '
+                            f'尝试={attempt}/'
+                            f'{self.ACTION_ICON_MAX_ATTEMPTS}'
+                        )
+                        return True
+                    logger.warning(
+                        '[棋局] 点击后再次开始仍可见: '
+                        f'尝试={attempt}/'
+                        f'{self.ACTION_ICON_MAX_ATTEMPTS}'
+                    )
+                raise GameStuckError(
+                    '[棋局] 从排名页开始下一局 3 次尝试后失败'
+                )
+
+            if self.appear(self.I_CHECK_CHESS):
+                logger.warning(
+                    '[棋局] 结算流程在再次开始前已到达大厅；'
+                    '改为从大厅开始下一局'
+                )
+                return False
+
+            # 已到排名页但按钮仍在动画中时只等待，不执行安全区点击，
+            # 避免误触左侧“返回大厅”。
+            if self.appear(self.I_CHECK_CHESS_RANK):
+                time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                continue
+
+            if not exit_clicked:
+                if self.appear(self.I_CHESS_EXIT_TO_LOBBY):
+                    self.appear_then_click(
+                        self.I_CHESS_EXIT_TO_LOBBY,
+                        interval=1.5,
+                    )
+                    exit_clicked = True
+                    time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                    continue
+                if self.appear(self.I_CHESS_EXIT_TO_LOBBY_2):
+                    self.appear_then_click(
+                        self.I_CHESS_EXIT_TO_LOBBY_2,
+                        interval=1.5,
+                    )
+                    exit_clicked = True
+                    time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                    continue
+                if self.appear(ChessAssets.I_SHARE):
+                    exit_clicked = True
+                    share_seen = True
+                    continue
+                if time.monotonic() >= fallback_exit_at:
+                    logger.warning(
+                        '[棋局] 结算流程在之前未见到返回图标，'
+                        '重开；点击固定返回区'
+                    )
+                    self.click(self.I_CHESS_EXIT_TO_LOBBY)
+                    exit_clicked = True
+                    time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                    continue
+                time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                continue
+
+            if not share_seen and self.appear(ChessAssets.I_SHARE):
+                share_seen = True
+
+            now = time.monotonic()
+            if share_seen and now >= next_safe_click_at:
+                from tasks.GameUi.default_pages import random_click
+                self.click(random_click(), interval=1.5)
+                safe_clicks += 1
+                next_safe_click_at = now + 1.5
+            time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+
+        raise GameStuckError(
+            '[棋局] '
+            f'{self.CHESS_EXIT_TIMEOUT:.0f} 秒内未出现再来一局, 安全点击={safe_clicks}'
         )
 
     def _wait_for_round_start(self) -> int | None:
@@ -522,9 +671,9 @@ class ScriptTask(
             if self._refresh_round_state_screenshot():
                 candidate = None
                 confirmed = 0
-                time.sleep(self.ROUND_STATE_SCREENSHOT_INTERVAL)
+                time.sleep(self.SLOW_POLL_INTERVAL)
                 continue
-            if self._finish_chess_game_after_open_lineup_missing(
+            if self._finish_chess_game_after_markers_missing(
                 'wait_for_round_start'
             ):
                 return None
@@ -541,71 +690,280 @@ class ScriptTask(
             else:
                 candidate = None
                 confirmed = 0
-            time.sleep(self.ROUND_STATE_SCREENSHOT_INTERVAL)
+            time.sleep(self.SLOW_POLL_INTERVAL)
 
     def _is_in_chess_game(self) -> bool:
-        """只以阵容入口图片确认当前处于百鬼棋局对局内。"""
-        return self.appear(self.I_OPEN_LINEUP)
+        """以阵容入口、问号或特殊回合标志确认当前处于对局内。"""
+        return (
+            self.appear(self.I_OPEN_LINEUP)
+            or self.appear(self.I_QUESTION_CHECK)
+            or self._special_chess_mode() is not None
+            or self._stage_marker_visible(self.I_STAGE_ORCHI)
+            or self._stage_marker_visible(self.I_STAGE_DEMON)
+        )
+
+    def _close_chess_lobby_abnormal_page(self) -> bool:
+        """关闭棋局大厅开战时偶发出现的红色返回键异常页面。"""
+        if not self.appear(self.I_BACK_RED):
+            return False
+        logger.warning(
+            '[棋局] 启动被异常大厅页阻塞；'
+            '用红叉关闭它'
+        )
+        for attempt in range(1, self.ACTION_ICON_MAX_ATTEMPTS + 1):
+            self.device.click_record_remove(self.I_BACK_RED)
+            self.click(self.I_BACK_RED)
+            if self._wait_chess_action_state(
+                lambda: not self.appear(self.I_BACK_RED)
+            ):
+                logger.info(
+                    '[棋局] 异常大厅页已关闭；'
+                    f'尝试={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}'
+                )
+                return True
+            logger.warning(
+                '[棋局] 点击后异常大厅页仍可见: '
+                f'尝试={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}, '
+                f'超时={self.ACTION_ICON_WAIT_TIMEOUT:.0f}秒'
+            )
+        raise GameStuckError(
+            '[棋局] 关闭异常大厅页面 3 次尝试后失败'
+        )
 
     def _wait_until_in_chess_game(
         self,
         timeout: float,
         retry_start: bool = False,
     ) -> None:
-        """点击开始后等待匹配；匹配状态存在时不计入卡死和超时。"""
+        """点击开始后依次等待匹配、加载和局内标志。"""
         deadline = time.monotonic() + timeout
         waiting_logged = False
-        while time.monotonic() < deadline:
+        waiting_started_at = None
+        waiting_seen = False
+        matched_loading_started_at = None
+        matched_loading_logged = False
+        matchmaking_timeout = float(
+            getattr(self, '_matchmaking_timeout_seconds', 60)
+        )
+        while True:
             # 匹配可能持续很久。截图本身会先检查设备卡死计时，因此必须
             # 在每次截图之前清除，不能等识别到“取消等待”后才清除。
             self.device.stuck_record_clear()
             self.screenshot()
 
-            # 只以阵容入口确认真正进入棋局，商店按钮不再作为开局成功
-            # 标志，避免大厅或匹配动画中的相似区域造成误判。
-            if self.appear(self.I_OPEN_LINEUP):
-                logger.info('Chess matchmaking complete: entered battle')
+            if self.select_chess_sixrealms_if_visible():
+                deadline = time.monotonic() + timeout
+                continue
+
+            # 以阵容入口或问号图标确认真正进入棋局；商店按钮不再作为
+            # 开局成功标志，避免大厅或匹配动画中的相似区域造成误判。
+            if self._is_in_chess_game():
+                logger.info('[棋局] 匹配完成: 已进入战斗')
+                self._consecutive_matchmaking_timeouts = 0
                 return
 
+            # 极慢加载可能越过原有进入超时，并直接落到名次结算页。
+            # 先完整返回大厅，再由本方法重新点击开始，避免下一次任务导航
+            # 将该页当作未知页面。
+            if self.chess_result_page_visible():
+                logger.warning(
+                    '[棋局] 匹配加载在到达结算页前结束，'
+                    '局内标记出现；恢复到大厅并重试'
+                )
+                self.return_to_chess_lobby()
+                deadline = time.monotonic() + timeout
+                waiting_logged = False
+                waiting_started_at = None
+                waiting_seen = False
+                matched_loading_started_at = None
+                matched_loading_logged = False
+                continue
+
             if self.appear(self.I_CANCEL_WAITING):
+                now = time.monotonic()
+                waiting_seen = True
+                matched_loading_started_at = None
+                matched_loading_logged = False
+                if waiting_started_at is None:
+                    waiting_started_at = now
                 if not waiting_logged:
-                    logger.info('Chess matchmaking: waiting for other players')
+                    logger.info(
+                        '[棋局] 匹配中: 等待其他玩家；'
+                        f'上限={matchmaking_timeout:.0f}秒'
+                    )
                     waiting_logged = True
-                # 只要“取消等待”仍存在，就说明程序没有卡死。刷新进入
-                # 对局的截止时间，使长时间匹配不会触发重启或等待超时。
+                self.device.stuck_record_clear()
+                if now - waiting_started_at >= matchmaking_timeout:
+                    # 超时点必须使用新截图复核；标志自然消失说明已经匹配，
+                    # 此时中断取消流程，转入加载等待。
+                    self.device.stuck_record_clear()
+                    self.screenshot()
+                    if not self.appear(self.I_CANCEL_WAITING):
+                        logger.info(
+                            '[棋局] 超时退出时匹配完成'
+                            '正在验证中；中止取消'
+                        )
+                        waiting_started_at = None
+                        waiting_logged = False
+                        matched_loading_started_at = time.monotonic()
+                        matched_loading_logged = False
+                        time.sleep(self.SLOW_POLL_INTERVAL)
+                        continue
+                    if not self.appear_then_click(
+                        self.I_CANCEL_WAITING,
+                        interval=0,
+                    ):
+                        self.device.stuck_record_clear()
+                        self.screenshot()
+                        if self._is_in_chess_game():
+                            logger.info(
+                                '[棋局] 退出匹配时进入战斗'
+                                '失败；中止取消'
+                            )
+                            self._consecutive_matchmaking_timeouts = 0
+                            return
+                        if (
+                            not self.appear(self.I_CANCEL_WAITING)
+                            and not self.appear(self.I_CHESS_START)
+                        ):
+                            logger.info(
+                                '[棋局] 退出时匹配完成'
+                                '点击失败；等待战斗加载'
+                            )
+                            waiting_started_at = None
+                            waiting_logged = False
+                            matched_loading_started_at = time.monotonic()
+                            matched_loading_logged = False
+                            time.sleep(self.SLOW_POLL_INTERVAL)
+                            continue
+                        if self.appear(self.I_CANCEL_WAITING):
+                            time.sleep(self.SLOW_POLL_INTERVAL)
+                            continue
+                        logger.info(
+                            '[棋局] 点击前退出匹配已完成；'
+                            '从大厅重试'
+                        )
+
+                    # 点击取消后再次确认实际结果。仍显示取消按钮表示退出失败；
+                    # 未回大厅则是匹配成功与退出动作发生竞态。
+                    time.sleep(self.ACTION_SETTLE_INTERVAL)
+                    self.device.stuck_record_clear()
+                    self.screenshot()
+                    if self._is_in_chess_game():
+                        logger.info(
+                            '[棋局] 退出匹配过程中进入战斗；'
+                            '中止取消'
+                        )
+                        self._consecutive_matchmaking_timeouts = 0
+                        return
+                    if self.appear(self.I_CANCEL_WAITING):
+                        logger.warning(
+                            '[棋局] 退出匹配未完成；重试'
+                        )
+                        continue
+                    if not self.appear(self.I_CHESS_START):
+                        logger.info(
+                            '[棋局] 匹配标记消失但未'
+                            '返回大厅；按已匹配处理并等待'
+                            '战斗加载'
+                        )
+                        waiting_started_at = None
+                        waiting_logged = False
+                        matched_loading_started_at = time.monotonic()
+                        matched_loading_logged = False
+                        time.sleep(self.SLOW_POLL_INTERVAL)
+                        continue
+                    self._consecutive_matchmaking_timeouts += 1
+                    logger.warning(
+                        '[棋局] 匹配超时: '
+                        f'{self._consecutive_matchmaking_timeouts}/3, '
+                        f'上限={matchmaking_timeout:.0f}秒'
+                    )
+                    if self._consecutive_matchmaking_timeouts >= 3:
+                        logger.warning('[棋局] 匹配: 等待过多，结束任务')
+                        self.set_next_run(
+                            task='Chess',
+                            success=False,
+                            finish=True,
+                        )
+                        raise TaskEnd('Chess')
+                    waiting_started_at = None
+                    waiting_logged = False
+                    waiting_seen = False
+                    deadline = now + timeout
+                    time.sleep(self.ACTION_SETTLE_INTERVAL)
+                    continue
+                time.sleep(self.SLOW_POLL_INTERVAL)
+                continue
+
+            waiting_started_at = None
+            waiting_logged = False
+
+            if (
+                retry_start
+                and self.appear(self.I_BACK_RED)
+                and self._close_chess_lobby_abnormal_page()
+            ):
                 self.device.stuck_record_clear()
                 deadline = time.monotonic() + timeout
-                time.sleep(self.MATCHMAKING_SCREENSHOT_INTERVAL)
+                waiting_seen = False
+                matched_loading_started_at = None
+                matched_loading_logged = False
                 continue
 
             if retry_start and self.appear(self.I_CHESS_START):
-                if self.appear_then_click(self.I_CHESS_START, interval=2.0):
+                waiting_seen = False
+                matched_loading_started_at = None
+                matched_loading_logged = False
+                if self.appear_then_click(
+                    self.I_CHESS_START,
+                    interval=2 * self.SLOW_POLL_INTERVAL,
+                ):
                     self.device.stuck_record_clear()
                     deadline = time.monotonic() + timeout
-            time.sleep(self.MATCHMAKING_SCREENSHOT_INTERVAL)
-        raise GameStuckError('Chess: timeout waiting for in-game markers')
+
+            # 只有确实见过取消匹配按钮、且它未经脚本取消便自然消失，
+            # 才进入“已匹配加载”状态。此时不再使用 GAME_ENTER_TIMEOUT，
+            # 防止加载中 100% 尚未切入棋局就被当作报错。
+            if waiting_seen:
+                now = time.monotonic()
+                if matched_loading_started_at is None:
+                    matched_loading_started_at = now
+                    # 已自然离开等待队列，说明本轮匹配成功；此前的排队
+                    # 超时不再属于连续超时。
+                    self._consecutive_matchmaking_timeouts = 0
+                if not matched_loading_logged:
+                    logger.info(
+                        '[棋局] 匹配完成: 等待进入战斗'
+                        '加载；'
+                        f'上限={self.MATCHED_LOADING_TIMEOUT:.0f}秒'
+                    )
+                    matched_loading_logged = True
+                if (
+                    now - matched_loading_started_at
+                    >= self.MATCHED_LOADING_TIMEOUT
+                ):
+                    raise GameStuckError(
+                        '[棋局] 匹配成功，但 '
+                        f'{self.MATCHED_LOADING_TIMEOUT:.0f} 秒内未进入战斗或结算页'
+                    )
+                time.sleep(self.SLOW_POLL_INTERVAL)
+                continue
+
+            if time.monotonic() >= deadline:
+                raise GameStuckError(
+                    '[棋局] 等待局内标记超时'
+                )
+            time.sleep(self.SLOW_POLL_INTERVAL)
 
     def _start_chess_game(self) -> None:
         """从棋局大厅开战，确认进入局内后直接开始回合流程。"""
-        logger.debug('Chess game start')
-        # 配置为“随机”时每局抽取一套阵容，连续打也能轮换体系。
-        configured_lineup = (
-            getattr(self, '_configured_lineup_key', None)
-            or self.DEFAULT_LINEUP_KEY
-        )
-        if resolve_lineup_key(configured_lineup) == RANDOM_LINEUP_KEY:
-            strategy = self.select_lineup_strategy(RANDOM_LINEUP_KEY)
-            logger.info(
-                'Chess random lineup picked for this game: '
-                f'{strategy["key"]} ({strategy["display_name"]})'
-            )
+        logger.debug('[棋局] 对局开始')
         # 式神本局属性：(守护之印, 御魂1, 御魂2)。
         # 守护之印不占普通御魂槽，三个属性均允许为空。
         self._board_shikigami_attributes = {}
         self._board_lineup_names = set()
         self._board_actual_positions = {}
-        self._board_position_reconcile_pending = set()
-        self._board_transferred_names = set()
         self._player_deployed_positions = set()
         self._arakawa_goldfish_current_position = None
         self._board_special_units = {}
@@ -613,15 +971,15 @@ class ScriptTask(
         self._reset_economy_state()
         strategy = self.get_lineup_strategy()
         logger.debug(
-            'Reset Chess per-game state: '
-            f'lineup={strategy["key"]} ({strategy["display_name"]})'
+            '[棋局] 重置每局状态: '
+            f'阵容={strategy["key"]} ({strategy["display_name"]})'
         )
         self._wait_until_in_chess_game(
             timeout=self.GAME_ENTER_TIMEOUT,
             retry_start=True,
         )
         logger.debug(
-            'Chess entered game; skip lineup preset and start round loop'
+            '[棋局] 已进入对局；跳过阵容预设，开始回合循环'
         )
 
     def _recover_interrupted_chess_game(self) -> bool:
@@ -634,23 +992,25 @@ class ScriptTask(
 
         # 上次可能已经进入结算、分享或排名阶段，直接继续既有返回流程。
         if self.chess_result_flow_visible():
-            logger.debug('Chess startup recovery: unfinished result flow detected')
+            logger.debug('[棋局] 启动恢复: 检测到未完成的结算流程')
             self.return_to_chess_lobby()
             return True
 
-        # 启动恢复属于全局页面判断，只允许使用 c_open_lineup.png。
+        # 启动恢复属于全局页面判断，只允许使用 c_open_lineup.png 或
+        # c_question_check.png。
         # chess_mode OCR 仅供已确认在局内后的回目状态机使用，不能拿来
         # 判断全局页面，否则庭院等页面中的任意非空误识别都会触发退出。
-        if not self._is_in_chess_game():
+        selected_sixrealms = self.select_chess_sixrealms_if_visible()
+        if not selected_sixrealms and not self._is_in_chess_game():
             return False
 
         logger.warning(
-            'Chess startup recovery: interrupted in-game state detected '
-            'by I_OPEN_LINEUP'
+            '[棋局] 启动恢复: 检测到中断的局内状态，'
+            '经 I_OPEN_LINEUP 或 I_QUESTION_CHECK'
         )
-        if not self.exit_chess_battle():
+        if not self.Chess_Exit():
             raise GameStuckError(
-                'Chess: interrupted game detected but active exit was unavailable'
+                '[棋局] 检测到中断的对局，但无法主动退出'
             )
         return True
 
@@ -659,3 +1019,7 @@ class ScriptTask(
         round_no = self._wait_for_round_start()
         while round_no is not None:
             round_no = self.run_one_round(round_no)
+
+
+class ScriptTask(ChessStateLoopMixin, ChessLegacyScriptTask):
+    """正式 Chess 入口：状态驱动回合循环复用原有执行动作。"""

@@ -5,6 +5,7 @@ from module.base.timer import Timer
 from module.exception import RequestHumanTakeover, GameTooManyClickError, GameStuckError
 from module.logger import logger
 from tasks.GameUi.assets import GameUiAssets
+from tasks.GameUi.chess_battle import ChessBattleNavigationMixin
 from tasks.Restart.assets import RestartAssets
 from tasks.base_task import BaseTask
 
@@ -12,7 +13,12 @@ from tasks.base_task import BaseTask
 DESKTOP_MPAY_CLOSE_LIMIT = 5
 
 
-class LoginService(BaseTask, RestartAssets, GameUiAssets):
+class LoginService(
+    ChessBattleNavigationMixin,
+    BaseTask,
+    RestartAssets,
+    GameUiAssets,
+):
     character: str
 
     def __init__(self, *wargs, **kwargs):
@@ -69,6 +75,18 @@ class LoginService(BaseTask, RestartAssets, GameUiAssets):
             # 截图与窗口枚举有竞态，截图后再查一次，避免刚出现的 MPay 进入图像识别
             if handle_desktop_login_popup():
                 continue
+            # 取消“返回中断的棋局战斗”，改走棋局结算流程
+            if self.appear_then_click(self.I_RETURN_CHESS_CANCEL, interval=0.8):
+                logger.info('[登录] 取消返回中断的棋局战斗，等待结算流程')
+                continue
+            # 恢复登录时若直接落在棋局大厅或残留结算页，在此清理后即算恢复完成
+            if self.appear(self.I_CHECK_CHESS):
+                logger.info('[登录] 恢复登录到达棋局大厅，无需返回庭院')
+                return True
+            if self.chess_result_flow_visible():
+                logger.info('[登录] 恢复登录检测到未完成的棋局结算流程')
+                self.return_to_chess_lobby()
+                return True
             if self.appear_then_click(self.I_UI_CANCEL_SAMLL, interval=0.8):
                 logger.info('[登录] 取消继续战斗')
                 continue

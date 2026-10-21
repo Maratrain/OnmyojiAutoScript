@@ -1,1 +1,1 @@
-"""Reusable runtime components for the Chess task."""
+"""Chess 任务的可复用运行时组件。"""

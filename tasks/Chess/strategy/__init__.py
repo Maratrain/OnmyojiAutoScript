@@ -1,1 +1,1 @@
-"""Lineup registry, strategies, and shikigami catalog for Chess."""
+"""Chess 的阵容注册、策略与式神目录。"""
