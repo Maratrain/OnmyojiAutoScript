@@ -63,22 +63,58 @@
     "description": "description"
   },
   {
-    "itemName": "open_yellow",
+    "itemName": "buff_open_yellow",
     "imageName": "gb_open_yellow.png",
     "roiFront": "774,299,13,18",
     "roiBack": "766,133,35,366",
     "method": "Template matching",
     "threshold": 0.6,
-    "description": "description"
+    "description": "觉醒或御魂加成开关开启态"
   },
   {
-    "itemName": "close_red",
+    "itemName": "gold_open_yellow",
+    "imageName": "gb_gold_open_yellow.png",
+    "roiFront": "774,299,13,18",
+    "roiBack": "766,133,35,366",
+    "method": "Template matching",
+    "threshold": 0.6,
+    "description": "金币加成开关开启态"
+  },
+  {
+    "itemName": "experience_open_yellow",
+    "imageName": "gb_experience_open_yellow.png",
+    "roiFront": "774,299,13,18",
+    "roiBack": "766,133,35,366",
+    "method": "Template matching",
+    "threshold": 0.6,
+    "description": "经验加成开关开启态"
+  },
+  {
+    "itemName": "buff_close_red",
     "imageName": "gb_close_red.png",
     "roiFront": "773,365,12,20",
     "roiBack": "764,134,38,369",
     "method": "Template matching",
     "threshold": 0.6,
-    "description": "description"
+    "description": "觉醒或御魂加成开关关闭态"
+  },
+  {
+    "itemName": "gold_close_red",
+    "imageName": "gb_gold_close_red.png",
+    "roiFront": "773,365,12,20",
+    "roiBack": "764,134,38,369",
+    "method": "Template matching",
+    "threshold": 0.6,
+    "description": "金币加成开关关闭态"
+  },
+  {
+    "itemName": "experience_close_red",
+    "imageName": "gb_experience_close_red.png",
+    "roiFront": "773,365,12,20",
+    "roiBack": "764,134,38,369",
+    "method": "Template matching",
+    "threshold": 0.6,
+    "description": "经验加成开关关闭态"
   },
   {
     "itemName": "cloud",
