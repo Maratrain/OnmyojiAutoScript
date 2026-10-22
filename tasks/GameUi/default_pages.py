@@ -47,7 +47,9 @@ def random_click(
         单个 `RuleClick`，或一个由多个 `RuleClick` 组成的列表。
     """
     # 生成点击前加入以 0.35 秒为中心的正态分布随机延迟，避免固定节奏连点
-    time.sleep(random.gauss(0.35, 0.1))
+    # 正态分布理论上会采到负值（P≈0.023%），负值会让 time.sleep 抛 ValueError
+    # 直接杀死任务进程（游戏停留在战斗界面无人操作），故截断到 0
+    time.sleep(max(0.0, random.gauss(0.35, 0.1)))
 
     click_area_list = [GeneralBattleAssets.C_RANDOM_LEFT, GeneralBattleAssets.C_RANDOM_TOP,
                        GeneralBattleAssets.C_RANDOM_RIGHT, GeneralBattleAssets.C_RANDOM_BOTTOM]
