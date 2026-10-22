@@ -16,6 +16,10 @@ import tasks.GuildBanquet.page as pages
 
 class ScriptTask(GameUi, GuildBanquetAssets):
 
+    def _banquet_flag_visible(self):
+        """寮界面是否存在宴会集结标志，兼容第二种旗帜"""
+        return self.appear(self.I_BANQUET_FLAG) or self.appear(self.I_BANQUET_FLAG_2)
+
     def run(self):
         if not self.check_date(datetime.now()):
             logger.warning("[寮宴会] 寮宴会当前未开放")
@@ -25,7 +29,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
         # 开席前在寮界面轮询等入口(最长 20 分钟): 宴会窗口仅约 15 分钟,
         # 提前到场等待, 避免和狭间等长任务抢调度而错过
         open_deadline = datetime.now() + timedelta(minutes=20)
-        while not self.appear(self.I_BANQUET_FLAG):
+        while not self._banquet_flag_visible():
             if datetime.now() > open_deadline:
                 logger.warning('[寮宴会] 等待开席超时, 退出')
                 self.set_next_run(task='GuildBanquet', server=False, target=self.get_next_dt(datetime.now()))
@@ -45,7 +49,7 @@ class ScriptTask(GameUi, GuildBanquetAssets):
             if datetime.now() - start_banquet_time > timedelta(seconds=max_wait_seconds):
                 logger.info('[寮宴会] 寮宴会等待超时，退出')
                 break
-            if not self.appear(self.I_BANQUET_FLAG):
+            if not self._banquet_flag_visible():
                 logger.info("[寮宴会] 寮宴会结束，退出")
                 break
             logger.attr(f'{(datetime.now()-start_banquet_time).seconds}s',"宴会进行中，等待...")

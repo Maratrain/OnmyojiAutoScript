@@ -9,6 +9,15 @@
     "description": "寮宴会集结标志"
   },
   {
+    "itemName": "banquet_flag_2",
+    "imageName": "res_banquet_flag_2.png",
+    "roiFront": "972,12,33,60",
+    "roiBack": "967,7,43,70",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "寮宴会集结标志2"
+  },
+  {
     "itemName": "banquet_exp_full",
     "imageName": "res_banquet_exp_full.png",
     "roiFront": "28,408,18,16",
