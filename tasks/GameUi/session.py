@@ -20,6 +20,7 @@ class NavigatorSession:
         pages: 当前任务 session 中可见的页面快照。
         unknown_close_history: 未知页关闭尝试历史，用于超时诊断。
         last_enter_success_page_key: 上一次触发进入成功 hook 的页面 key。
+        last_leave_failure_transition: 最近一次离开失败的导航边，供页面级 hook 判断失败入口。
     """
 
     task_category: str
@@ -29,6 +30,7 @@ class NavigatorSession:
     pages: dict[str, Page] = field(default_factory=dict)
     unknown_close_history: list[str] = field(default_factory=list)
     last_enter_success_page_key: str | None = None
+    last_leave_failure_transition: Transition | None = None
 
     def bootstrap(self, pages: list[Page]) -> None:
         """使用静态页面定义初始化当前 session。

@@ -7,7 +7,7 @@ from tasks.Chess.assets import ChessAssets
 from tasks.Component.GeneralInvite.assets import GeneralInviteAssets
 from tasks.Component.SwitchAccount.assets import SwitchAccountAssets
 from tasks.Exploration.assets import ExplorationAssets
-from tasks.GameUi.action import conditional_action, sequence
+from tasks.GameUi.action import ActionSequence, ConditionalAction, conditional_action, sequence
 from tasks.GameUi.chess_battle import handle_chess_battle_page
 from tasks.Pets.assets import PetsAssets
 from typing import Union
@@ -18,6 +18,7 @@ import random
 import time
 
 from module.atom.click import RuleClick
+from module.atom.image import RuleImage
 from module.logger import logger
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.Component.Login.service import LoginService
@@ -82,14 +83,51 @@ def handle_login_page(task) -> bool:
     return LoginService(config=task.config, device=task.device).app_handle_login()
 
 
+def _iter_action_rule_images(action):
+    """递归收集动作对象中参与点击的 RuleImage, 用于判定入口的屏幕位置。"""
+
+    if isinstance(action, RuleImage):
+        yield action
+    elif isinstance(action, ConditionalAction):
+        yield from _iter_action_rule_images(action.action)
+    elif isinstance(action, ActionSequence):
+        for item in action.actions:
+            yield from _iter_action_rule_images(item)
+    elif isinstance(action, (list, tuple)):
+        for item in action:
+            yield from _iter_action_rule_images(item)
+
+
+# 庭院右栏竖排入口的固定搜索带: 活动列表展开钮(1162,110)与各活动入口(如 LBS 1167,131)都在此带内;
+# 庭院场景入口(町中搜索带右缘 1151)与底部功能栏(y>=590)均不落入, 以此区分"固定 UI"与"随镜头移动的场景入口"
+RIGHT_COLUMN_REGION = (1160, 0, 120, 575)
+
+
+def _action_targets_right_column(action) -> bool:
+    """判断跳转动作的入口是否位于庭院右侧竖栏(固定 UI, 不随镜头平移)。"""
+
+    for rule in _iter_action_rule_images(action):
+        x, y, w, h = rule.roi_back
+        rx, ry, rw, rh = RIGHT_COLUMN_REGION
+        if x >= rx and x + w <= rx + rw and y >= ry and y + h <= ry + rh:
+            return True
+    return False
+
+
 def reset_courtyard_by_guild(task) -> bool:
     """庭院镜头偏移恢复: 经阴阳寮进出把庭院重置回默认视角。
 
     庭院背景可左右拖动, 探索楼/町中/召唤屋等场景入口会移出识别搜索带导致跳转失败;
     阴阳寮入口固定在底部功能栏不受镜头影响, 进出阴阳寮返回庭院后镜头会复位。
     仅在仍位于庭院且界面可正常识别时执行。
+    右侧竖栏的活动/小活动入口是固定 UI, 不随镜头移动, 没刷出来时重置镜头无意义
+    (正确恢复是点右栏下方按钮切到下一栏), 直接跳过。
     """
     if not task.appear(GameUiAssets.I_CHECK_MAIN):
+        return False
+    transition = getattr(task.navigator, "last_leave_failure_transition", None)
+    if transition is not None and _action_targets_right_column(transition.action):
+        logger.info('[界面] 跳转入口位于庭院右栏(不随镜头移动)，跳过镜头重置')
         return False
     logger.info('[界面] 庭院跳转失败，尝试经阴阳寮进出重置镜头')
     if not task.appear_then_click(GameUiAssets.I_MAIN_GOTO_GUILD):
@@ -120,7 +158,8 @@ page_main.add_enter_success_hooks(
     GameUiAssets.I_AD_CLOSE_RED, GlobalGameAssets.I_UI_BACK_RED, GlobalGameAssets.I_UI_CANCEL_SAMLL,
     conditional_action(RestartAssets.I_LOGIN_COURTYARD, RestartAssets.C_LOGIN_SCROLL_CLOSE_AREA),
 )
-# 庭院跳转失败(如镜头被拖动偏移致场景入口移出识别带)时, 经阴阳寮进出重置镜头后由导航重试
+# 庭院跳转失败(如镜头被拖动偏移致场景入口移出识别带)时, 经阴阳寮进出重置镜头后由导航重试;
+# 右栏固定入口(活动列表/各活动)失败时该 hook 自动跳过重置(见 reset_courtyard_by_guild)
 page_main.add_leave_failure_hooks(reset_courtyard_by_guild)
 
 # 庭院区域页面。

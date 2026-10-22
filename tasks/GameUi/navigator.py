@@ -519,6 +519,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
                 break
 
         if not action_done:
+            self.navigator.last_leave_failure_transition = transition
             self._run_hooks(source.on_leave_failure)
             self._run_hooks(transition.on_leave_failure)
             self._run_hooks(destination.on_enter_failure)
@@ -540,6 +541,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             logger.info(f"[界面] 已到达页面 {destination}")
             return True
 
+        self.navigator.last_leave_failure_transition = transition
         self._run_hooks(source.on_leave_failure)
         self._run_hooks(transition.on_leave_failure)
         self._run_hooks(destination.on_enter_failure)
