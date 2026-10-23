@@ -18,6 +18,9 @@
   红字「进行中」=未完成。
 - 位置会变的目标（曜日牌/横幅/领奖按钮）用 match_all_any 匹配后点击命中位置，
   不能用 appear_then_click（它点击的是 roi_front 坐标）。
+- 收尾以「回到庭院」为唯一成功判据循环清理残留弹层：领奖可能弹出 I_UI_REWARD
+  识别不到的变体奖励窗盖住全部判据，单次 appear 判断会误判「已关闭」而留下脏
+  界面带崩下一个任务（2026-10-23 实机案例）。
 - 本流程全程自捕获异常，失败只记日志，不影响任务本身成败；未领完的条目会在
   下次任务运行时重试（游戏内领取状态由服务端保留）。
 """
@@ -37,6 +40,10 @@ PAN_MAX = 3
 SCROLL_MAX = 3
 # 领奖点击硬上限，防异常界面死循环
 CLAIM_CLICK_MAX = 20
+# 收尾清理回到庭院的超时
+CLOSE_YARD_SECONDS = 30
+# 收尾中点未知弹层右上角关闭键的次数上限（防止对同一按钮连点触发保护）
+CLOSE_UNKNOWN_MAX = 3
 
 
 class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
@@ -72,14 +79,13 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
             logger.info(f'游戏内领取完成，共点击领奖 {claimed} 次')
         finally:
             try:
-                self._game_close_welfare_popup()
+                self._game_close_after_claim(pan_count)
             except Exception as e:
-                logger.warning(f'关闭福利中心弹窗失败: {e}')
-            try:
-                self._game_close_schedule_panel()
-            except Exception as e:
-                logger.warning(f'关闭日程面板失败: {e}')
-            self._game_restore_camera(pan_count)
+                logger.warning(f'收尾清理异常: {e}')
+                try:
+                    self._game_restore_camera(pan_count)
+                except Exception:
+                    pass
 
     # ------------------------------------------------------------------ 步骤
 
@@ -160,7 +166,8 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
                 continue
             matches = self.I_GAME_CLAIM_BTN.match_all_any(self.device.image)
             if not matches:
-                if self._game_scroll_popup():
+                # 弹窗被未知弹层盖住时标题不可见，滑动无意义，直接交给收尾清理
+                if self.appear(self.I_GAME_WELFARE_TITLE) and self._game_scroll_popup():
                     continue
                 break
             matches.sort(key=lambda m: m[2])
@@ -193,31 +200,49 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
             return False
         return True
 
-    def _game_close_welfare_popup(self):
-        """关闭福利中心弹窗。"""
-        for _ in range(3):
-            self.screenshot()
-            if not self.appear(self.I_GAME_WELFARE_TITLE):
-                return True
-            if self.appear_then_click(self.I_GAME_POPUP_CLOSE):
-                time.sleep(1.5)
-            else:
-                time.sleep(1)
-        logger.warning('福利中心弹窗关闭失败')
-        return False
+    def _game_close_after_claim(self, pan_count):
+        """收尾清理：循环关闭残留弹层，以回到庭院为唯一成功判据。
 
-    def _game_close_schedule_panel(self):
-        """关闭日程面板。"""
-        for _ in range(3):
+        2026-10-23 08:03 实机案例：第三个领奖点击后弹出一个 I_UI_REWARD
+        识别不到的变体奖励窗，盖住了福利中心弹窗与日程面板。旧收尾各自只做
+        一次 appear 判断，标题/庭院元素被盖住即误判「已关闭」，未发任何点击
+        就结束任务，脏界面导致下一个任务导航失败触发整进程重启。
+        现逐层关闭：未知弹层右上角关闭键 → 福利中心红色关闭钮 → 日程面板
+        紫色关闭钮 → 标准获得奖励展示窗，每轮重新截图确认，超时未回到庭院
+        则告警，不再静默放行。"""
+        logger.info('开始收尾清理，目标回到庭院')
+        # 镜头先还原：平移过的镜头会让庭院判定失效，必须先回到默认视角再验证
+        self._game_restore_camera(pan_count)
+        deadline = Timer(CLOSE_YARD_SECONDS).start()
+        unknown_clicks = 0
+        while not deadline.reached():
             self.screenshot()
-            if not (self.appear(self.I_GAME_RICHENG_TAG) or self.appear(self.I_GAME_NOTICE_LANTERN)):
-                return True
+            if self.appear(self.I_CHECK_MAIN, threshold=0.9):
+                logger.info('收尾完成，已回到庭院')
+                return
+            # 福利中心弹窗：标题可见时优先点它自己的红色关闭钮
+            # （其下层日程面板的紫色 X 会被弹窗压暗误匹配，必须先关弹窗）
+            if self.appear(self.I_GAME_WELFARE_TITLE):
+                self.appear_then_click(self.I_GAME_POPUP_CLOSE)
+                time.sleep(1.5)
+                continue
+            # 日程面板（紫色 X 关闭按钮）
             if self.appear_then_click(self.I_GAME_PANEL_CLOSE):
                 time.sleep(1.5)
-            else:
+                continue
+            # 标准获得奖励展示窗
+            if self.ui_reward_appear_click():
                 time.sleep(1)
-        logger.warning('日程面板关闭失败')
-        return False
+                continue
+            # 变体奖励窗等带右上角关闭键的未知弹层，限量点击防连点保护
+            if unknown_clicks < CLOSE_UNKNOWN_MAX and self.appear(self.I_UI_BACK_RED):
+                self.appear_then_click(self.I_UI_BACK_RED)
+                unknown_clicks += 1
+                time.sleep(1.5)
+                continue
+            time.sleep(1)
+        logger.warning(f'收尾清理超时（{CLOSE_YARD_SECONDS}s）未回到庭院，'
+                       f'界面可能残留弹窗，下一个任务可能导航失败触发重启恢复')
 
     def _game_restore_camera(self, pan_count):
         """把镜头平移回默认位置（向右等量补偿）。"""
