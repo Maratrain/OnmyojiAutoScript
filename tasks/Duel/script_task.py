@@ -7,7 +7,7 @@ import random
 from datetime import time, datetime, timedelta
 
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GameStuckError, GamePageUnknownError
 from module.base.timer import Timer
 
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
@@ -113,13 +113,28 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
     def enter_battle(self):
         """点击开始战斗(一直到出现战斗准备界面)"""
         logger.hr('斗技匹配中')
+        start_time = datetime.now()
+        armed = False
         while not self.is_in_battle_prepare():
             self.screenshot()
+            # 匹配秒进、战斗秒结算时页面会直接停在胜利页：本循环不认识这些页面，
+            # 继续空转只会拖到卡住检测，交还 battle_prepare/wait_battle 处理
+            # （wait_battle 会点屏幕继续并结算胜负）
+            if self.is_battle_end() or self.is_in_real_battle(is_screenshot=False):
+                break
+            if datetime.now() - start_time > timedelta(seconds=300):
+                logger.error('斗技匹配超过 5 分钟，自动退出')
+                raise GameStuckError('斗技匹配超时（>300 s）')
             # 战斗按钮
-            self.ui_click_until_disappear(self.I_D_BATTLE, interval=1.2)
-            self.ui_click_until_disappear(self.I_D_BATTLE2, interval=1.2)
+            clicked_battle = self.ui_click_until_disappear(self.I_D_BATTLE, interval=1.2)
+            clicked_battle2 = self.ui_click_until_disappear(self.I_D_BATTLE2, interval=1.2)
             # 战斗带保护的按钮
-            self.ui_click_until_disappear(self.I_D_BATTLE_PROTECT, interval=1.2)
+            clicked_protect = self.ui_click_until_disappear(self.I_D_BATTLE_PROTECT, interval=1.2)
+            if (clicked_battle or clicked_battle2 or clicked_protect) and not armed:
+                # 点过战斗按钮后进入匹配动画，期间可能长时间无点击，
+                # 挂上准备页的 300 秒长窗口，避免 60 秒默认窗口误报卡死
+                self.reset_device('PREPARE_BEFORE_BATTLE')
+                armed = True
 
     def battle_prepare(self):
         """选式神准备斗技阶段"""
@@ -206,7 +221,20 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
         return ret
 
     def duel_exit_battle(self):
+        """退出战斗(选式神界面或战斗内)，有界循环 + 兜底返回斗技主界面"""
+        start_time = datetime.now()
         while 1:
+            if datetime.now() - start_time > timedelta(seconds=60):
+                # 兜底：长时间退不出战斗（如息屏后截图全黑、退出按钮始终不出现），
+                # 零点击空转会拖到卡住检测重启游戏；导航回斗技主界面，
+                # goto_page 的点击动作同时起到唤醒屏幕的作用
+                logger.warning('[斗技] 退出战斗超时（>60 s），尝试返回斗技主界面')
+                try:
+                    self.goto_page(page_duel)
+                except GamePageUnknownError:
+                    logger.error('[斗技] 无法返回斗技主界面')
+                    raise GameStuckError('退出战斗超时且无法返回斗技主界面')
+                return
             self.screenshot()
             if self.appear(self.I_D_FAIL) or self.appear(self.I_FALSE):
                 return
