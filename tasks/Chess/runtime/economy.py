@@ -445,8 +445,11 @@ class ChessEconomyMixin:
                 interval=0.3,
                 timeout=min(2.0, max(0.0, deadline-time.monotonic())),
                 confirm_frames=2,
+                max_clicks=3,
             )
             if clicked_and_gone:
+                # 已确认购买完成，旧卡的点击不应计入此格下一张卡。
+                self.device.click_record_remove(click_rule)
                 return True
             if not self._is_purchase_allowed() or self.appear(self.I_SELECT_GRIGRI):
                 return False
@@ -800,6 +803,10 @@ class ChessEconomyMixin:
                 f'{[round(differences[index], 2) for index in range(5, 0, -1)]}'
             )
             if len(changed) >= self.SHOP_REFRESH_CHANGED_SLOT_MINIMUM:
+                # 换卡成功后，旧卡片残留的点击记录不应影响新卡片的购买判定
+                for slot_index, click_rule in self._shop_slots():
+                    if slot_index in changed:
+                        self.device.click_record_remove(click_rule)
                 return 'success'
             before = after
         logger.warning(
