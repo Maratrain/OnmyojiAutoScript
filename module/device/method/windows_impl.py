@@ -23,7 +23,7 @@ from win32con import SRCCOPY
 
 
 from module.base.cBezier import human_track
-from module.exception import RequestHumanTakeover, ScriptError
+from module.exception import RequestHumanTakeover, ScriptError, GameNotRunningError
 from module.base.decorator import Config
 from module.base.timer import timer
 from module.logger import logger
@@ -44,6 +44,26 @@ class Window(Handle):
         logger.info("[设备-句柄] 初始化窗口句柄")
         super().__init__(*args, **kwargs)
 
+    def _get_window_dc_with_retry(self):
+        """获取窗口 DC。
+
+        模拟器窗口被关闭/重建后，初始化时缓存的 HWND 失效，GetWindowDC 抛
+        error 1400（无效的窗口句柄）。该原始异常穿过任务层会被 script.py
+        当作未识别异常直接 exit(1)，整个 OAS 进程退出。这里先按配置重新解析
+        窗口句柄重试一次，仍失败转 GameNotRunningError 走调度器的重启恢复。
+        """
+        try:
+            return GetWindowDC(self.screenshot_handle_num)
+        except Exception as e:
+            logger.warning(f'[设备-截图] 获取窗口 DC 失败: {e}')
+            if not self.refresh_handle():
+                raise GameNotRunningError(f'模拟器窗口句柄失效且无法重新解析: {e}')
+            logger.warning('[设备-截图] 已重新解析窗口句柄，重试截屏')
+            try:
+                return GetWindowDC(self.screenshot_handle_num)
+            except Exception as e2:
+                raise GameNotRunningError(f'模拟器窗口句柄重解析后仍无法获取 DC: {e2}')
+
     def screenshot_window_background(self):
         """
         后台截屏
@@ -53,7 +73,7 @@ class Window(Handle):
             return self.screenshot_desktop_bitblt()
         widthScreen, heightScreen = self.screenshot_size
         # 返回句柄窗口的设备环境，覆盖整个窗口，包括非客户区，标题栏，菜单，边框
-        hwndDc = GetWindowDC(self.screenshot_handle_num)
+        hwndDc = self._get_window_dc_with_retry()
         # 创建设备描述表
         mfcDc = CreateDCFromHandle(hwndDc)
         # 创建内存设备描述表

@@ -18,6 +18,7 @@ from win32con import (SRCCOPY, DESKTOPHORZRES, DESKTOPVERTRES, WM_LBUTTONUP,
                       WM_NCHITTEST, WM_SETCURSOR, HTCLIENT, WM_MOUSEMOVE)
 from module.config.config import Config
 from module.config.utils import desktop_mode_enabled
+from module.base.decorator import del_cached_property
 from module.device.method.desktop_impl import DesktopWindow
 from module.exception import EmulatorNotRunningError
 from module.logger import logger
@@ -192,7 +193,11 @@ class Handle(DesktopWindow):
             logger.info('[设备-句柄] 句柄为空，不使用句柄模式')
             return
 
-        # 获取根的句柄
+        self._resolve_root_handle()
+        self._build_handle_tree()
+
+    def _resolve_root_handle(self):
+        """按配置（auto/句柄号/窗口标题）解析根窗口句柄，初始化与运行期刷新共用"""
         self.root_handle_title = ''
         self.root_handle_num = 0
         self.root_handle = self.config.script.device.handle
@@ -220,7 +225,8 @@ class Handle(DesktopWindow):
                     self.root_handle_title = self.root_handle
         logger.info(f'[设备-句柄] 根句柄标题: {self.root_handle_title}，句柄号: {self.root_handle_num}')
 
-        # 获取句柄树
+    def _build_handle_tree(self):
+        """重建句柄树并推导截图句柄/大小，初始化与运行期刷新共用"""
         self.root_node = WindowNode(name=self.root_handle_title, num=self.root_handle_num)
         Handle.handle_tree(self.root_handle_num, self.root_node)
         logger.info('[设备-句柄] 模拟器句柄结构:')
@@ -237,6 +243,33 @@ class Handle(DesktopWindow):
         _ = self.screenshot_handle_num
         logger.info(f'[设备-句柄] 截图句柄号: {self.screenshot_handle_num}')
         logger.info(f'[设备-句柄] 模拟器截图大小: {self.screenshot_size}')
+
+    def refresh_handle(self) -> bool:
+        """运行期重新解析窗口句柄。
+
+        模拟器窗口被销毁重建（HWND 变化）后，初始化时缓存的句柄全部失效，
+        截图/控制会抛 error 1400（无效的窗口句柄）。在此按配置重新解析根句柄、
+        重建句柄树，并清空所有由句柄推导出的缓存（截图句柄、截图大小、
+        控制句柄列表、标题栏高度）。
+
+        Returns:
+            bool: 是否解析到有效的新句柄
+        """
+        logger.warning('[设备-句柄] 窗口句柄已失效，尝试重新解析')
+        for name in ('emulator_family', 'screenshot_handle_num', 'screenshot_size',
+                     'control_handle_list', 'mumu_head_height'):
+            del_cached_property(self, name)
+        try:
+            self._resolve_root_handle()
+            if not self.root_handle_num or not is_handle_valid(self.root_handle_num):
+                logger.error('[设备-句柄] 重新解析失败: 未找到模拟器窗口')
+                return False
+            self._build_handle_tree()
+        except Exception as e:
+            logger.error(f'[设备-句柄] 重新解析异常: {e}')
+            return False
+        logger.info('[设备-句柄] 已重新解析并重建句柄')
+        return True
 
     @staticmethod
     def _mumu_instance_id_from_serial(serial: str) -> int | None:
