@@ -18,7 +18,8 @@ from tasks.Orochi.assets import OrochiAssets
 from tasks.Orochi.config import Orochi, UserStatus, Layer
 from tasks.TrueOrochi.assets import TrueOrochiAssets
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GameStuckError
+from module.base.timer import Timer
 from tasks.Orochi.page import page_orochi
 
 
@@ -284,6 +285,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             # 检查猫咪奖励
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_RANDOM_RIGHT, interval=1):
                 continue
+            # 战斗处理器可能在结算动画/公告过场中提前返回, 这里恢复滞留的结算页
+            if self.appear(self.I_REWARD) or self.appear(self.I_REWARD_GOLD):
+                self._finish_solo_settlement()
+                continue
             if not is_in_orochi():
                 continue
             if self.current_count >= self.limit_count:
@@ -302,7 +307,38 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                         config=self.config.orochi.general_battle_config,
                         battle_key=self._orochi_battle_key(),
                         exit_matcher=self.I_OROCHI_FIRE)
+                    self._finish_solo_settlement()
                     break
+
+    def _finish_solo_settlement(self) -> bool:
+        """单人御魂仅在连续确认回到挑战页后完成结算。"""
+        timeout = Timer(30).start()
+        challenge_frames = 0
+        while not timeout.reached():
+            self.screenshot()
+            if self.appear(self.I_OROCHI_FIRE):
+                challenge_frames += 1
+                if challenge_frames >= 2:
+                    logger.info('[御魂] 单人结算完成, 已确认回到挑战页')
+                    return True
+                sleep(0.3)
+                continue
+            challenge_frames = 0
+
+            if self.appear_then_click(self.I_PET_PRESENT, action=self.C_RANDOM_RIGHT, interval=1):
+                continue
+            if self.appear_then_click(self.I_WIN, action=self.C_RANDOM_RIGHT, interval=0.8):
+                continue
+            if self.appear_then_click(self.I_FALSE, interval=0.8):
+                continue
+            if (self.appear(self.I_REWARD) or self.appear(self.I_REWARD_GOLD)
+                    or self.appear(self.I_GREED_GHOST)):
+                action = random.choice([self.C_REWARD_1, self.C_REWARD_2, self.C_REWARD_3])
+                self.click(action, interval=1.5)
+            # 缺少结算标记可能只是过场, 不当作完成, 也不点击未知页面
+            sleep(0.3)
+
+        raise GameStuckError('[御魂] 单人结算超时: 未确认回到挑战页')
 
     def run_wild(self):
         logger.info('[御魂] 开始野队流程')
