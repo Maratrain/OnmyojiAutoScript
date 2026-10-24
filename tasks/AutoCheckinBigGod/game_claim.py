@@ -29,11 +29,13 @@ import time
 from module.logger import logger
 from module.base.timer import Timer
 from tasks.AutoCheckinBigGod.assets import AutoCheckinBigGodAssets
+from tasks.Component.Login.service import LoginService
+from tasks.Component.SwitchAccount.assets import SwitchAccountAssets
 from tasks.GameUi.assets import GameUiAssets
 from tasks.GlobalGame.assets import GlobalGameAssets
 
-# 等待回到庭院的超时（游戏一般已在后台驻留；冷启动登录不在本流程范围内）
-YARD_WAIT_SECONDS = 120
+# 等待回到庭院的超时（模拟器关停后冷启动需走完整登录流程，实机约 2 分钟，放宽到 4 分钟兜底）
+YARD_WAIT_SECONDS = 240
 # 向左平移镜头查找曜日牌的最大次数（每次一屏）
 PAN_MAX = 3
 # 通知页 / 福利中心弹窗内滚动查找的最大次数
@@ -90,22 +92,27 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
     # ------------------------------------------------------------------ 步骤
 
     def _game_wait_yard(self):
-        """把游戏拉回前台并等待庭院出现。返回是否成功。"""
+        """把游戏拉回前台并等待庭院出现，冷启动落在登录页时顺带走完登录。返回是否成功。"""
         try:
             self.device.app_start()
         except Exception as e:
             logger.warning(f'拉起游戏失败: {e}')
+        # 竖屏手动领取路径可能把 orientation 改为 0，游戏前台后重新获取（登录点击也依赖正确朝向）
+        try:
+            self.device.get_orientation()
+        except Exception:
+            pass
         deadline = Timer(YARD_WAIT_SECONDS).start()
         while not deadline.reached():
             self.screenshot()
             if self.appear(self.I_CHECK_MAIN, threshold=0.9):
-                # 竖屏手动领取路径可能把 orientation 改为 0，游戏前台后重新获取
-                try:
-                    self.device.get_orientation()
-                except Exception:
-                    pass
                 logger.info('已回到庭院')
                 return True
+            # 冷启动停在登录页：复用登录流程走到庭院（进入游戏/加载/公告/式神录确认都在其中）
+            if self.appear(SwitchAccountAssets.I_CHECK_LOGIN_FORM):
+                logger.info('检测到登录页，执行登录流程')
+                LoginService(config=self.config, device=self.device).app_handle_login()
+                continue
             # 处理可能残留的「获得奖励」展示窗
             if self.ui_reward_appear_click():
                 time.sleep(1)
