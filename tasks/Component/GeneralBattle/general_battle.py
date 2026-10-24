@@ -804,7 +804,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
                                          context.reward_no_battle_ts is None):
             return BattleAction.CONTINUE
         # 识别丢失多为误触奖励物品弹出了详情浮窗, 先点击空白处关闭再等页面恢复
-        # 空白落点用上部天空区域, 结算后可能已回到庭院, 左侧竖条会点中展示式神
+        # 空白落点在庭院右上空白带, 结算后可能已回到庭院, 需避开聊天横幅与展示式神
         if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2) or self.appear(self.I_END_FIX_3):
             self.click(GlobalGameAssets.C_BLANK_CLOSE, interval=1.5)
             context.reward_no_battle_ts = None

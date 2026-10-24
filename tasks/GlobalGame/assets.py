@@ -69,7 +69,7 @@ class GlobalGameAssets:
 	I_PROFILE_CARD_NEW = RuleImage(roi_front=(165,222,135,183), roi_back=(120,180,240,280), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_profile_card_new.png")
 	# 新版个人主页弹层下方的空白背板, 点击关闭弹层
 	C_PROFILE_CARD_CLOSE = RuleClick(roi_front=(780,625,320,70), roi_back=(780,625,320,70), name="profile_card_close")
-	# 通用点空白关弹层落点, 取上部天空区域, 避开庭院展示式神/封印章等可交互元素
-	C_BLANK_CLOSE = RuleClick(roi_front=(480,90,320,48), roi_back=(480,90,320,48), name="blank_close")
+	# 通用点空白关弹层落点, 取庭院右上空白带, 避开展示式神/封印章/聊天横幅(y<125, 点中会展开聊天面板)/加成面板(x<935)/结算奖励行(y>160)/右侧功能图标栏(x>1175)
+	C_BLANK_CLOSE = RuleClick(roi_front=(950,130,180,30), roi_back=(950,130,180,30), name="blank_close")
 
 

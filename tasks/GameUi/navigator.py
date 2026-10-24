@@ -714,9 +714,9 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
                 # 关掉未知界面后等待页面变化, 防止多次识别到未知界面
                 time.sleep(random.randrange(8, 16, 1) / 10)
                 return True
-        # 常规关闭控件均未识别到时, 点击屏幕上部空白处, 关闭点空白即可退出的详情浮窗
+        # 常规关闭控件均未识别到时, 点击空白处, 关闭点空白即可退出的详情浮窗
         # (如结算奖励页误触奖励物品弹出的御魂详情)。连续多次无效则放弃, 交由上层导航超时处理。
-        # 落点必须避开庭院左侧展示式神与封印章, 否则会在庭院误开式神皮肤展示页并卡死。
+        # 落点必须避开庭院左侧展示式神、封印章与顶部聊天横幅, 否则会误开皮肤展示页或聊天面板并卡死。
         if self.navigator.unknown_close_history[-3:] != ['blank_area_close'] * 3:
             self.click(GlobalGameAssets.C_BLANK_CLOSE, interval=1.5)
             self._record_unknown_close_event('blank_area_close')
