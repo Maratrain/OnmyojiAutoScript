@@ -9,6 +9,7 @@ from module.atom.long_click import RuleLongClick
 from module.atom.ocr import RuleOcr
 from tasks.base_task import BaseTask
 from tasks.Component.SwitchSoul.assets import SwitchSoulAssets
+from tasks.Component.SwitchSoul.audio_download import AudioDownloadPrompt
 from module.logger import logger
 
 
@@ -19,7 +20,7 @@ def switch_parser(switch_str: str) -> tuple:
     return int(switch_list[0]), int(switch_list[1])
 
 
-class SwitchSoul(BaseTask, SwitchSoulAssets):
+class SwitchSoul(BaseTask, SwitchSoulAssets, AudioDownloadPrompt):
 
     def run_switch_soul(self, target: tuple | list[tuple] | str):
         """
@@ -42,6 +43,7 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         """
         while 1:
             self.screenshot()
+            self.dismiss_audio_download()
             if self.appear(self.I_SOU_SWITCH_1):
                 break
             if self.appear(self.I_SOU_SWITCH_2):
@@ -55,6 +57,33 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             if self.appear_then_click(self.I_SOUL_PRESET, interval=2):
                 continue
         logger.info('[切换御魂] 在御魂界面点击预设')
+
+    def _consume_switch_sure(self) -> None:
+        """点掉御魂切换确认框, 直到它消失(顺便处理阻断勾选)。"""
+        while 1:
+            self.click(self.I_SOU_SWITCH_SURE, 3)
+            self.screenshot()
+            if self.appear_then_click(self.I_CHECK_BLOCK, 3):
+                continue
+            if not self.appear(self.I_SOU_SWITCH_SURE):
+                break
+
+    def _wait_and_consume_switch_sure(self, attempts: int = 3, delay: float = 0.6) -> bool:
+        """
+        等待确认框出现并点掉。
+
+        确认框通常在选中队伍约 1 秒后才弹出; 不等它就会出现
+        「切完御魂返回时被弹窗挡住、goto_page 反复失败」的问题。
+
+        :return: True 表示等到并处理了确认框, False 表示等待期内没有出现。
+        """
+        for _ in range(attempts):
+            sleep(delay)
+            self.screenshot()
+            if self.appear(self.I_SOU_SWITCH_SURE):
+                self._consume_switch_sure()
+                return True
+        return False
 
     def switch_soul_one(self, group: int, team: int) -> None:
         """
@@ -124,16 +153,12 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             sleep(0.8)
             self.screenshot()
             if self.appear(self.I_SOU_SWITCH_SURE):
-                while 1:
-                    self.click(self.I_SOU_SWITCH_SURE, 3)
-                    self.screenshot()
-                    if self.appear_then_click(self.I_CHECK_BLOCK, 3):
-                        continue
-                    if not self.appear(self.I_SOU_SWITCH_SURE):
-                        break
+                self._consume_switch_sure()
                 continue
             if not self.appear_then_click(target_team, interval=3):
                 logger.warning(f'[切换御魂] 分组 {group} 中点击队伍 {team} 失败')
+        # 确认框延迟约 1 秒出现, 主动等它并点掉, 避免挡住后续返回
+        self._wait_and_consume_switch_sure()
         # 兜底若还出现确认按钮则点击
         self.ui_click_until_disappear(self.I_SOU_SWITCH_SURE)
         logger.info(f'[切换御魂] 切换御魂分组 {group} 队伍 {team}')

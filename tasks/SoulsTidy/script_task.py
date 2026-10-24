@@ -11,12 +11,13 @@ from module.base.timer import Timer
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_shikigami_records
+from tasks.Component.SwitchSoul.audio_download import AudioDownloadPrompt
 from tasks.SoulsTidy.assets import SoulsTidyAssets
 from tasks.SoulsTidy.config import SimpleTidy
 from typing import Optional
 
 
-class ScriptTask(GameUi, SoulsTidyAssets):
+class ScriptTask(GameUi, SoulsTidyAssets, AudioDownloadPrompt):
     def run(self):
         self.goto_page(page_shikigami_records)
         con = self.config.souls_tidy
@@ -35,6 +36,7 @@ class ScriptTask(GameUi, SoulsTidyAssets):
         """
         while 1:
             self.screenshot()
+            self.dismiss_audio_download()
             if self.appear(self.I_ST_GREED) and self.appear(self.I_ST_TIDY):
                 break
 
