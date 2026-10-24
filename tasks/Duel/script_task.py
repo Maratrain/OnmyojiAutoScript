@@ -209,10 +209,15 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
                 self.duel_exit_battle()
                 continue
             if ret is None and not battle_operated:  # 进行战斗前的操作
-                self.ui_click(self.O_BATTLE_HAND, self.O_BATTLE_AUTO, interval=0.8)
-                self.green_mark(self.conf.duel_config.green_enable, self.conf.duel_config.green_mark)
-                battle_operated = True
-                self.reset_device('BATTLE_STATUS_S')
+                # 开战瞬间对手秒退时页面会直接跳到拔得头筹展示页，"自动/手动"字样同时消失；
+                # 不能阻塞等待"自动"出现（会在这里零点击空转到卡住检测），改为循环内限频切换，
+                # 每轮照常执行上方的展示页/胜负/超时检查
+                if self.appear(self.O_BATTLE_AUTO, interval=0.8):
+                    self.green_mark(self.conf.duel_config.green_enable, self.conf.duel_config.green_mark)
+                    battle_operated = True
+                    self.reset_device('BATTLE_STATUS_S')
+                else:
+                    self.ocr_appear_click(self.O_BATTLE_HAND, interval=0.8)
                 continue
             if not ret_timer.started() and battle_timeout_timer.reached_and_reset():
                 battle_timeout_cnt += 1
