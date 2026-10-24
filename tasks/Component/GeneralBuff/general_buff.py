@@ -8,31 +8,53 @@ from module.atom.ocr import RuleOcr
 from module.atom.image import RuleImage
 from tasks.base_task import BaseTask
 from module.logger import logger
+from module.base.timer import Timer
 from typing import Optional
+
+# 加成面板开/关与滑动的有界等待上限, 需小于设备 60 秒卡死检测阈值
+BUFF_SWITCH_TIMEOUT = 30
+# 聊天面板收起的最大尝试次数
+CHAT_CLOSE_LIMIT = 3
 
 
 class GeneralBuff(BaseTask, GeneralBuffAssets):
 
-    def open_buff(self):
+    def open_buff(self) -> bool:
         """
         打开buff的总界面
-        :return:
+        :return: 成功打开返回True; 超时未打开返回False, 调用方应跳过本次加成设置
         """
         logger.info('[通用加成] 打开加成界面')
+        open_timer = Timer(BUFF_SWITCH_TIMEOUT).start()
+        chat_close_left = CHAT_CLOSE_LIMIT
         while 1:
             self.screenshot()
             if self.appear(self.I_CLOUD):
                 break
             if self.appear_then_click(self.I_BUFF_1, interval=2):
                 continue
+            # 聊天面板展开会盖住庭院左上角的加成入口, 点击右缘三角收起
+            if chat_close_left > 0 and self.appear_then_click(self.I_CHAT_CLOSE, interval=1):
+                chat_close_left -= 1
+                logger.info('[通用加成] 检测到聊天面板, 点击收起')
+                continue
+            if open_timer.reached():
+                logger.warning('[通用加成] 打开加成界面等待超时, 跳过本次加成设置')
+                return False
 
         check_image = self.I_AWAKE
+        swipe_left = 4
+        swipe_timer = Timer(BUFF_SWITCH_TIMEOUT).start()
         while 1:
             self.screenshot()
             if self.appear(check_image):
                 break
-
+            if swipe_left <= 0 or swipe_timer.reached():
+                logger.warning('[通用加成] 滑动后仍未找到觉醒加成行, 跳过本次加成设置')
+                return False
             self.swipe(self.S_BUFF_UP, interval=2)
+            swipe_left -= 1
+        return True
 
     def close_buff(self):
         """
@@ -40,12 +62,16 @@ class GeneralBuff(BaseTask, GeneralBuffAssets):
         :return:
         """
         logger.info('[通用加成] 关闭加成界面')
+        close_timer = Timer(BUFF_SWITCH_TIMEOUT).start()
         while 1:
             self.screenshot()
             if not self.appear(self.I_CLOUD):
                 break
             if self.appear_then_click(self.I_BUFF_1, interval=2):
                 continue
+            if close_timer.reached():
+                logger.warning('[通用加成] 关闭加成界面等待超时, 继续后续流程')
+                break
 
     def get_area(self, buff: RuleOcr) -> Optional[tuple[int, int, int, int]]:
         """

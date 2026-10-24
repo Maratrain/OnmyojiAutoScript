@@ -39,6 +39,8 @@ class GeneralBuffAssets:
 	I_EXPERIENCE_CLOSE_RED = RuleImage(roi_front=(773,365,12,20), roi_back=(764,134,38,369), threshold=0.6, method="Template matching", file="./tasks/Component/GeneralBuff/gb/gb_experience_close_red.png")
 	# 用来判定是否点击的那个 
 	I_CLOUD = RuleImage(roi_front=(357,505,65,38), roi_back=(313,484,158,75), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBuff/gb/gb_cloud.png")
+	# 聊天面板展开态右缘把手条上的收起三角(与探索聊天抽屉同一 UI 元素, 模板同源)
+	I_CHAT_CLOSE = RuleImage(roi_front=(636, 370, 44, 54), roi_back=(615, 285, 100, 230), threshold=0.85, method="Template matching", file="./tasks/Component/GeneralBuff/gb/gb_chat_close.png")
 
 
 	# Ocr Rule Assets
