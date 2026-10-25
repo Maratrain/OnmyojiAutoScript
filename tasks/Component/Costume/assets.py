@@ -140,7 +140,7 @@ class CostumeAssets:
 	# 宠物屋 
 	I_PET_HOUSE_17 = RuleImage(roi_front=(1244,428,33,28), roi_back=(1239,358,40,160), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main17/main17_pet_house_17.png")
 	# 庭院事务入口（勾玉上方金圈徽章） 
-	I_ENTER_COURTYARD_AFFAIRS_17 = RuleImage(roi_front=(466,440,52,44), roi_back=(280,330,680,270), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main17/main17_enter_courtyard_affairs_17.png")
+	I_ENTER_COURTYARD_AFFAIRS_17 = RuleImage(roi_front=(478,451,25,30), roi_back=(280,330,680,270), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main17/main17_enter_courtyard_affairs_17.png")
 
 
 	# Image Rule Assets

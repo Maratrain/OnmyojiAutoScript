@@ -47,7 +47,7 @@
  {
   "itemName": "enter_courtyard_affairs_17",
   "imageName": "main17_enter_courtyard_affairs_17.png",
-  "roiFront": "466,440,52,44",
+  "roiFront": "478,451,25,30",
   "roiBack": "280,330,680,270",
   "method": "Template matching",
   "threshold": 0.8,
