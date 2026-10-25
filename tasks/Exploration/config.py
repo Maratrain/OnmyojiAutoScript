@@ -101,6 +101,9 @@ class ExplorationConfig(BaseModel):
 
     up_type: UpType = Field(title='UpType', default=UpType.ALL, description='up_type_help')
 
+    chapter_achievement_sweep: bool = Field(title='主线章节成就清扫', default=False,
+                                            description='chapter_achievement_sweep_help')
+
 
 class Exploration(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)

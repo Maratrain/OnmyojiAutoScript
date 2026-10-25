@@ -46,6 +46,11 @@ class ScriptTask(BaseExploration):
     def run(self):
         logger.hr('探索')
         self.pre_process()
+        if self._config.exploration_config.chapter_achievement_sweep:
+            if self.user_status == UserStatus.ALONE:
+                self.chapter_achievement_sweep_run()
+            else:
+                logger.warning('[探索] 主线章节成就清扫仅支持单人模式, 已跳过')
         self.exec_exp_page()
         self.post_process()
 
