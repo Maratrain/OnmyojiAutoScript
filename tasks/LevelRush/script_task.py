@@ -140,11 +140,13 @@ class ScriptTask(
             self.config.level_rush.level_rush_config.level_7_mark = True
             self.config.save()
         self.goto_page(page_main)
-        # 过剧情解锁十五章
+        # 过剧情解锁十五章, 剧情全通(章节已超过十五章)的号也跳过, 避免进推剧情循环空转
         if not (
             self.config.level_rush.level_rush_config.exploration_chapter_max_15_enable
-            and self.config.exploration.exploration_config.exploration_level
-            == self._MAX_CHAPTER
+            and self._EXPLORATION_CHAPTERS.index(
+                self.config.exploration.exploration_config.exploration_level
+            )
+            >= self._MAX_CHAPTER_INDEX
         ):
             self._run_storyline()
 
