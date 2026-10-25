@@ -284,9 +284,13 @@ class ScriptTask(GameUi):
         for k, v in counter.items():
             label = f'{k}×{v}' if v > 1 else k
             if markdown:
-                # 企业微信 markdown 仅支持 info/comment/warning 三色：体协绿色，未识别灰色，其余协作类型黄色醒目
-                color = {'体协': 'info', '未识别协作': 'comment'}.get(k, 'warning')
-                label = f'<font color="{color}">{label}</font>'
+                # 企业微信 markdown 仅 info/comment/warning 三色：按用户约定只给勾协黄色、体协绿色，未识别灰色，其余类型不着色
+                if k == '勾协':
+                    label = f'<font color="warning">{label}</font>'
+                elif k == '体协':
+                    label = f'<font color="info">{label}</font>'
+                elif k == '未识别协作':
+                    label = f'<font color="comment">{label}</font>'
             parts.append(label)
         return '、'.join(parts)
 
@@ -317,9 +321,7 @@ class ScriptTask(GameUi):
         blocks = [f'扫描时间: {datetime.now().strftime("%H:%M")}']
         blocks += [f'{name}: {self._fmt_cooperation_types(types, markdown)}'
                    for name, types in ordered]
-        # 企微 markdown 会把连续换行折叠成一行，markdown 渠道用盲文空行字符(不可见)撑出真正的空行
-        glue = f'\n{chr(0x2800)}\n' if markdown else '\n\n'
-        content = glue.join(blocks)
+        content = '\n'.join(blocks)
         try:
             notifier.push(title='小号协作扫描', content=content, markdown=markdown)
             logger.info('[小号轮换] 协作扫描汇总已推送')
