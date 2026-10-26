@@ -414,7 +414,7 @@ class RichManAssets:
 
 	# Image Rule Assets
 	# 鼬乐币商店入口 
-	I_ITACHI_SHOP_ENTRY = RuleImage(roi_front=(47,635,45,40), roi_back=(42,630,55,50), threshold=0.8, method="Template matching", file="./tasks/RichMan/itachi_shop/itachi_shop_itachi_shop_entry.png")
+	I_ITACHI_SHOP_ENTRY = RuleImage(roi_front=(47,635,45,40), roi_back=(42,630,314,50), threshold=0.8, method="Template matching", file="./tasks/RichMan/itachi_shop/itachi_shop_itachi_shop_entry.png")
 	# 鼬乐币商店页签 
 	I_ITACHI_SHOP_CHECK = RuleImage(roi_front=(121,37,78,39), roi_back=(116,33,88,49), threshold=0.8, method="Template matching", file="./tasks/RichMan/itachi_shop/itachi_shop_itachi_shop_check.png")
 

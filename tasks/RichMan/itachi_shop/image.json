@@ -3,10 +3,10 @@
     "itemName": "itachi_shop_entry",
     "imageName": "itachi_shop_itachi_shop_entry.png",
     "roiFront": "47,635,45,40",
-    "roiBack": "42,630,55,50",
+    "roiBack": "42,630,314,50",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": ""
+    "description": "鼬乐币商店入口"
   },
   {
     "itemName": "itachi_shop_check",
