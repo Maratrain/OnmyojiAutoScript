@@ -87,8 +87,10 @@ class GeneralInviteAssets:
 	I_BACK_YELLOW_SEA = RuleImage(roi_front=(31,16,42,42), roi_back=(31,16,42,42), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralInvite/gi/gi_back_yellow_sea.png")
 	# 识别到寄养邀请 
 	I_I_ACCEPT_JY = RuleImage(roi_front=(248,258,46,25), roi_back=(231,205,75,326), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralInvite/gi/gi_i_accept_jy.png")
-	# 师徒邀请图标 
+	# 师徒邀请图标
 	I_I_ACCEPT_APPRENTICE = RuleImage(roi_front=(115,229,55,45), roi_back=(107,209,69,296), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralInvite/gi/gi_i_accept_apprentice.png")
+	# 加载图标
+	I_I_LOAD = RuleImage(roi_front=(631,346,22,33), roi_back=(549,273,186,161), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralInvite/gi/gi_i_load.png")
 
 
 	# Image Rule Assets

@@ -349,5 +349,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "师徒邀请图标"
+  },
+  {
+    "itemName": "i_load",
+    "imageName": "gi_i_load.png",
+    "roiFront": "631,346,22,33",
+    "roiBack": "549,273,186,161",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "加载图标"
   }
 ]

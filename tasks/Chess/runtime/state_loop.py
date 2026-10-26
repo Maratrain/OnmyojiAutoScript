@@ -107,12 +107,6 @@ class ChessStateLoopMixin:
                 '5 秒内已确认'
             )
             return True
-        if self._is_boss_challenge_round(round_no=current_round):
-            logger.info(
-                '[棋局] 首领回合跳过御念后阵容检查: '
-                f'回合={current_round}'
-            )
-            return True
         logger.info(f'[棋局] 御念后阵容检查: 回合={current_round}')
         self._reconcile_lineup_after_hyakki_round(next_round_no=current_round)
         return True

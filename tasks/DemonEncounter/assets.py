@@ -53,7 +53,8 @@ class DemonEncounterAssets:
 
 
 	# Ocr Rule Assets
-	# 人数 
+	O_BOSS_RESULT_TITLE = RuleOcr(roi=(621,174,241,64), area=(621,174,241,64), mode="Single", method="Default", keyword="通关评价", name="boss_result_title")
+	# 人数
 	O_DE_BOSS_PEOPLE = RuleOcr(roi=(880,591,100,35), area=(880,591,100,35), mode="DigitCounter", method="Default", keyword="", name="de_boss_people")
 	# Ocr-description 
 	O_DE_BEST_BOSS_PEOPLE = RuleOcr(roi=(902,564,100,31), area=(902,564,100,31), mode="DigitCounter", method="Default", keyword="", name="de_best_boss_people")

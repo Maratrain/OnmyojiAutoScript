@@ -9,13 +9,13 @@ from cached_property import cached_property
 from datetime import datetime, timedelta
 
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import GameStuckError, TaskEnd
 from module.base.timer import Timer
 
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.DemonEncounter.config import BossType, DemonEncounter, convert_to_general_battle_config
 from tasks.DemonEncounter.page import page_rwt
-from tasks.GameUi.default_pages import page_main
+from tasks.GameUi.default_pages import page_main, settlement_random_click
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_shikigami_records
 from tasks.DemonEncounter.assets import DemonEncounterAssets
@@ -250,17 +250,32 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 logger.info('[逢魔] 未知场景或首领战斗失败，等待准备按钮出现...')
                 self.wait_until_appear(self.I_PREPARE_HIGHLIGHT, wait_time=2)
 
-            # 等待回到挑战boss主界面
-            self.wait_until_appear(self.I_BOSS_GATHER)
-            while 1:
-                self.screenshot()
-                if self.appear(self.I_DE_LOCATION):
-                    break
-                if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
-                    continue
-                if self.appear_then_click(self.I_BOSS_BACK_WHITE, interval=1):
-                    continue
-            # 返回到封魔主界面
+            self._finish_boss_result()
+
+    def _boss_result_visible(self):
+        if not self.appear(self.I_BOSS_DONE_CHECK):
+            return False
+        title = ''.join(str(self.O_BOSS_RESULT_TITLE.ocr(self.device.image)).split())
+        return '通关评价' in title
+
+    def _finish_boss_result(self):
+        """主动关闭胜利评价面板并返回地图，避免等待被面板遮挡的集结页。"""
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            self.screenshot()
+            if self._boss_result_visible():
+                logger.info('[逢魔] 首领胜利评价面板可见，点击结算区域关闭')
+                self.click(settlement_random_click(), interval=0.8)
+                continue
+            if self.appear(self.I_DE_LOCATION):
+                logger.info('[逢魔] 首领结算完成: 已回到封魔地图')
+                return True
+            if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
+                continue
+            if self.appear_then_click(self.I_BOSS_BACK_WHITE, interval=1):
+                continue
+            sleep(0.2)
+        raise GameStuckError('[逢魔] 首领结算未在 60 秒内回到封魔地图')
 
     def execute_lantern(self):
         """

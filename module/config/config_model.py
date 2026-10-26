@@ -387,6 +387,9 @@ class ConfigModel(ConfigBase):
                         groups_value[key] = groups[group_name]
             result[key] = merge_value(groups_value[key], value, schema["$defs"])
 
+        # 棋局阵容下拉为动态选项（内置+自定义），出参时改写展示项
+        if isinstance(task, Chess):
+            result = task.oasx_args(result)
         return result
 
     def script_set_arg(self, task: str, group: str, argument: str, value) -> bool:
@@ -419,6 +422,13 @@ class ConfigModel(ConfigBase):
 
         task_object = getattr(self, task, None)
         group_object = getattr(task_object, group, None)
+        # 棋局阵容下拉为动态选项，写入时先走专用解析
+        if isinstance(task_object, Chess) and group == 'chess_config' and argument == 'lineup_bond':
+            handled = task_object.select_oasx_lineup(value)
+            if handled is not None:
+                if handled:
+                    self.save()
+                return handled
         if group_object is None:  # deal list
             matchs = re.findall(r'\d+', group)
             index = int(matchs[-1]) - 1 if matchs else None

@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from module.logger import logger
 from module.server.api_logger import ensure_api_logger
 from module.server.analysis_router import analysis_app
+from module.server.chesslineup_router import chesslineup_app
 from module.server.home_router import home_app
 from module.server.income_router import income_app
 from module.server.log_analyzer_router import log_analyzer_app
@@ -57,6 +58,10 @@ app.include_router(analysis_app)
 app.include_router(log_app)
 app.include_router(log_analyzer_app)
 app.include_router(tool_app)
+app.include_router(chesslineup_app)
+
+app.mount('/tool/chesslineup/static', StaticFiles(directory=str(
+    Path(__file__).resolve().parent / 'web/chesslineup/static')), name='chesslineup_static')
 
 annotator_static_dir = Path(__file__).resolve().parent / "web" / "annotator" / "static"
 
