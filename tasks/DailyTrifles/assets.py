@@ -184,7 +184,73 @@ class DailyTriflesAssets:
 	O_INCOME_SCA_DEMON_SOULS = RuleOcr(roi=(900,9,162,33), area=(900,9,162,33), mode="Single", method="Default", keyword="", name="income_sca_demon_souls")
 	# 统计每日收益：识别被遗忘的绘本 
 	O_INCOME_SCA_PICTURE_BOOK = RuleOcr(roi=(1093,11,162,33), area=(1093,11,162,33), mode="Single", method="Default", keyword="", name="income_sca_picture_book")
-	# 统计每日收益：识别神秘的符咒 
+	# 统计每日收益：识别神秘的符咒
 	O_INCOME_MYSTERY_AMULET = RuleOcr(roi=(789,14,96,31), area=(789,14,96,31), mode="Single", method="Default", keyword="", name="income_mystery_amulet")
+
+
+	# Image Rule Assets
+	# 已点赞的橙色拇指; roi_back 覆盖有/无「相伴N天」羁绊横幅两种布局(横幅会把拇指下压约15px)
+	I_FL_THUMB_LIKED = RuleImage(roi_front=(615,140,30,28), roi_back=(560,110,180,100), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_thumb_liked.png")
+	# 未点赞的白色拇指; 匹配到哪点哪, 避开固定坐标在横幅布局下落空
+	I_FL_THUMB_NORMAL = RuleImage(roi_front=(616,140,28,30), roi_back=(560,110,180,100), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_thumb_normal.png")
+	# 好友分组收起箭头(右三角)
+	I_FL_GROUP_FOLD = RuleImage(roi_front=(455,585,19,20), roi_back=(380,145,170,480), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_group_fold.png")
+	# 好友分组展开箭头(下三角)
+	I_FL_GROUP_UNFOLD = RuleImage(roi_front=(455,166,18,15), roi_back=(380,145,170,480), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_group_unfold.png")
+	# 搜索按钮(橙底, 冷却态会变成N秒)
+	I_FL_SEARCH_GO = RuleImage(roi_front=(1012,112,76,48), roi_back=(995,100,110,75), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_search_go.png")
+	# 添加页签高亮(右侧竖排)
+	I_FL_ADD_TAB = RuleImage(roi_front=(1199,280,48,104), roi_back=(1180,250,90,165), threshold=0.7, method="Template matching", file="./tasks/DailyTrifles/like/like_add_tab.png")
+	# 区域弹窗标题(选择区域)
+	I_FL_AREA_TITLE = RuleImage(roi_front=(505,15,270,65), roi_back=(490,10,300,75), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/like/like_area_title.png")
+
+
+	# Click Rule Assets
+	# 庭院右下角卷轴菜单按钮
+	C_FL_SCROLL = RuleClick(roi_front=(1192,628,30,32), roi_back=(1192,628,30,32), name="fl_scroll")
+	# 菜单底栏的好友按钮
+	C_FL_GOTO_FRIENDS = RuleClick(roi_front=(900,615,45,45), roi_back=(900,615,45,45), name="fl_goto_friends")
+	# 好友分组栏(常驻第一栏)
+	C_FL_BAR_FRIEND = RuleClick(roi_front=(348,172,60,30), roi_back=(348,172,60,30), name="fl_bar_friend")
+	# 跨区好友分组栏(收起且好友分组展开时在下方, 展开时在第二栏)
+	C_FL_BAR_CROSS = RuleClick(roi_front=(348,592,60,30), roi_back=(348,592,60,30), name="fl_bar_cross")
+	# 右侧添加页签按钮点击(切到搜索页)
+	C_FL_ADD_CLICK = RuleClick(roi_front=(1200,285,50,100), roi_back=(1200,285,50,100), name="fl_add_click")
+	# 添加页搜索框点击
+	C_FL_SEARCH_INPUT = RuleClick(roi_front=(620,118,80,32), roi_back=(620,118,80,32), name="fl_search_input")
+	# 搜索框清除按钮
+	C_FL_SEARCH_CLEAR = RuleClick(roi_front=(935,118,30,28), roi_back=(935,118,30,28), name="fl_search_clear")
+	# 区服选择器点击
+	C_FL_AREA_OPEN = RuleClick(roi_front=(215,118,140,36), roi_back=(215,118,140,36), name="fl_area_open")
+	# 悬浮卡外部关闭(点卡片外空白)
+	C_FL_CARD_CLOSE = RuleClick(roi_front=(880,400,40,40), roi_back=(880,400,40,40), name="fl_card_close")
+	# 悬浮卡点赞拇指点击
+	C_FL_CARD_THUMB = RuleClick(roi_front=(592,164,62,60), roi_back=(592,164,62,60), name="fl_card_thumb")
+
+
+	# Ocr Rule Assets
+	# 好友列表中的名字
+	O_FL_LIST_NAME = RuleOcr(roi=(170,195,290,390), area=(170,195,290,390), mode="Full", method="Default", keyword="", name="fl_list_name")
+	# 聊天面板顶部名字
+	O_FL_CHAT_NAME = RuleOcr(roi=(622,100,232,35), area=(622,100,232,35), mode="Full", method="Default", keyword="", name="fl_chat_name")
+	# 聊天面板右上角紫色区服名(区分同区/跨区重名好友); 856-1024 覆盖 春告之雪/网易-形影不离/永远的平安京 等长短名, 右缘避开丝带装饰
+	O_FL_CHAT_SERVER = RuleOcr(roi=(856,96,168,54), area=(856,96,168,54), mode="Full", method="Default", keyword="", name="fl_chat_server")
+	# 聊天面板顶部的点赞数; y 覆盖有/无羁绊横幅两种布局(数字分别约在 166-179 / 145-162)
+	O_FL_THUMB_COUNT = RuleOcr(roi=(645,138,95,58), area=(645,138,95,58), mode="Single", method="Default", keyword="", name="fl_thumb_count")
+	# 添加页区服选择器当前区服名
+	O_FL_SERVER = RuleOcr(roi=(165,112,190,45), area=(165,112,190,45), mode="Full", method="Default", keyword="", name="fl_server")
+	# 搜索按钮文本(搜索/N秒)
+	O_FL_SEARCH_GO_STATE = RuleOcr(roi=(1005,110,90,50), area=(1005,110,90,50), mode="Full", method="Default", keyword="", name="fl_search_go_state")
+	# 搜索结果名字
+	O_FL_SEARCH_NAME = RuleOcr(roi=(290,235,190,55), area=(290,235,190,55), mode="Full", method="Default", keyword="", name="fl_search_name")
+	# 悬浮卡顶部名字
+	O_FL_CARD_NAME = RuleOcr(roi=(385,128,260,48), area=(385,128,260,48), mode="Full", method="Default", keyword="", name="fl_card_name")
+	# 悬浮卡点赞数
+	O_FL_CARD_COUNT = RuleOcr(roi=(595,220,62,28), area=(595,220,62,28), mode="Single", method="Default", keyword="", name="fl_card_count")
+
+
+	# Swipe Rule Assets
+	# 好友列表向上翻页
+	S_FL_LIST_UP = RuleSwipe(roi_front=(310,530,40,30), roi_back=(310,270,40,30), mode="default", name="fl_list_up")
 
 

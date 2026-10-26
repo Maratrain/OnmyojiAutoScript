@@ -13,6 +13,7 @@ from tasks.Component.config_base import Time
 from tasks.DailyTrifles.page import page_store_gift_room, page_friends_luck, page_guild_wish
 
 from tasks.GameUi.game_ui import GameUi
+from tasks.GameUi.assets import GameUiAssets
 from tasks.GameUi.page import page_main, page_summon, page_guild, page_mall, page_friends, page_courtyard_affairs, page_mall_recommend
 from tasks.DailyTrifles.config import DailyTriflesConfig, IncomeSnapshot
 from tasks.DailyTrifles.assets import DailyTriflesAssets
@@ -103,6 +104,9 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         # 吉闻
         if con.luck_msg:
             self.run_luck_msg()
+        # 好友点赞
+        if self.config.daily_trifles.friend_like.enable:
+            self.run_friend_like()
         # 商店签到 or 购买寿司
         if con.store_sign or con.buy_sushi_count > 0:
             self.run_store()
@@ -523,6 +527,447 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
 
         self.goto_page(page_main)
         self.config.daily_trifles.done_record.luck_msg_dt = datetime.now()
+
+    def run_friend_like(self):
+        """好友点赞: 按名单精准点赞或点赞全部好友, 每号每日 20 次上限由游戏控制"""
+        logger.hr('好友点赞', 2)
+        if self.config.daily_trifles.today_is_done('friend_like'):
+            logger.info('[每日琐事] 今日已完成，跳过')
+            return
+        cfg = self.config.daily_trifles.friend_like
+        names = cfg.like_names_v
+        search_targets = cfg.search_names_v
+        if not names and not search_targets and not cfg.like_all:
+            logger.info('[点赞] 名单为空且未开启全部点赞，跳过')
+            return
+        liked = 0
+        if self._goto_friend_page():
+            for name, server in names:
+                if liked >= 20:
+                    logger.info('[点赞] 已达 20 次上限，停止')
+                    break
+                if self._like_friend_by_name(name, server, cfg.name_check):
+                    liked += 1
+            if search_targets and liked < 20:
+                if self._open_add_page():
+                    # 规定: 搜索点赞固定使用全服
+                    self._ensure_search_server()
+                    for target in search_targets:
+                        if liked >= 20:
+                            logger.info('[点赞] 已达 20 次上限，停止')
+                            break
+                        if self._like_by_search(target, cfg.name_check):
+                            liked += 1
+            if not names and not search_targets and cfg.like_all:
+                liked = self._like_all_friends()
+        logger.info(f'[点赞] 本次点赞 {liked} 人')
+        self.config.daily_trifles.done_record.friend_like_dt = datetime.now()
+        self._close_friend_page()
+
+    def _close_friend_page(self):
+        """关闭好友界面回庭院; 不走 goto_page, 缘初新手庭院下 I_CHECK_MAIN 判定不可用"""
+        timer = Timer(10).start()
+        while not timer.reached():
+            self.screenshot()
+            if not self.appear(GameUiAssets.I_CHECK_FRIENDS, interval=0.5):
+                return
+            self.appear_then_click(GlobalGameAssets.I_UI_BACK_RED, interval=1)
+
+    def _goto_friend_page(self) -> bool:
+        """进入好友界面: 庭院卷轴菜单→好友按钮, 已在好友页直接返回"""
+        logger.info('[点赞] 正在进入好友界面')
+        timer = Timer(40).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(GameUiAssets.I_CHECK_FRIENDS, interval=0.5):
+                return True
+            if self.appear_then_click(GlobalGameAssets.I_UI_BACK_RED, interval=1):
+                continue
+            # 点卷轴切换底栏展开态, 再点好友按钮; 底栏未展开时该坐标落空无害
+            self.click(self.C_FL_SCROLL)
+            sleep(1.2)
+            self.click(self.C_FL_GOTO_FRIENDS)
+            sleep(1.5)
+        logger.warning('[点赞] 进入好友界面超时')
+        return False
+
+    def _expand_group(self, cross: bool) -> bool:
+        """展开好友/跨区好友分组(手风琴式, 展开其一另一分组自动收起)
+
+        :param cross: False 好友分组, True 跨区好友分组
+        """
+        unfold = self.I_FL_GROUP_UNFOLD
+        for _ in range(6):
+            self.screenshot()
+            if cross:
+                # 跨区分组展开时栏在第二栏(y≈205); 好友分组展开时跨区栏被推到下方(y≈592)
+                unfold.roi_back = (390, 190, 120, 55)
+                if self.appear(unfold):
+                    return True
+                self.click(self.C_FL_BAR_CROSS)
+            else:
+                unfold.roi_back = (390, 150, 120, 50)
+                if self.appear(unfold):
+                    return True
+                self.click(self.C_FL_BAR_FRIEND)
+            sleep(1.5)
+        logger.warning(f'[点赞] 展开{"跨区好友" if cross else "好友"}分组超时')
+        return False
+
+    def _like_friend_by_name(self, name: str, server: str, name_check: bool) -> bool:
+        """找到指定好友, 打开聊天面板核对后点赞
+
+        :param server: 目标区服名(聊天面板右上角紫色文字), 空串表示不校验区服;
+                       同名好友会逐个候选尝试, 直到名字与区服都核对通过
+        """
+        tried: set = set()
+        for cross in (False, True):
+            if not self._expand_group(cross):
+                continue
+            while True:
+                row = self._scan_list_for_name(name, tried)
+                if row is None:
+                    break
+                tried.add(row)
+                self.device.click(*row)
+                # 等聊天面板切换完成, 避免已点赞判定读到上一位好友的拇指
+                sleep(0.8)
+                if name_check and not self._wait_chat_name(name):
+                    logger.warning(f'[点赞] {name} 聊天面板名字核对失败，跳过该候选')
+                    continue
+                if server and self._wait_chat_server(server) is None:
+                    logger.warning(f'[点赞] {name} 区服核对失败(目标 {server})，跳过该候选')
+                    continue
+                return self._click_thumb(name)
+        target = f'{name}@{server}' if server else name
+        logger.warning(f'[点赞] 未在好友列表中找到 {target}')
+        return False
+
+    def _scan_list_for_name(self, name: str, tried: Optional[set] = None) -> Optional[tuple]:
+        """在当前展开分组的列表中滚动查找名字, 返回该行点击坐标; tried 中的行视为已核对过"""
+        last_texts: Optional[set] = None
+        for _ in range(12):
+            self.screenshot()
+            results = self.O_FL_LIST_NAME.detect_and_ocr(self.device.image)
+            texts = set()
+            skipped = False
+            for r in results:
+                text = r.ocr_text.strip()
+                if not text:
+                    continue
+                texts.add(text)
+                if text == name or difflib.SequenceMatcher(None, text, name).ratio() >= 0.75:
+                    x = self.O_FL_LIST_NAME.roi[0] + r.box[0, 0]
+                    y = self.O_FL_LIST_NAME.roi[1] + r.box[0, 1]
+                    w = r.box[1, 0] - r.box[0, 0]
+                    h = r.box[2, 1] - r.box[0, 1]
+                    coord = (int(x + w / 2), int(y + h / 2))
+                    if tried and self._row_tried(tried, coord):
+                        skipped = True
+                        continue
+                    return coord
+            # 连续两屏内容相同视为翻到列表底; 跳过已试行时需继续翻页找下一个同名候选
+            if not skipped and last_texts is not None and texts == last_texts:
+                return None
+            last_texts = texts
+            self.swipe(self.S_FL_LIST_UP, interval=1.2)
+        return None
+
+    @staticmethod
+    def _row_tried(tried: set, coord: tuple) -> bool:
+        """坐标接近的行视为同一行(OCR 框可能有少量偏移)"""
+        return any(abs(cx - coord[0]) <= 15 and abs(cy - coord[1]) <= 15 for cx, cy in tried)
+
+    def _wait_chat_name(self, name: str) -> bool:
+        """等待聊天面板顶部出现目标名字(装饰字体易丢字, 子串包含或相似度任一达标即可)"""
+        timer = Timer(6).start()
+        while not timer.reached():
+            self.screenshot()
+            text = self.O_FL_CHAT_NAME.detect_text(self.device.image)
+            if text:
+                text = text.strip()
+                if text and (text in name or name in text or
+                             difflib.SequenceMatcher(None, text, name).ratio() >= 0.7):
+                    return True
+            sleep(0.5)
+        return False
+
+    def _wait_chat_server(self, server: str) -> Optional[str]:
+        """等待聊天面板右上角紫色区服名并与目标比对
+
+        :return: 核对通过返回实际读到的区服文本; 超时(含读不到区服)返回 None
+        """
+        timer = Timer(5).start()
+        last = ''
+        while not timer.reached():
+            self.screenshot()
+            text = (self.O_FL_CHAT_SERVER.detect_text(self.device.image) or '').strip()
+            if text and (text in server or server in text or
+                         difflib.SequenceMatcher(None, text, server).ratio() >= 0.6):
+                return text
+            if text and text != last:
+                logger.info(f'[点赞] 面板区服读作 {text}，与目标 {server} 不符')
+                last = text
+            sleep(0.5)
+        if not last:
+            logger.warning('[点赞] 未读到聊天面板紫色区服名(同区好友面板可能不显示)')
+        return None
+
+    def _click_thumb(self, name: str) -> bool:
+        """点击点赞拇指并验证; 已点赞视为完成"""
+        # 先短暂确认是否已点过(橙色拇指)
+        timer = Timer(1.5).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_FL_THUMB_LIKED, interval=0.5):
+                logger.info(f'[点赞] {name} 今日已点赞过')
+                return True
+            sleep(0.3)
+        before = self._read_thumb_count()
+        for attempt in range(3):
+            # 点白色拇指(匹配到哪点哪; 有「相伴N天」羁绊横幅时拇指会下移, 固定坐标会落空)
+            if not self.appear_then_click(self.I_FL_THUMB_NORMAL, interval=0.5):
+                logger.warning(f'[点赞] {name} 未匹配到白色拇指图标')
+            timer = Timer(4).start()
+            while not timer.reached():
+                self.screenshot()
+                if self.appear(self.I_FL_THUMB_LIKED, interval=0.5):
+                    logger.info(f'[点赞] {name} 点赞成功')
+                    return True
+                after = self._read_thumb_count()
+                if before is not None and after is not None and after == before + 1:
+                    logger.info(f'[点赞] {name} 点赞成功')
+                    return True
+                sleep(0.5)
+            logger.warning(f'[点赞] {name} 第 {attempt + 1} 次点击未见反馈，重试')
+        return False
+
+    def _read_thumb_count(self) -> Optional[int]:
+        """读取聊天面板顶部点赞数字, 读不出返回 None
+
+        ROI 扩大后可能扫到上方「相伴N天」羁绊横幅, 只取纯数字行(横幅行混汉字被排除), 取最下一行
+        """
+        try:
+            results = self.O_FL_THUMB_COUNT.detect_and_ocr(self.device.image, logDisplay=False)
+            rows = [r.ocr_text.strip().replace(' ', '') for r in results]
+            rows = [t for t in rows if t.isdigit()]
+            if not rows:
+                return None
+            return int(rows[-1])
+        except (ValueError, TypeError):
+            return None
+
+    def _open_add_page(self) -> bool:
+        """切到右侧添加页签(搜索非好友)"""
+        logger.info('[点赞] 切换到添加页')
+        timer = Timer(15).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_FL_ADD_TAB, interval=0.5):
+                return True
+            self.click(self.C_FL_ADD_CLICK)
+            sleep(1.5)
+        logger.warning('[点赞] 切换添加页超时')
+        return False
+
+    def _ensure_search_server(self) -> bool:
+        """搜索前将区服重置为全服(规定: 搜索点赞只走全服)"""
+        if not self._open_area_popup():
+            return False
+        self.device.click(211, 257)  # 全服选项
+        sleep(1.5)
+        return True
+
+    def _open_area_popup(self) -> bool:
+        """打开选择区域弹窗"""
+        timer = Timer(10).start()
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_FL_AREA_TITLE, interval=0.5):
+                return True
+            self.click(self.C_FL_AREA_OPEN)
+            sleep(1.2)
+        logger.warning('[点赞] 打开区域弹窗超时')
+        return False
+
+    def _like_by_search(self, target: str, name_check: bool) -> bool:
+        """通过添加页搜索玩家并点赞(#ID 或名字均可, 可覆盖非好友)"""
+        logger.info(f'[点赞] 搜索 {target}')
+        # 清空搜索框并输入目标
+        self.click(self.C_FL_SEARCH_CLEAR)
+        sleep(0.5)
+        self.click(self.C_FL_SEARCH_INPUT)
+        sleep(1)
+        if not self._input_text(target):
+            logger.warning(f'[点赞] {target} 输入失败，跳过')
+            return False
+        sleep(0.8)
+        self._wait_search_ready()
+        self.click(self.I_FL_SEARCH_GO)
+        sleep(2.5)
+        # 搜索结果通常唯一, 直接点第一行
+        row = self._find_search_result()
+        if row is None:
+            logger.warning(f'[点赞] 搜索 {target} 无结果')
+            return False
+        self.device.click(*row)
+        sleep(2)
+        # #ID 搜索跳过名字核对(OCR 读不到ID), 名字搜索按相似度核对
+        if name_check and not target.startswith('#') and not self._wait_card_name(target.lstrip('#')):
+            logger.warning(f'[点赞] {target} 卡片名字核对失败，跳过')
+            self.click(self.C_FL_CARD_CLOSE)
+            sleep(0.8)
+            return False
+        ok = self._click_card_thumb(target)
+        self.click(self.C_FL_CARD_CLOSE)
+        sleep(0.8)
+        return ok
+
+    def _input_text(self, text: str) -> bool:
+        """输入文本到当前焦点框; 优先 u2.send_keys, 失败时 ASCII 回退 input text + MuMu 输入条确定"""
+        try:
+            self.device.u2.send_keys(text, clear=True)
+            return True
+        except Exception as e:
+            logger.warning(f'[点赞] u2 输入失败: {e}')
+        # 回退: adb input text + MuMu 顶部输入条确定按钮(仅 ASCII, 中文无法走此通道)
+        is_ascii = all(ord(c) < 128 for c in text)
+        if not is_ascii:
+            logger.error(f'[点赞] 中文 {text} 无法通过 input text 输入(需 MuMu 输入法支持), 跳过')
+            return False
+        import subprocess
+        serial = getattr(self.device, 'serial', None) or self.config.script.device.serial
+        adb = getattr(self.device, 'adb_binary', None) or r'D:\platform-tools\adb.exe'
+        subprocess.run([adb, '-s', serial, 'shell', 'input', 'text', text], check=False)
+        sleep(1.5)
+        # MuMu 顶部输入条的确定按钮(提交到自绘框)
+        self.device.click(1094, 30)
+        sleep(1.5)
+        return True
+
+    def _wait_search_ready(self, timeout: int = 15) -> bool:
+        """等搜索按钮冷却结束(文本从 N秒 变回 搜索)"""
+        timer = Timer(timeout).start()
+        while not timer.reached():
+            self.screenshot()
+            text = self.O_FL_SEARCH_GO_STATE.detect_text(self.device.image) or ''
+            if '搜索' in text and '秒' not in text:
+                return True
+            sleep(1)
+        logger.warning('[点赞] 等待搜索冷却超时')
+        return False
+
+    def _find_search_result(self) -> Optional[tuple]:
+        """等待搜索结果出现, 返回第一行点击坐标"""
+        timer = Timer(8).start()
+        while not timer.reached():
+            self.screenshot()
+            results = self.O_FL_SEARCH_NAME.detect_and_ocr(self.device.image)
+            if results:
+                r = results[0]
+                x = self.O_FL_SEARCH_NAME.roi[0] + r.box[0, 0]
+                y = self.O_FL_SEARCH_NAME.roi[1] + r.box[0, 1]
+                w = r.box[1, 0] - r.box[0, 0]
+                h = r.box[2, 1] - r.box[0, 1]
+                return (int(x + w / 2), int(y + h / 2))
+            sleep(0.8)
+        return None
+
+    def _wait_card_name(self, name: str) -> bool:
+        """等待悬浮卡顶部出现目标名字(装饰字体易丢字, 子串或低相似度兜底)"""
+        timer = Timer(5).start()
+        while not timer.reached():
+            self.screenshot()
+            text = (self.O_FL_CARD_NAME.detect_text(self.device.image) or '').strip()
+            if text and (name in text or text in name or
+                         difflib.SequenceMatcher(None, text, name).ratio() >= 0.5):
+                return True
+            sleep(0.5)
+        return False
+
+    def _click_card_thumb(self, name: str) -> bool:
+        """点击悬浮卡点赞拇指并以点赞数+1验证; 已点过(数字无变化)视为完成"""
+        before = self._read_card_count()
+        for attempt in range(3):
+            self.click(self.C_FL_CARD_THUMB)
+            timer = Timer(4).start()
+            while not timer.reached():
+                self.screenshot()
+                after = self._read_card_count()
+                if before is not None and after is not None and after == before + 1:
+                    logger.info(f'[点赞] {name} 点赞成功')
+                    return True
+                sleep(0.5)
+            logger.warning(f'[点赞] {name} 第 {attempt + 1} 次点击未见反馈')
+        if before is not None:
+            logger.info(f'[点赞] {name} 疑似今日已点赞，跳过')
+            return True
+        return False
+
+    def _read_card_count(self) -> Optional[int]:
+        """读取悬浮卡点赞数字"""
+        try:
+            text = self.O_FL_CARD_COUNT.detect_text(self.device.image)
+            return int(re.sub(r'\D', '', text or ''))
+        except (ValueError, TypeError):
+            return None
+
+    def _like_all_friends(self) -> int:
+        """好友与跨区好友分组顺序点赞, 至 20 次上限"""
+        liked = 0
+        for cross in (False, True):
+            if not self._expand_group(cross):
+                continue
+            liked += self._like_visible_friends(stop=20 - liked)
+            if liked >= 20:
+                break
+        return liked
+
+    # 列表 OCR 会混入状态标签/时间戳/分组计数, 不是好友名字
+    LIKE_NAME_NOISE = re.compile(r'[/：:]|小时前|分钟前|天前|昨天|前天|^在线$|^离线$')
+
+    def _like_visible_friends(self, stop: int) -> int:
+        """遍历当前展开分组的列表逐个点赞; 名单按名字去重, 重名好友会漏点"""
+        liked = 0
+        done_names: set = set()
+        last_texts: Optional[set] = None
+        idle_pages = 0
+        while liked < stop and idle_pages < 3:
+            self.screenshot()
+            results = self.O_FL_LIST_NAME.detect_and_ocr(self.device.image)
+            texts = set()
+            clicked = False
+            for r in results:
+                text = r.ocr_text.strip()
+                if not text:
+                    continue
+                texts.add(text)
+                if text in done_names or self.LIKE_NAME_NOISE.search(text):
+                    continue
+                done_names.add(text)
+                x = self.O_FL_LIST_NAME.roi[0] + r.box[0, 0]
+                y = self.O_FL_LIST_NAME.roi[1] + r.box[0, 1]
+                w = r.box[1, 0] - r.box[0, 0]
+                h = r.box[2, 1] - r.box[0, 1]
+                self.device.click(int(x + w / 2), int(y + h / 2))
+                sleep(0.8)
+                if self._click_thumb(text):
+                    liked += 1
+                clicked = True
+                if liked >= stop:
+                    return liked
+            if liked >= stop:
+                break
+            if not clicked:
+                idle_pages += 1
+            else:
+                idle_pages = 0
+            if last_texts is not None and texts and texts == last_texts:
+                idle_pages += 1
+            last_texts = texts
+            if liked < stop:
+                self.swipe(self.S_FL_LIST_UP, interval=1.2)
+        return liked
 
     def run_store(self):
         if self.check_store_all_done():

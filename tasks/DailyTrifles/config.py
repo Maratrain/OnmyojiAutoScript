@@ -22,6 +22,7 @@ class DoneRecord(ConfigBase):
     luck_msg_dt: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"))
     store_sign_dt: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"))
     sushi_dt: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"))
+    friend_like_dt: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"))
     guild_donate_finish: bool = Field(default=False)
 
 
@@ -64,6 +65,42 @@ class DailyGuildDonate(ConfigBase):
         return [line.strip() for line in self.friend_list.split('\n') if line.strip() != '']
 
 
+class DailyFriendLike(ConfigBase):
+    enable: bool = Field(default=False)
+    # 要点赞的好友名字，每行一个；同区好友直接填名字，重名的跨区好友才用 名字@区服名 区分
+    like_names: MultiLine = Field(default='', description='要点赞的好友名字，每行一个；同区好友直接填名字，重名的跨区好友才需加 @区服名')
+    # 名单为空时改为点赞全部好友（含跨区），至当日 20 次上限
+    like_all: bool = Field(default=False, description='好友名单为空时生效：点赞全部好友至当日 20 次上限')
+    # 打开聊天面板后核对名字与区服，防止重名/点错行
+    name_check: bool = Field(default=True, description='点赞前核对聊天面板顶部名字与紫色区服名，防止点错人')
+    # 搜索点赞目标，每行一个，支持 #玩家ID 或名字（可点赞非好友）；搜索固定使用全服
+    search_names: MultiLine = Field(default='', description='搜索点赞目标，每行一个，支持 #玩家ID 或名字；搜索固定使用全服')
+
+    @property
+    def like_names_v(self) -> list[tuple[str, str]]:
+        """每行解析为 (名字, 区服名)；不带 @ 时区服名为空串，表示不校验区服"""
+        if not self.like_names or self.like_names == '' or self.like_names.strip() == '':
+            return []
+        entries = []
+        for line in self.like_names.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            if '@' in line:
+                name, server = line.rsplit('@', 1)
+                entries.append((name.strip(), server.strip()))
+            else:
+                entries.append((line, ''))
+        return entries
+
+    @property
+    def search_names_v(self) -> list[str]:
+        if not self.search_names or self.search_names == '' or self.search_names.strip() == '' or \
+                len(self.search_names.split('\n')) == 0:
+            return []
+        return [line.strip() for line in self.search_names.split('\n') if line.strip() != '']
+
+
 class DailyTriflesConfig(BaseModel):
     # 庭院事务
     courtyard_affairs: bool = Field(default=True)
@@ -88,6 +125,7 @@ class DailyTrifles(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)
     trifles_config: DailyTriflesConfig = Field(default_factory=DailyTriflesConfig)
     guild_donate: DailyGuildDonate = Field(default_factory=DailyGuildDonate)
+    friend_like: DailyFriendLike = Field(default_factory=DailyFriendLike)
     done_record: DoneRecord = Field(default_factory=DoneRecord)
 
     hide_fields = dynamic_hide('done_record')
