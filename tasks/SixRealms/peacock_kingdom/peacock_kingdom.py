@@ -88,7 +88,7 @@ class PeacockKingdom(BasePeacockKingdom):
     def run_on_pk_main(self):
         """孔雀国主界面 执行策略选岛屿"""
         if self.appear(self.I_PK_BOSS_PREPARE) and \
-                self.enter_battle(self.I_PK_BOSS_FIRE, boss_unlock=self.I_PK_BOSS_UNLOCK, boss_lock=self.I_PK_BOSS_LOCK):
+                self.enter_battle(self.I_PK_BOSS_FIRE, boss_unlock=self.I_PK_BOSS_UNLOCK):
             logger.info('[六道-孔雀国] 开始首领战斗')
             self.run_general_battle(battle_key='boss', exit_matcher=pages.page_peacock_kingdom)
             raise TaskEnd

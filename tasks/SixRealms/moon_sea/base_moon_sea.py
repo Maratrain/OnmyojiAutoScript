@@ -1,5 +1,6 @@
 from module.logger import logger
 import tasks.SixRealms.moon_sea.page as pages
+from tasks.SixRealms.page import handle_sr_confirm_tip
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle, BattleContext, BattleAction
 from tasks.SixRealms.common import SixRealmsCommon
@@ -68,9 +69,8 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
             return BattleAction.CONTINUE
         if not context.is_win and self.appear_then_click(self.I_SR_DOUBLE_REWARD_CANCEL, interval=1.5):
             return BattleAction.CONTINUE
-        if self.appear(self.I_SR_CHECK_BUY_BOX): # 是否前往购买万相赐福
-            if self.appear_then_click(self.I_SR_NOT_TIP, interval=1.5) and self.appear_then_click(self.I_UI_CANCEL):
-                return BattleAction.CONTINUE
+        if handle_sr_confirm_tip(self):  # 确认弹窗(如万相赐福购买提示)统一处理
+            return BattleAction.CONTINUE
         if self.appear(self.I_COIN, interval=2):
             self.coin_num += self.get_coin_num(self.I_COIN)
             logger.info(f'[六道-月之海] 当前钱币: {self.coin_num}')

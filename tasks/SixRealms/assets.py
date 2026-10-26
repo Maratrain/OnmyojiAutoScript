@@ -72,9 +72,7 @@ class SixRealmsAssets:
 	# Image Rule Assets
 	# 大boss挑战 
 	I_BOSS_FIRE = RuleImage(roi_front=(1128,576,100,100), roi_back=(1091,557,156,147), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_fire.png")
-	# description 
-	I_BOSS_TEAM_LOCK = RuleImage(roi_front=(1139,493,21,21), roi_back=(1130,487,38,43), threshold=0.95, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_team_lock.png")
-	# description 
+	# description
 	I_BOSS_TEAM_UNLOCK = RuleImage(roi_front=(1138,497,22,21), roi_back=(1127,491,40,41), threshold=0.95, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_team_unlock.png")
 	# description 
 	I_BOSS_SKIP = RuleImage(roi_front=(1131,13,100,42), roi_back=(1113,5,136,62), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_boss_skip.png")
@@ -112,10 +110,8 @@ class SixRealmsAssets:
 	I_BATTLE_COMMON = RuleImage(roi_front=(718,232,36,40), roi_back=(684,208,100,100), threshold=0.7, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_battle_common.png")
 	# 点击挑战 
 	I_BATTLE_FIRE = RuleImage(roi_front=(1129,585,100,100), roi_back=(1080,551,174,144), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_battle_fire.png")
-	# 解锁标志 
+	# 解锁标志
 	I_BATTLE_TEAM_UNLOCK = RuleImage(roi_front=(962,676,21,21), roi_back=(943,641,63,74), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_battle_team_unlock.png")
-	# 锁定标志 
-	I_BATTLE_TEAM_LOCK = RuleImage(roi_front=(961,675,21,23), roi_back=(949,649,54,63), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_battle_team_lock.png")
 
 
 	# Image Rule Assets
@@ -216,11 +212,9 @@ class SixRealmsAssets:
 	# Image Rule Assets
 	# boss备战 
 	I_PK_BOSS_PREPARE = RuleImage(roi_front=(852,633,56,59), roi_back=(827,611,100,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/peacock_kingdom/pk/pk_pk_boss_prepare.png")
-	#  
+	#
 	I_PK_BOSS_UNLOCK = RuleImage(roi_front=(1129,530,20,25), roi_back=(1129,530,20,25), threshold=0.95, method="Template matching", file="./tasks/SixRealms/peacock_kingdom/pk/pk_pk_boss_unlock.png")
-	#  
-	I_PK_BOSS_LOCK = RuleImage(roi_front=(1129,530,20,25), roi_back=(1129,530,20,25), threshold=0.95, method="Template matching", file="./tasks/SixRealms/peacock_kingdom/pk/pk_pk_boss_lock.png")
-	#  
+	#
 	I_PK_BOSS_FIRE = RuleImage(roi_front=(1108,592,103,90), roi_back=(1108,592,103,90), threshold=0.8, method="Template matching", file="./tasks/SixRealms/peacock_kingdom/pk/pk_pk_boss_fire.png")
 	# 孔雀国boss分享 
 	I_KP_BOSS_SHARE = RuleImage(roi_front=(1161,626,59,62), roi_back=(1142,609,100,100), threshold=0.8, method="Template matching", file="./tasks/SixRealms/peacock_kingdom/pk/pk_kp_boss_share.png")
@@ -342,7 +336,9 @@ class SixRealmsAssets:
 	I_SR_DOUBLE_REWARD_USE = RuleImage(roi_front=(669,417,126,53), roi_back=(651,407,164,71), threshold=0.8, method="Template matching", file="./tasks/SixRealms/sr/sr_sr_double_reward_use.png")
 	# 是否前往购买万象赐福标志 
 	I_SR_CHECK_BUY_BOX = RuleImage(roi_front=(484,290,295,47), roi_back=(405,230,467,255), threshold=0.8, method="Template matching", file="./tasks/SixRealms/sr/sr_sr_check_buy_box.png")
-	# 不再提醒 
-	I_SR_NOT_TIP = RuleImage(roi_front=(543,342,37,37), roi_back=(405,230,467,255), threshold=0.8, method="Template matching", file="./tasks/SixRealms/sr/sr_sr_not_tip.png")
+	# 不再提醒
+	I_SR_NOT_TIP = RuleImage(roi_front=(564,343,37,37), roi_back=(405,230,467,255), threshold=0.8, method="Template matching", file="./tasks/SixRealms/sr/sr_sr_not_tip.png")
+	# 确认弹窗确认按钮
+	I_SR_SELECT_ENSURE_SHORT = RuleImage(roi_front=(696,414,114,44), roi_back=(670,402,164,71), threshold=0.8, method="Template matching", file="./tasks/SixRealms/sr/sr_sr_select_ensure_short.png")
 
 

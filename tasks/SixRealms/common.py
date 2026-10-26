@@ -69,23 +69,21 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         self.appear_then_click(self.I_UI_CANCEL)
         return False
 
-    def enter_battle(self, fire_rule: RuleImage, boss_unlock: RuleImage = None, boss_lock: RuleImage = None,
-                     normal_unlock: RuleImage = None, normal_lock: RuleImage = None) -> bool:
+    def enter_battle(self, fire_rule: RuleImage, boss_unlock: RuleImage = None,
+                     normal_unlock: RuleImage = None) -> bool:
         """
-        进入战斗
+        仅识别未锁定态，确认锁队后沿原流程进入战斗
         :param fire_rule: 点击进入战斗的挑战规则
-        :param boss_unlock: boss战前的解锁
-        :param boss_lock: boss战前的锁定
-        :param normal_unlock: 普通怪战前的解锁
-        :param normal_lock: 普通怪战前的锁定
+        :param boss_unlock: boss战前的未锁定标志
+        :param normal_unlock: 普通怪战前的未锁定标志
         :return: 成功进入战斗True, 否则False
         """
-        normal_unlock = normal_unlock if normal_unlock else self.I_BATTLE_TEAM_UNLOCK
-        normal_lock = normal_lock if normal_lock else self.I_BATTLE_TEAM_LOCK
-        if self.appear(normal_unlock):
-            self.ui_click(normal_unlock, normal_lock, interval=0.8)
-        if boss_unlock and self.appear(boss_unlock):
-            self.ui_click(boss_unlock, boss_lock, interval=0.8)
+        unlock = boss_unlock if boss_unlock is not None else normal_unlock
+        if unlock is None:
+            unlock = self.I_BATTLE_TEAM_UNLOCK
+        # 未锁定标志在场则点击锁定，等待其消失(带超时)，避免无超时点击空转
+        self.ui_click_until_appear(unlock, page_check=fire_rule,
+                                   expected_present=False, interval=0.8)
         self.device.stuck_record_clear()
         timeout_timer = Timer(12).start()
         while not timeout_timer.reached():

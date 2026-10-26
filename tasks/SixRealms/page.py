@@ -1,3 +1,4 @@
+from module.logger import logger
 from tasks.GameUi.assets import GameUiAssets
 from tasks.GameUi.default_pages import (page_exploration, page_six_gates, random_click, page_battle, page_battle_prepare,
                                         page_battle_result, page_reward)
@@ -9,6 +10,28 @@ from tasks.SixRealms.assets import SixRealmsAssets
 page_sr_prepare_exit = Page(SixRealmsAssets.I_MS_CHECK_EXIT_PREPARE, priority=88)
 # 商店打开弹窗
 page_sr_open_store = Page(SixRealmsAssets.I_MS_CHECK_OPEN_STORE, priority=88)
+
+
+def handle_sr_confirm_tip(task) -> bool:
+    """六道确认弹窗统一处理: 仅凭确认按钮识别, 可选勾选不再提示后确认"""
+    confirm = SixRealmsAssets.I_SR_SELECT_ENSURE_SHORT
+    unchecked = SixRealmsAssets.I_SR_NOT_TIP
+    if not task.appear(confirm):
+        return False
+    logger.info('[六道] 识别到确认弹窗')
+    if task.appear(unchecked):
+        task.ui_click_until_appear(
+            unchecked, confirm, expected_present=False,
+            interval=1, timeout=6, max_clicks=3, confirm_delay=0.2,
+        )
+    # 勾选标记须在连续两帧内消失才算勾上, 再点确认
+    task.ui_click_until_appear(
+        confirm, expected_present=False,
+        interval=1, timeout=6, max_clicks=3, confirm_delay=0.2,
+    )
+    task.screenshot()
+    return True
+
 
 # ----------------月之海----------------
 def handle_enter_moon_sea(task) -> bool:
