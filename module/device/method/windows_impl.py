@@ -9,14 +9,15 @@ import time
 from math import dist
 from cached_property import cached_property
 from win32gui import (GetWindowText, EnumWindows, FindWindow, FindWindowEx,
-                      IsWindow, GetWindowRect, GetWindowDC, DeleteObject,
-                      SetForegroundWindow, IsWindowVisible, GetDC, GetParent,
-                      EnumChildWindows, SetForegroundWindow, GetClientRect)
+                      IsWindow, IsIconic, ShowWindow, GetWindowRect,
+                      GetWindowDC, DeleteObject, SetForegroundWindow,
+                      IsWindowVisible, GetDC, GetParent, EnumChildWindows,
+                      SetForegroundWindow, GetClientRect)
 from win32con import (SRCCOPY, DESKTOPHORZRES, DESKTOPVERTRES, WM_LBUTTONUP,
                       WM_LBUTTONDOWN, WM_ACTIVATE, WA_ACTIVE, MK_LBUTTON,
                       WM_NCHITTEST, WM_SETCURSOR, HTCLIENT, WM_MOUSEMOVE,
                       WM_PARENTNOTIFY, WM_MOUSEACTIVATE, WM_MOUSEWHEEL,
-                      WM_SETFOCUS, WM_CAPTURECHANGED)
+                      WM_SETFOCUS, WM_CAPTURECHANGED, SW_SHOWNOACTIVATE)
 from win32ui import CreateDCFromHandle, CreateBitmap
 from win32api import GetSystemMetrics, SendMessage, MAKELONG, PostMessage
 from win32con import SRCCOPY
@@ -64,6 +65,24 @@ class Window(Handle):
             except Exception as e2:
                 raise GameNotRunningError(f'模拟器窗口句柄重解析后仍无法获取 DC: {e2}')
 
+    def _restore_emulator_if_minimized(self):
+        """模拟器窗口最小化时 BitBlt 只能拿到纯黑帧，先自动还原。
+
+        窗口后台截图可被其他窗口遮挡（DWM 有缓存），但最小化会让模拟器
+        挂起渲染输出，BitBlt 静默返回全黑帧且不报错。检测到最小化立即
+        还原窗口（不激活，避免抢焦点），警告日志 60 秒限频。
+        """
+        root = getattr(self, 'root_handle_num', None)
+        if not root or not IsWindow(root) or not IsIconic(root):
+            return
+        ShowWindow(root, SW_SHOWNOACTIVATE)
+        now = time.time()
+        if now - getattr(self, '_minimize_restore_log_time', 0) > 60:
+            self._minimize_restore_log_time = now
+            title = GetWindowText(root)
+            logger.warning(f'[设备-截图] 模拟器窗口「{title}」处于最小化，截图会全黑，已自动还原')
+        time.sleep(0.5)
+
     def screenshot_window_background(self):
         """
         后台截屏
@@ -71,6 +90,7 @@ class Window(Handle):
         """
         if getattr(self, 'is_desktop_window', False):
             return self.screenshot_desktop_bitblt()
+        self._restore_emulator_if_minimized()
         widthScreen, heightScreen = self.screenshot_size
         # 返回句柄窗口的设备环境，覆盖整个窗口，包括非客户区，标题栏，菜单，边框
         hwndDc = self._get_window_dc_with_retry()

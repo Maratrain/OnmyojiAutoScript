@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from module.exception import GameStuckError, TaskEnd
 from module.logger import logger
+from module.base.utils.utils import get_color
 from tasks.Chess.assets import ChessAssets
 from tasks.Chess.config import Chess
 from tasks.Chess.runtime.economy import ChessEconomyMixin
@@ -501,25 +502,52 @@ class ChessLegacyScriptTask(
         self.screenshot()
         return True
 
+    def _is_black_frame(self) -> bool:
+        """当前截屏是否全黑（模拟器黑屏）。
+
+        黑屏时所有局内标记与 I_GAME_OVER 均匹配不到，不可据此判定对局状态。
+        """
+        if self.device.image is None:
+            return False
+        color = get_color(self.device.image, area=(0, 0, 1280, 720))
+        return sum(color) < 1
+
     def _finish_chess_game_after_markers_missing(
         self,
         context: str,
     ) -> bool:
-        """两个局内标志连续三帧消失后，等待结算页并读取实际名次。"""
+        """两个局内标志连续三帧消失后，等待结算页并读取实际名次。
+
+        黑屏防御：模拟器黑屏时局内标记会全部消失、I_GAME_OVER 也匹配不到，
+        若据此判定对局结束会误触发 GameStuckError。黑屏帧不累计“标记消失”，
+        需连续 GAME_END_CONFIRM_FRAMES 帧非黑且标记消失才确认结束。
+        """
         if self._is_in_chess_game():
             return False
 
-        for frame in range(2, self.GAME_END_CONFIRM_FRAMES + 1):
+        consecutive_missing = 0
+        for _ in range(self.GAME_END_CONFIRM_FRAMES * 8):
             time.sleep(2 * self.SLOW_POLL_INTERVAL)
             self.device.stuck_record_clear()
             self.screenshot()
             if self._is_in_chess_game():
                 logger.debug(
                     '[棋局] 对局结束确认已取消: '
-                    f'局内标记在第 {frame} 帧恢复，'
-                    f'上下文={context}'
+                    f'局内标记恢复，上下文={context}'
                 )
                 return False
+            if self._is_black_frame():
+                consecutive_missing = 0
+                logger.warning('[棋局] 截屏全黑，疑似模拟器黑屏，暂停对局结束判定')
+                continue
+            consecutive_missing += 1
+            if consecutive_missing >= self.GAME_END_CONFIRM_FRAMES:
+                break
+        else:
+            raise GameStuckError(
+                '[棋局] 等待对局结束确认超时: '
+                f'持续黑屏或标记未稳定，上下文={context}'
+            )
 
         logger.info(
             '[棋局] 检测到对局结束: 局内标记全部消失持续'
@@ -534,6 +562,11 @@ class ChessLegacyScriptTask(
                     f'重置缺失帧计数，上下文={context}'
                 )
                 return False
+            if self._is_black_frame():
+                logger.warning('[棋局] 结算等待期间截屏全黑，疑似模拟器黑屏，重试')
+                time.sleep(2 * self.SLOW_POLL_INTERVAL)
+                self.screenshot()
+                continue
             if self.appear(self.I_GAME_OVER_1) or self.appear(self.I_GAME_OVER_2):
                 rank, raw = self._read_game_rank()
                 self._last_game_rank = rank
