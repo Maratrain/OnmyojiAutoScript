@@ -34,6 +34,28 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
             break
         return self.I_SELECT_3
 
+    def _read_coin_stable(self, coin_rule: RuleOcr) -> int:
+        """
+        连读钱币数字, 相邻两次一致才采信(防单帧 OCR 丢首位, 如 588 误读成 88)
+        :param coin_rule: 钱币 OCR 规则
+        :return: 稳定读数; 连续不一致时以最后一次有效读数为准, 全部读不到返回 0
+        """
+        previous = None
+        last = 0
+        for _ in range(4):
+            self.screenshot()
+            text = str(coin_rule.ocr(self.device.image)).strip()
+            if not text.isdigit():
+                previous = None
+                continue
+            value = int(text)
+            last = value
+            if value == previous:
+                return value
+            previous = value
+        logger.warning(f'[六道] 钱币读数不稳定，以最后一次读数 {last} 继续')
+        return last
+
     def get_coin_num(self, coin_rule: RuleImage | RuleOcr) -> int:
         """
         根据规则获取钱币数量(图像:获取右下角数字 文字:直接返回对应数字)
@@ -129,7 +151,7 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
         :param buy_num: 最大购买次数
         :return: (剩余金币数量, 购买次数)
         """
-        coin_num = coin_num_rule.ocr(self.device.image)
+        coin_num = self._read_coin_stable(coin_num_rule)
         buy_interval_timer = Timer(1.5)  # 控制购买间隔
         buy_cnt = 0
         while True:
@@ -139,7 +161,7 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
             if not buy_interval_timer.reached():
                 continue
             buy_interval_timer.reset()
-            coin_num = coin_num_rule.ocr(self.device.image)
+            coin_num = self._read_coin_stable(coin_num_rule)
             logger.info(f'[六道] 当前钱币: {coin_num}')
             if buy_cnt >= buy_num:
                 logger.info(f'[六道] 购买 {skill_rule.name} 完成')

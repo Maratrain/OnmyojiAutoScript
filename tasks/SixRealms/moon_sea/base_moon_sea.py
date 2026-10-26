@@ -1,4 +1,5 @@
 from module.logger import logger
+import re
 import tasks.SixRealms.moon_sea.page as pages
 from tasks.SixRealms.page import handle_sr_confirm_tip
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
@@ -29,12 +30,28 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
             return BattleAction.CONTINUE
         return super()._handle_in_battle(context, config)
 
+    def _can_refresh_battle_skill(self) -> bool:
+        """战斗三选一能否刷新: 有剩余次数且钱够(刷新 50/次)"""
+        text = str(self.O_SKILL_REFRESH.ocr(self.device.image))
+        match = re.search(r'剩(\d+)次', text)
+        if not match:
+            logger.info('[六道-月之海] 刷新次数未识别，跳过三选一刷新')
+            return False
+        remain = int(match.group(1))
+        logger.info(f'[六道-月之海] 三选一剩余刷新次数: {remain}')
+        if remain <= 0:
+            return False
+        return self._read_coin_stable(self.O_COIN_NUM) >= 50
+
     def _handle_result(self, context: BattleContext, config: GeneralBattleConfig) -> BattleAction:
         context.reward_no_battle_ts = None
         # 首领奖励大弹层标题与通用获得奖励不同, 识别到就点下方空白推进
         if self.appear_then_click(self.I_MS_BOSS_REWARD_TITLE,
                                   action=self.C_MS_REWARD_DISMISS, interval=1.2):
             logger.info('[六道-月之海] 关闭首领奖励大弹层')
+            return BattleAction.CONTINUE
+        # 刷新三选一等操作的通用确认弹窗(兼容新旧两套UI)
+        if self.click_ui_confirm(interval=0.7):
             return BattleAction.CONTINUE
         # 打输了, 直接放弃
         if self.appear(self.I_BOSS_BATTLE_GIVEUP):
@@ -50,6 +67,12 @@ class BaseMoonSea(GeneralBattle, SixRealmsCommon):
             context.is_win = True
             self.coin_num = self.get_coin_num(self.O_COIN_NUM)
             select_btn = self.get_skill_select([self.I_SKILL101, self.I_SKILL105])
+            # 没刷出柔风且未满级: 钱够且还有刷新次数就先刷新三选一
+            # (不用 select_btn==I_SELECT_3 判没柔风: 柔风位于第四选中位时同样返回 I_SELECT_3, 会误刷新)
+            if not self.appear(self.I_SKILL101) and self.cnt_skill101 < 5 and self._can_refresh_battle_skill():
+                if self.appear_then_click(self.I_SKILL_REFRESH, interval=1):
+                    logger.info('[六道-月之海] 未刷出柔风，刷新三选一')
+                    return BattleAction.CONTINUE
             if self.appear_then_click(select_btn, interval=1):
                 if self.appear(self.I_SKILL101):
                     self.cnt_skill101 += 1

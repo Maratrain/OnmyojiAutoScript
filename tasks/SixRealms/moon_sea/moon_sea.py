@@ -123,8 +123,8 @@ class MoonSea(BaseMoonSea):
     def _filter_island(self, appeared_islands: list[RuleImage]) -> list[RuleImage]:
         remain_turns = self._read_remain_turns_stable()
         appeared_shop = self.appear(self.I_MS_LAND_SHOP)
-        # 剩余回合数<=1&商店未出现&技能未满&金币足够打开商店和买柔风, 则开启商店
-        if remain_turns <= 1 and not appeared_shop and self.cnt_skill101 < 5 and self.coin_num >= 600:
+        # 剩余回合数<=2&商店未出现&技能未满&金币足够打开商店和买柔风, 则开启商店
+        if remain_turns <= 2 and not appeared_shop and self.cnt_skill101 < 5 and self.coin_num >= 400:
             self.open_shop(self.I_M_STORE_ACTIVITY, pages.page_ms_shop_land)
             return []
         # 出现商店&岛屿数量>2&金币不够买柔风&剩余回合数>1, 则不选择商店, 先攒金币
