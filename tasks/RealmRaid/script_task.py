@@ -151,6 +151,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
                     self.run_general_battle(config=self.build_quick_exit_config(con.general_battle_config))
                     self.fire_again()
                     last_battle = self.run_general_battle(con.general_battle_config)
+                    if not last_battle:
+                        last_battle = self.verify_lose_result(index)
                     handled_first_target = True
             elif self.check_medal_is_frog(frog, medal, index):
                 # 如果挑战的这只是呱太的话，就要把锁定改为不锁定
@@ -160,6 +162,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
                     # 没有成功进入战斗则重新检查票数和其他条件
                     continue
                 last_battle = self.run_general_battle(con.general_battle_config)
+                if not last_battle:
+                    last_battle = self.verify_lose_result(index)
             if lock_before:
                 con.general_battle_config.lock_team_enable = lock_before
             # 检查是否每三次领一个奖励
@@ -190,6 +194,27 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         self.goto_page(page_exploration)
         self.set_next_run(task='RealmRaid', success=success, finish=True)
         raise TaskEnd
+
+    def verify_lose_result(self, index: int) -> bool:
+        """判负保险：复查被通用战斗判负的结界是否真的失败。
+
+        通用战斗没截到结算/奖励页就按默认 is_win=False 判负，结算画面在两次
+        截图间隔内被翻过时会误判失败，进而触发失败刷新，丢掉整批突破进度
+        （3 胜 5 勾玉、9 胜 10 勾玉宝箱）。真失败的结界会盖失败印章，
+        打赢攻破的没有，据此复查纠正误判。
+        :param index: 刚进攻的结界位置 1~9
+        :return: True 表示复查认定本场实际为胜利
+        """
+        for attempt in range(3):
+            if attempt:
+                time.sleep(0.6)
+            self.screenshot()
+            self.false_image.roi_back = self.false_roi[index - 1]
+            if self.appear(self.false_image):
+                logger.info(f'[个人突破] 结界 {index} 盖有失败印章，确认本场失败')
+                return False
+        logger.info(f'[个人突破] 结界 {index} 未盖失败印章，判定本场实际为胜利')
+        return True
 
     def is_ticket(self) -> bool:
         """
