@@ -3,6 +3,7 @@ import time
 import random
 from module.atom.click import RuleClick
 from module.atom.image import RuleImage
+from module.atom.ocr import RuleOcr
 from module.base.timer import Timer
 from module.exception import TaskEnd, GameStuckError
 from module.logger import logger
@@ -66,32 +67,54 @@ class MoonSea(BaseMoonSea):
                 break
         logger.info('[六道-月之海] 月之海任务结束')
 
-    def read_double_reward_count(self) -> int:
-        """读入场页右上角的双倍奖励剩余次数，两次连续相同读数才算稳定"""
+    # 双倍次数数字带浮动动画，紧贴 ROI 失效时用带余量的宽 ROI 兜底
+    MS_DOUBLE_ROI_WIDE = (1176, 20, 44, 52)
+    # OCR 对该字形常见误读（0 缺顶误读为 8、O/o/D 混淆等），映射后仍非数字才视为失败
+    _MS_DOUBLE_CHAR_MAP = str.maketrans({'O': '0', 'o': '0', 'D': '0', 'I': '1', 'l': '1', 'S': '5', 'B': '8'})
+
+    def _parse_double_reward_text(self, text) -> int | None:
+        """解析双倍次数文本；双倍次数为个位数，两位以上视为误读"""
+        text = str(text).strip().translate(self._MS_DOUBLE_CHAR_MAP)
+        digits = ''.join(ch for ch in text if ch.isdigit())
+        if not digits or int(digits) > 9:
+            return None
+        return int(digits)
+
+    def read_double_reward_count(self) -> int | None:
+        """读入场页右上角的双倍奖励剩余次数，两次连续相同读数才算稳定。
+        返回：0-9 正常读数；-1 入场标志消失（点击已生效、页面正在切换）；None 连续 4 轮读不到"""
         previous = None
+        wide = RuleOcr(roi=self.MS_DOUBLE_ROI_WIDE, area=self.MS_DOUBLE_ROI_WIDE,
+                       mode='Single', method='Default', keyword='', name='ms_double_reward_count_wide')
         for _ in range(4):
             self.screenshot()
             if not (self.appear(self.I_MSTART) or self.appear(self.I_MCONINUE)):
+                return -1
+            count = self._parse_double_reward_text(self.O_MS_DOUBLE_COUNT.ocr(self.device.image))
+            if count is None:
+                count = self._parse_double_reward_text(wide.ocr(self.device.image))
+            if count is None:
                 previous = None
                 continue
-            text = str(self.O_MS_DOUBLE_COUNT.ocr(self.device.image)).strip()
-            if not text or not text.isascii() or not text.isdigit():
-                previous = None
-                continue
-            count = int(text)
             if count == previous:
                 logger.info(f'[六道-月之海] 双倍奖励剩余次数: {count}')
                 return count
             previous = count
             time.sleep(0.3)
-        raise GameStuckError('[六道-月之海] 无法确认入场页双倍奖励剩余次数')
+        return None
 
     def run_on_ms(self):
         """月之海界面"""
         if self.config.model.six_realms.six_realms_gate.double_rewards_only \
                 and (self.appear(self.I_MSTART) or self.appear(self.I_MCONINUE)):
-            # 只打双倍奖励：入场前先查剩余次数，为 0 时保留未完成进度提前收尾
-            if self.read_double_reward_count() == 0:
+            count = self.read_double_reward_count()
+            if count == -1:
+                # 入场页正在切换，本轮不再操作
+                return
+            if count is None:
+                logger.info('[六道-月之海] 无法确认双倍奖励剩余次数，保守起见本轮不打')
+                raise MoonSeaExhausted
+            if count == 0:
                 logger.info('[六道-月之海] 无剩余双倍奖励，保留未完成进度，提前结束')
                 raise MoonSeaExhausted
         if self.appear_then_click(self.I_MCONINUE, interval=1):

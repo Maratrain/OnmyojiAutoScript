@@ -176,8 +176,8 @@ class SixRealmsAssets:
 
 
 	# Ocr Rule Assets
-	# 双倍奖励剩余次数
-	O_MS_DOUBLE_COUNT = RuleOcr(roi=(1140,15,85,30), area=(1140,15,85,30), mode="Single", method="Default", keyword="", name="ms_double_reward_count")
+	# 双倍奖励剩余次数（数字渲染在 y32-60 附近且带浮动动画，ROI 紧贴数字保证 rec 识别占比；浮动兜底见 moon_sea.py 的宽 ROI）
+	O_MS_DOUBLE_COUNT = RuleOcr(roi=(1178,26,36,40), area=(1178,26,36,40), mode="Single", method="Default", keyword="", name="ms_double_reward_count")
 	# 有多少钱 
 	O_COIN_NUM = RuleOcr(roi=(1171,23,59,31), area=(1171,23,59,31), mode="Digit", method="Default", keyword="", name="coin_num")
 	# 剩余回合 
