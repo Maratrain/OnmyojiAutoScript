@@ -36,7 +36,7 @@ class GlobalGameAssets:
 	# 新版协作弹窗-拒绝
 	I_NG_REJECT = RuleImage(roi_front=(846,562,53,51), roi_back=(819,536,108,101), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_reject.png")
 	# 新版协作弹窗-忽略
-	I_NG_IGNORE = RuleImage(roi_front=(863,80,21,21), roi_back=(849,65,48,48), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_ignore.png")
+	I_NG_IGNORE = RuleImage(roi_front=(775,74,56,50), roi_back=(755,55,100,90), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_ignore.png")
 
 
 	# Click Rule Assets
