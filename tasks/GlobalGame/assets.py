@@ -37,6 +37,10 @@ class GlobalGameAssets:
 	I_NG_REJECT = RuleImage(roi_front=(846,562,53,51), roi_back=(819,536,108,101), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_reject.png")
 	# 新版协作弹窗-忽略
 	I_NG_IGNORE = RuleImage(roi_front=(775,74,56,50), roi_back=(755,55,100,90), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_ignore.png")
+	# 新版协作弹窗-勾玉奖励图标(判型用)
+	I_NG_JADE = RuleImage(roi_front=(659,501,84,45), roi_back=(548,492,200,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_jade.png")
+	# 新版协作弹窗-食材奖励图标(判型用)
+	I_NG_FOOD = RuleImage(roi_front=(566,502,80,44), roi_back=(548,492,200,100), threshold=0.8, method="Template matching", file="./tasks/GlobalGame/gg/gg_ng_food.png")
 
 
 	# Click Rule Assets

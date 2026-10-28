@@ -118,5 +118,25 @@
     "threshold": 0.8,
     "profile": "High",
     "description": ""
+  },
+  {
+    "itemName": "ng_jade",
+    "imageName": "gg_ng_jade.png",
+    "roiFront": "659,501,84,45",
+    "roiBack": "548,492,200,100",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "勾玉奖励图标(判型用)"
+  },
+  {
+    "itemName": "ng_food",
+    "imageName": "gg_ng_food.png",
+    "roiFront": "566,502,80,44",
+    "roiBack": "548,492,200,100",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "食材奖励图标(判型用)"
   }
 ]
