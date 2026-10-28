@@ -149,9 +149,27 @@ class Adb(Connection):
             logger.warning(f'[设备-截图] 异常截图数据: {screenshot}')
         raise OSError(f'cannot load screenshot')
 
+    def ensure_adb_connected(self) -> None:
+        """
+        截图前确保 adb 还连着, 只处理 ip:port 形式的模拟器
+
+        网络类设备掉线后 adb 会把它标成 offline 或直接丢掉, 这里先查一次状态,
+        不通就重连一次, 避免整次截图直接失败后只能等设备卡住检测兜底
+        """
+        if ':' not in self.serial:
+            return  # 真机 / USB 设备不需要 adb connect
+        try:
+            if self.adb_client.device(self.serial).get_state() == 'device':
+                return
+        except Exception:
+            pass
+        logger.warning(f'[设备-连接] 设备 {self.serial} 状态异常, 截图前重新连接')
+        self.adb_connect(self.serial)
+
     @retry
     @Config.when(DEVICE_OVER_HTTP=False)
     def screenshot_adb(self):
+        self.ensure_adb_connected()
         data = self.adb_shell(['screencap', '-p'], stream=True)
         if len(data) < 500:
             logger.warning(f'[设备-截图] 异常截图数据: {data}')
@@ -161,6 +179,7 @@ class Adb(Connection):
     @retry
     @Config.when(DEVICE_OVER_HTTP=True)
     def screenshot_adb(self):
+        self.ensure_adb_connected()
         data = self.adb_shell(['screencap'], stream=True)
         if len(data) < 500:
             logger.warning(f'[设备-截图] 异常截图数据: {data}')
@@ -169,6 +188,7 @@ class Adb(Connection):
 
     @retry
     def screenshot_adb_nc(self):
+        self.ensure_adb_connected()
         data = self.adb_shell_nc(['screencap'])
         if len(data) < 500:
             logger.warning(f'[设备-截图] 异常截图数据: {data}')
