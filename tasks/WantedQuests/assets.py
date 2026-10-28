@@ -119,8 +119,10 @@ class WantedQuestsAssets:
 	I_GOTO_2 = RuleImage(roi_front=(1060,355,88,43), roi_back=(1060,355,88,43), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/wq/wq_goto_2.png")
 	# description 
 	I_GOTO_3 = RuleImage(roi_front=(1060,435,88,32), roi_back=(1060,435,88,32), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/wq/wq_goto_3.png")
-	# description 
+	# description
 	I_GOTO_4 = RuleImage(roi_front=(1061,507,87,42), roi_back=(1061,507,87,42), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/wq/wq_goto_4.png")
+	# 悬赏详细页的退出
+	I_EXIT = RuleImage(roi_front=(1189,111,36,36), roi_back=(1189,111,36,36), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/wq/wq_exit.png")
 	# 判断是否还有任务 
 	I_WQ_CHECK_TASK = RuleImage(roi_front=(110,154,21,125), roi_back=(73,122,69,459), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/wq/wq_wq_check_task.png")
 	# 庭院悬赏任务界面 单个任务点开后 左上角是否追踪 
