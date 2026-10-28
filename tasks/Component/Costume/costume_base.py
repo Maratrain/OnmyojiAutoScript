@@ -91,15 +91,15 @@ shikigami_costume_model = {
         'I_SOU_TEAM_PRESENT': f'I_SOU_TEAM_PRESENT_{i}',
         'I_SOU_CLICK_PRESENT': f'I_SOU_CLICK_PRESENT_{i}',
         'I_SOU_SWITCH_SURE': f'I_SOU_SWITCH_SURE_{i}',
-        # SwitchSoul 分组相关 (1-7组)
-        **{f'I_SOU_CHECK_GROUP_{g}': f'I_SOU_CHECK_GROUP_{g}_{i}' for g in range(1, 8)},
+        # SwitchSoul 分组相关 (1-8组)
+        **{f'I_SOU_CHECK_GROUP_{g}': f'I_SOU_CHECK_GROUP_{g}_{i}' for g in range(1, 9)},
         # SwitchSoul 队伍相关 (1-4队)
         **{f'I_SOU_SWITCH_{t}': f'I_SOU_SWITCH_{t}_{i}' for t in range(1, 5)},
         # SoulsTidy 相关
         'I_ST_SOULS': f'I_ST_SOULS_{i}',
         'I_ST_REPLACE': f'I_ST_REPLACE_{i}',
     }
-    for i in range(1, 13)  # 目前支持 COSTUME_SHIKIGAMI_1 到 COSTUME_SHIKIGAMI_12
+    for i in range(1, 14)  # 目前支持 COSTUME_SHIKIGAMI_1 到 COSTUME_SHIKIGAMI_13
 }
 
 # 庭院事务皮肤
