@@ -140,7 +140,7 @@ TASK_NAME_CN = {
     "GlobalGame": "全局配置",
     "Orochi": "八岐大蛇",
     "TrueOrochi": "真八岐大蛇",
-    "OrochiMoans": "魂觉醒",
+    "OrochiMoans": "悲鸣",
     "FallenSun": "日轮之陨",
     "EternitySea": "永生之海",
     "DailyTrifles": "每日琐事",
@@ -191,7 +191,7 @@ TASK_NAME_CN = {
     "GuildActivityMonitor": "寮活动监控",
     "GeneralInvite": "接受邀请",
     "AutoCheckinBigGod": "大神签到",
-    "OtherWorldTwilight": "彼岸花海",
+    "OtherWorldTwilight": "彼世逢魔",
     "BudokaiTournament": "武道大会",
     "MartialTournament": "武林大会",
     "Slightly": "小事件",
@@ -199,7 +199,6 @@ TASK_NAME_CN = {
     "NewbieStory": "新手剧情",
     "OutingRitual": "出巡仪式",
     "DivineBarrier": "神威破障",
-    "BudokaiTournament": "武道大会",
 }
 
 _I18N_LOCK = threading.Lock()
