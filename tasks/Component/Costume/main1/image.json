@@ -2,11 +2,11 @@
   {
     "itemName": "check_main_1",
     "imageName": "main1_check_main_1.png",
-    "roiFront": "573,348,26,44",
-    "roiBack": "380,330,540,80",
+    "roiFront": "608,148,58,58",
+    "roiBack": "500,60,320,260",
     "method": "Template matching",
-    "threshold": 0.68,
-    "description": "庭院标志(町中挂牌, 兼入口锚点, 随庭院摆位横移由 roiBack 覆盖)"
+    "threshold": 0.85,
+    "description": "庭院锚点(天空云纹+树冠边缘静止区, 2026-10-28 按当前实机重截)"
   },
   {
     "itemName": "main_goto_exploration_1",

@@ -12,7 +12,7 @@ class CostumeAssets:
 
 	# Image Rule Assets
 	# 庭院标志(町中挂牌, 兼入口锚点, 随庭院摆位横移由 roiBack 覆盖)
-	I_CHECK_MAIN_1 = RuleImage(roi_front=(573,348,26,44), roi_back=(380,330,540,80), threshold=0.68, method="Template matching", file="./tasks/Component/Costume/main1/main1_check_main_1.png")
+	I_CHECK_MAIN_1 = RuleImage(roi_front=(608,148,58,58), roi_back=(500,60,320,260), threshold=0.85, method="Template matching", file="./tasks/Component/Costume/main1/main1_check_main_1.png")
 	# description 
 	I_MAIN_GOTO_EXPLORATION_1 = RuleImage(roi_front=(486,148,50,54), roi_back=(282,127,441,100), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main1/main1_main_goto_exploration_1.png")
 	# description 
