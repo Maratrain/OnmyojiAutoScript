@@ -1613,7 +1613,7 @@
 
     const text = document.createElement("div");
     text.className = "rule-item-text";
-    text.textContent = `${displayIndex}. ${rule.itemName || "unnamed"}`;
+    text.textContent = `${displayIndex}. ${rule.itemName || "未命名"}`;
     item.appendChild(text);
 
     item.addEventListener("click", () => {
@@ -1704,7 +1704,7 @@
     const text = active.querySelector(".rule-item-text");
     if (text) {
       const displayIndex = Number.parseInt(active.dataset.displayIndex || "1", 10) || 1;
-      text.textContent = `${displayIndex}. ${rule.itemName || "unnamed"}`;
+      text.textContent = `${displayIndex}. ${rule.itemName || "未命名"}`;
     }
     const thumbWrap = active.querySelector(".rule-thumb-wrap");
     const thumb = active.querySelector(".rule-thumb");
@@ -1939,12 +1939,111 @@
     el.deleteJsonBtn.classList.toggle("hidden", !canDelete);
   }
 
+  // 任务目录中文名: 顶层任务取自本地 OASX 译文, 活动类与 Component 子目录取自仓库内译名/提交说明
+  const TASK_LABELS = {
+    AbyssShadows: "狭间暗域",
+    ActivityShikigami: "当期爬塔",
+    AltAccounts: "小号轮换",
+    AreaBoss: "地域鬼王",
+    AutoCheckinBigGod: "大神签到",
+    BaseActivity: "活动基类",
+    BondlingFairyland: "契灵之境",
+    BudokaiTournament: "武道大会",
+    Buy: "购买",
+    Chess: "百鬼棋局",
+    CollectiveMissions: "集体任务",
+    Component: "公共组件",
+    CooperativeBattle: "协战",
+    Costume: "庭院皮肤",
+    CostumeBattle: "战斗皮肤",
+    CostumeCarpBanner: "鲤鱼旗",
+    CostumeShikigami: "幕间主题",
+    CubWar: "为崽而战",
+    CustomCourtyardAffair: "庭院事务",
+    DailyTrifles: "每日琐事",
+    Delegation: "式神委派",
+    DemonEncounter: "逢魔之时",
+    DemonRetreat: "首领退治",
+    DivineBarrier: "神威破障",
+    Dokan: "道馆",
+    Duel: "斗技",
+    DyeTrials: "灵染试炼",
+    EternitySea: "永生之海",
+    EvoZone: "觉醒副本",
+    ExperienceYoukai: "经验妖怪",
+    Exploration: "探索",
+    FallenSun: "日轮之陨",
+    FindJade: "寻找协作任务",
+    FloatParade: "花车巡游",
+    FrogBoss: "对弈竞猜",
+    FrogChallenge: "青蛙瓷器挑战赛",
+    GameUi: "界面切换",
+    GeneralBattle: "通用战斗",
+    GeneralBuff: "通用加成",
+    GeneralInvite: "接受邀请",
+    GeneralRoom: "通用房间",
+    GlobalGame: "全局配置",
+    GoldYoukai: "金币妖怪",
+    GoryouRealm: "御灵之境",
+    GotoMain: "回到主页面",
+    GuguArtStudio: "呱呱画室",
+    GuildActivityMonitor: "寮活动监控",
+    GuildBanquet: "寮宴会",
+    HeroTest: "英杰试炼",
+    Hunt: "狩猎战",
+    Hyakkiyakou: "百鬼夜行",
+    IbukiArena: "伊吹之擂",
+    KekkaiActivation: "结界挂卡",
+    KekkaiUtilize: "结界蹭卡",
+    KittyShop: "猫咪铺子",
+    LBS: "LBS鬼王",
+    LevelRush: "一键起号",
+    Login: "登录",
+    LootStatistics: "掉落统计",
+    MartialTournament: "武林大会",
+    MemoryScrolls: "绘卷",
+    MetaDemon: "超鬼王",
+    MysteryShop: "神秘商店",
+    NewbieStory: "新手剧情",
+    Nian: "年兽",
+    Orochi: "八岐大蛇",
+    OrochiMoans: "悲鸣",
+    OtherWorldTwilight: "彼世逢魔",
+    OutingRitual: "出巡仪式",
+    Pets: "小猫咪",
+    QuickLoadout: "一键配置",
+    Quiz: "智力竞赛",
+    RealmRaid: "个人突破",
+    ReplaceShikigami: "替换式神",
+    Restart: "重启",
+    RichMan: "大富翁",
+    RightActivity: "右侧活动",
+    RyouToppa: "寮突破",
+    Script: "脚本",
+    Secret: "秘闻副本",
+    ShareSecret: "秘闻分享",
+    SixRealms: "六道之门",
+    Sougenbi: "业原火",
+    SoulsTidy: "御魂整理",
+    Summon: "召唤",
+    SwitchAccount: "切换账号",
+    SwitchOnmyoji: "切换阴阳师",
+    SwitchSoul: "御魂切换",
+    Tako: "石距",
+    TalismanPass: "花合战",
+    TrueOrochi: "真八岐大蛇",
+    Utils: "工具",
+    WantedQuests: "悬赏封印",
+    WeeklyTrifles: "每周琐事",
+  };
+
   function createBreadcrumbSelect(values, selected, placeholder) {
     const select = document.createElement("select");
     select.className = "breadcrumb-select";
     createOption(select, "", placeholder);
     for (const name of values) {
-      createOption(select, name, name);
+      const zh = TASK_LABELS[name];
+      createOption(select, name, zh ? `${zh}（${name}）` : name);
     }
     if (selected && values.includes(selected)) {
       select.value = selected;
