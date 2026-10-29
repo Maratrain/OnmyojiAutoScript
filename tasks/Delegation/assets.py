@@ -50,9 +50,10 @@ class DelegationAssets:
 	# 委派的名字 
 	O_D_NAME = RuleOcr(roi=(766,127,509,529), area=(766,127,509,529), mode="Full", method="Default", keyword="弥助的画", name="d_name")
 
+
 	# Click Rule Assets
-	# 完成点击区域
-	C_D_DONE = RuleClick(roi_front=(980,173,84,72), roi_back=(980,173,84,72), name="d_done")
+	# 完成按钮点击区（相对文字右移，规避游戏点击不灵敏） 
+	C_D_DONE = RuleClick(roi_front=(1169,175,58,35), roi_back=(1169,175,58,35), name="d_done")
 
 
 	# Image Rule Assets
