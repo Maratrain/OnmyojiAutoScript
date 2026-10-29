@@ -136,6 +136,8 @@ class CostumeBase:
             asset_before_object.roi_back = asset_after.roi_back
         asset_before_object.threshold = asset_after.threshold
         asset_before_object.file = asset_after.file
+        # file 换了之后目标图/特征/掩码/name 等惰性缓存还是旧模板的, 必须清掉等下次匹配重载
+        asset_before_object.refresh()
 
     def set_asset(self, asset_before: str, rule: RuleImage | RuleGif) -> None:
         setattr(self, asset_before, rule)
