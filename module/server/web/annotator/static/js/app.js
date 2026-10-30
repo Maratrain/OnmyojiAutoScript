@@ -2,6 +2,10 @@
   const API_PREFIX = "/tool/annotator";
   const AllowedRuleTypes = new Set();
 
+  const ZOOM_MIN = 0.1;
+  const ZOOM_MAX = 8;
+  const ZOOM_STEP = 1.25;
+
   const state = {
     sessionId: "",
     sourceMode: "local",
@@ -44,6 +48,9 @@
     },
 
     dirty: false,
+
+    zoomMode: "fit",
+    zoomScale: 1,
 
     testOverlayActive: false,
     testRoiFront: "",
@@ -90,6 +97,11 @@
     imageStage: document.getElementById("imageStage"),
     mainImage: document.getElementById("mainImage"),
     noImagePlaceholder: document.getElementById("noImagePlaceholder"),
+    zoomOutBtn: document.getElementById("zoomOutBtn"),
+    zoomInBtn: document.getElementById("zoomInBtn"),
+    zoomFitBtn: document.getElementById("zoomFitBtn"),
+    zoom100Btn: document.getElementById("zoom100Btn"),
+    zoomLabel: document.getElementById("zoomLabel"),
     roiFront: document.getElementById("roiFront"),
     roiBack: document.getElementById("roiBack"),
     roiFrontValue: document.getElementById("roiFrontValue"),
@@ -1375,27 +1387,85 @@
     }
   }
 
+  function getStageAvailableSize() {
+    const wrap = el.stageWrap;
+    if (wrap && wrap.clientWidth > 0 && wrap.clientHeight > 0) {
+      const style = window.getComputedStyle(wrap);
+      const paddingX = (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
+      const paddingY = (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0);
+      return {
+        width: Math.max(320, wrap.clientWidth - paddingX),
+        height: Math.max(240, wrap.clientHeight - paddingY),
+      };
+    }
+
+    const containerW = wrap && wrap.parentElement
+      ? (wrap.parentElement.clientWidth - 28)
+      : 940;
+    const stageBaseH = window.innerWidth <= 1320
+      ? 520
+      : Math.min(window.innerHeight * 0.62, 640);
+    return {
+      width: Math.max(320, containerW),
+      height: Math.max(240, stageBaseH - 20),
+    };
+  }
+
+  function clampZoom(value) {
+    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  }
+
+  function getFitScale(naturalW, naturalH) {
+    const available = getStageAvailableSize();
+    // 预留 2px，避免 stage 恰好等于可用宽度时滚动条反复出现/消失
+    const scale = Math.min(
+      Math.max(1, available.width - 2) / naturalW,
+      Math.max(1, available.height - 2) / naturalH,
+    );
+    return clampZoom(scale || ZOOM_MIN);
+  }
+
+  function getDisplayScale() {
+    const naturalW = el.mainImage.naturalWidth || 0;
+    const stageW = el.imageStage.clientWidth || 0;
+    if (!naturalW || !stageW) {
+      return 1;
+    }
+    return stageW / naturalW;
+  }
+
+  function updateZoomLabel() {
+    if (!el.zoomLabel) {
+      return;
+    }
+    el.zoomLabel.textContent = `${Math.round(getDisplayScale() * 100)}%`;
+  }
+
   function adjustStageByImage() {
     const naturalW = el.mainImage.naturalWidth || 1280;
     const naturalH = el.mainImage.naturalHeight || 720;
 
-    const containerW = el.stageWrap && el.stageWrap.parentElement
-      ? (el.stageWrap.parentElement.clientWidth - 28)
-      : 940;
+    const stageScale = state.zoomMode === "fit"
+      ? getFitScale(naturalW, naturalH)
+      : clampZoom(state.zoomScale);
 
-    const stageBaseH = window.innerWidth <= 1320
-      ? 520
-      : Math.min(window.innerHeight * 0.62, 640);
-
-    const maxW = Math.max(320, containerW);
-    const maxH = Math.max(240, stageBaseH - 20);
-    const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-
-    const stageScale = scale || 1;
     el.imageStage.style.width = `${Math.round(naturalW * stageScale)}px`;
     el.imageStage.style.height = `${Math.round(naturalH * stageScale)}px`;
 
     fillRuleForm();
+    updateZoomLabel();
+  }
+
+  function applyManualZoom(value) {
+    state.zoomMode = "manual";
+    state.zoomScale = clampZoom(value);
+    adjustStageByImage();
+  }
+
+  function zoomByStep(direction) {
+    const base = state.zoomMode === "fit" ? getDisplayScale() : state.zoomScale;
+    const next = direction > 0 ? base * ZOOM_STEP : base / ZOOM_STEP;
+    applyManualZoom(next);
   }
 
   function resetListMeta() {
@@ -2818,6 +2888,31 @@
     el.captureBtn.addEventListener("click", withError(captureEmulatorFrame));
 
     el.mainImage.addEventListener("load", adjustStageByImage);
+
+    if (el.zoomOutBtn) {
+      el.zoomOutBtn.addEventListener("click", () => zoomByStep(-1));
+    }
+    if (el.zoomInBtn) {
+      el.zoomInBtn.addEventListener("click", () => zoomByStep(1));
+    }
+    if (el.zoomFitBtn) {
+      el.zoomFitBtn.addEventListener("click", () => {
+        state.zoomMode = "fit";
+        adjustStageByImage();
+      });
+    }
+    if (el.zoom100Btn) {
+      el.zoom100Btn.addEventListener("click", () => applyManualZoom(1));
+    }
+    if (el.stageWrap) {
+      el.stageWrap.addEventListener("wheel", (event) => {
+        if (!event.ctrlKey) {
+          return;
+        }
+        event.preventDefault();
+        zoomByStep(event.deltaY < 0 ? 1 : -1);
+      }, { passive: false });
+    }
 
     const applyFrontInput = () => applyRoiInputToRule("front");
     const applyBackInput = () => applyRoiInputToRule("back");

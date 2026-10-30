@@ -67,6 +67,43 @@
   overflow: hidden;
 }
 
+.stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.stage-head h2 {
+  margin: 2px 0 10px;
+}
+
+.stage-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.stage-toolbar button {
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.zoom-label {
+  display: inline-block;
+  min-width: 48px;
+  padding: 3px 0;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: var(--bg-input);
+}
+
 .stage-wrap {
   flex: 1 1 auto;
   min-height: 180px;
@@ -80,7 +117,7 @@
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
     linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 24px 24px,
     var(--bg-stage);
-  padding: 12px;
+  padding: 6px;
 }
 
 .stage-canvas-holder {
@@ -92,10 +129,6 @@
 .image-stage {
   position: relative;
   display: inline-block;
-  width: auto !important;
-  height: auto !important;
-  min-width: 320px;
-  min-height: 180px;
   border: 1px solid var(--line-main);
   border-radius: 6px;
   overflow: hidden;
@@ -108,8 +141,8 @@
 #mainImage {
   position: relative;
   display: block;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   max-width: none;
   max-height: none;
   object-fit: fill;

@@ -1,5 +1,14 @@
 <section class="panel center-panel" id="centerPanel">
-  <h2>ROI 画布</h2>
+  <div class="stage-head">
+    <h2>ROI 画布</h2>
+    <div class="stage-toolbar">
+      <button id="zoomOutBtn" type="button" title="缩小">−</button>
+      <span id="zoomLabel" class="zoom-label">100%</span>
+      <button id="zoomInBtn" type="button" title="放大">＋</button>
+      <button id="zoomFitBtn" type="button" title="等比缩放至完整放入画布">适应窗口</button>
+      <button id="zoom100Btn" type="button" title="按图片原始像素显示">1:1</button>
+    </div>
+  </div>
   <div id="stageWrap" class="stage-wrap">
     <div class="stage-canvas-holder">
       <div id="imageStage" class="image-stage">
