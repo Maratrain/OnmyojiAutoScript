@@ -627,7 +627,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         while True:
             self.screenshot()
             if need_check_damage:
-                _cur_damage = self.O_DAMAGE.ocr_digit(self.device.image)
+                _cur_damage = self.read_battle_damage(_cur_damage)
             if condition.is_valid(_cur_damage):
                 logger.info(f"[狭间暗域] 条件已满足，尝试退出战斗")
                 self.device.screenshot_interval_set()
@@ -659,6 +659,19 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
         logger.info(f"[狭间暗域] {enemy_type.name} 已完成")
         return success
+
+    def read_battle_damage(self, previous_damage: int) -> int:
+        """
+        读取当前伤害值, 单帧 OCR 抖动解析不出数字时沿用上一次读数
+        伤害数字偶尔会识别成 ① ² 这类字符, 直接解析会抛异常打断整个战斗循环
+        :param previous_damage: 上一次有效读数
+        :return: 当前伤害, 解析失败时返回上一次读数
+        """
+        try:
+            return self.O_DAMAGE.ocr_digit(self.device.image)
+        except ValueError as e:
+            logger.warning(f"[狭间暗域] 伤害识别异常, 沿用上次读数 {previous_damage}: {e}")
+            return previous_damage
 
     def quit_battle(self):
         logger.info("[狭间暗域] 正在退出战斗")

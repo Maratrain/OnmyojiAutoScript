@@ -104,7 +104,8 @@ class Digit(Single):
         for old, new in replacements.items():
             result = result.replace(old, new)
 
-        result = [char for char in result if char.isdigit()]
+        # 用 isdecimal 而非 isdigit: 上标 ²、带圈 ① 之类 isdigit 为真, 但 int() 解析不了会抛 ValueError
+        result = [char for char in result if char.isdecimal()]
         result = ''.join(result)
 
         prev = result
