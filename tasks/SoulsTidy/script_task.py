@@ -98,15 +98,9 @@ class ScriptTask(GameUi, SoulsTidyAssets, AudioDownloadPrompt):
         if self.config.souls_tidy.simple_tidy.enable_maneki:
             logger.hr('进入奉纳')
             # 确保已弃置界面
-            while True:
-                self.screenshot()
-                if self.appear(self.I_ST_ABANDONED_SELECTED):
-                    break
-                # 防止因为好友消息导致误点击到好友聊天界面
-                if self.appear(self.I_UI_BACK_RED):
-                    self.click(self.I_UI_BACK_RED, interval=0.8)
-                    continue
-                self.click(self.I_ST_ABANDONED_SELECTED, interval=1.5)
+            if not self.ensure_abandoned_selected():
+                logger.warning('左上角标签可能被好友消息浮窗遮挡，跳过本次奉纳')
+                return
             self.pre_confirm()
             # 开始奉纳
             while True:
@@ -128,6 +122,25 @@ class ScriptTask(GameUi, SoulsTidyAssets, AudioDownloadPrompt):
                 logger.info('奉纳一次')
 
         logger.info('奉纳完成')
+
+    def ensure_abandoned_selected(self, timeout: float = 10) -> bool:
+        """确保停在「已弃置」标签页
+        带超时，避免标签被遮挡时对同一按钮反复点击触发连点保护
+        :param timeout: 超时秒数
+        :return: 已确认切换到已弃置返回 True，超时返回 False
+        """
+        timeout_timer = Timer(timeout).start()
+        while not timeout_timer.reached():
+            self.screenshot()
+            if self.appear(self.I_ST_ABANDONED_SELECTED):
+                return True
+            # 防止因为好友消息导致误点击到好友聊天界面
+            if self.appear(self.I_UI_BACK_RED):
+                self.click(self.I_UI_BACK_RED, interval=0.8)
+                continue
+            self.click(self.I_ST_ABANDONED_SELECTED, interval=1.5)
+        logger.warning('等待已弃置界面超时')
+        return False
 
     def pre_confirm(self):
         """前置确认：确保是按照等级来排序的"""
