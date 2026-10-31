@@ -429,3 +429,9 @@ class RichManAssets:
 	O_ITACHI_COIN = RuleOcr(roi=(1081,21,134,38), area=(1081,21,134,38), mode="DigitCounter", method="Default", keyword="", name="itachi_coin")
 	# 鼬乐礼盒价格 
 	O_ITACHI_BUY_COST = RuleOcr(roi=(634,530,70,41), area=(634,530,70,41), mode="Digit", method="Default", keyword="", name="itachi_buy_cost")
+	# 小型鼬乐礼盒 
+	O_ITACHI_MINI = RuleOcr(roi=(736,133,145,42), area=(677,101,452,474), mode="Single", method="Default", keyword="小型鼬乐礼盒", name="itachi_mini")
+	# 中型鼬乐礼盒 
+	O_ITACHI_MEDIUM = RuleOcr(roi=(949,136,145,42), area=(677,101,452,474), mode="Single", method="Default", keyword="中型鼬乐礼盒", name="itachi_medium")
+	# 大型鼬乐礼盒 
+	O_ITACHI_LARGE = RuleOcr(roi=(733,363,145,42), area=(677,101,452,474), mode="Single", method="Default", keyword="大型鼬乐礼盒", name="itachi_large")
