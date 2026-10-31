@@ -3,7 +3,7 @@
 # github https://github.com/runhey
 from enum import Enum
 from pydantic import BaseModel, Field
-from tasks.Component.config_base import ConfigBase, TimeDelta
+from tasks.Component.config_base import ConfigBase, TimeDelta, dynamic_hide
 from tasks.Component.config_scheduler import Scheduler
 from tasks.Utils.config_enum import ShikigamiClass
 
@@ -11,7 +11,8 @@ from tasks.Utils.config_enum import ShikigamiClass
 class CardType(str, Enum):
     FISH = '斗鱼'
     TAIKO = '太鼓'
-    
+    ALTERNATE = '轮换'
+
 
 class ActivationScheduler(Scheduler):
     priority: int = Field(default=2, description='priority_help')
@@ -20,7 +21,11 @@ class ActivationScheduler(Scheduler):
 
 
 class ActivationConfig(BaseModel):
+    hide_fields = dynamic_hide('last_card_type', 'pending_card_type')
+
     card_type: CardType = Field(default=CardType.TAIKO, description='card_rule_help')
+    last_card_type: CardType | None = Field(default=None, description='上次成功挂上的卡类型，由脚本自动维护')
+    pending_card_type: CardType | None = Field(default=None, description='已选中待激活的卡类型，由脚本自动维护')
     min_taiko_num: int = Field(default=8, description='挂卡太鼓每小时最少收益,低于则不挂卡')
     min_fish_num: int = Field(default=16, description='挂卡斗鱼每小时最少收益,低于则不挂卡')
     exchange_before: bool = Field(default=True, description='exchange_before_help')

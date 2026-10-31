@@ -48,6 +48,23 @@ class ScriptTask(KU, KekkaiActivationAssets):
 
         raise TaskEnd('KekkaiActivation')
 
+    @property
+    def activation_card_type(self) -> CardType:
+        """本次应当挂出的卡类型，轮换模式下与上次记录相反"""
+        con = self.config.kekkai_activation.activation_config
+        if con.card_type != CardType.ALTERNATE:
+            return con.card_type
+        return CardType.TAIKO if con.last_card_type == CardType.FISH else CardType.FISH
+
+    def _record_card_activation(self, con: ActivationConfig) -> None:
+        """卡已生效后结算轮换记录，供下一次取反"""
+        if con.pending_card_type not in (CardType.FISH, CardType.TAIKO):
+            return
+        con.last_card_type = con.pending_card_type
+        con.pending_card_type = None
+        self.config.save()
+        logger.info(f'[结界挂卡] 轮换记录: 本次挂 {con.last_card_type}，下次挂 {self.activation_card_type}')
+
     @cached_property
     def dict_card_image(self) -> dict:
         match_targets = {
@@ -74,7 +91,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
 
     @cached_property
     def order_targets(self) -> ImageGrid:
-        rule = self.config.kekkai_activation.activation_config.card_type
+        rule = self.activation_card_type
         if rule == CardType.TAIKO:
             return ImageGrid([self.I_CARDS_KAIKO_6, self.I_CARDS_KAIKO_5])
         elif rule == CardType.FISH:
@@ -121,6 +138,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     expired_retries += 1
                     self.collect_expired_card()
                     continue
+                self._record_card_activation(_config)
                 self.set_next_run("KekkaiActivation", target=interval+datetime.now())
                 return False
             # 如果已经选中这张卡了， 那就激活这张卡
@@ -130,6 +148,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     self.screenshot()
                     if self.appear(self.I_A_INVITE, threshold=0.8):
                         logger.info('[结界挂卡] 卡片已激活')
+                        self._record_card_activation(_config)
                         break
                     if self.click_ui_confirm(interval=0.6):
                         continue
@@ -144,7 +163,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
             # 如果是什么都没有，那就是可以开始挂卡了
             if not card_status and not card_effect:
                 logger.info('[结界挂卡] 卡片未选中且未生效')
-                self.screening_card(_config.card_type)
+                self.screening_card(self.activation_card_type)
 
     def check_card_status(self, screenshot=False) -> bool:
         """
@@ -258,6 +277,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                     self.screenshot()
                     if not self.appear(self.I_A_EMPTY):
                         self.config.kekkai_activation.activation_config.card_not_found_count = 0
+                        self.config.kekkai_activation.activation_config.pending_card_type = rule
                         self.config.save()
                         message = f'✅ 确认挂卡: {rule}'
                         self.save_image(content=message, push_flag=False, wait_time=0)
@@ -266,7 +286,7 @@ class ScriptTask(KU, KekkaiActivationAssets):
                         continue
 
     def check_card_num(self):
-        rule = self.config.kekkai_activation.activation_config.card_type
+        rule = self.activation_card_type
         if rule == CardType.TAIKO:
             min_card_num = self.config.kekkai_activation.activation_config.min_taiko_num
             check_card = "勾玉"
@@ -336,7 +356,12 @@ class ScriptTask(KU, KekkaiActivationAssets):
         # 递增未找到卡的计数器
         activation_config.card_not_found_count += 1
 
-        if activation_config.card_not_found_count >= retry_count:
+        if activation_config.card_type == CardType.ALTERNATE:
+            # 轮换模式靠 last_card_type 记账，切换 card_type 会与记账打架，这里只延长重试
+            log_msg = f"⚠️轮换挂卡：{self.activation_card_type.value}卡未检出，保持轮换记录，{retry_minutes}分钟后重试"
+            activation_config.card_not_found_count = 0
+            next_run = datetime.now() + timedelta(minutes=retry_minutes)
+        elif activation_config.card_not_found_count >= retry_count:
             # 达到重试上限时的处理
             log_msg = f"⚠️{activation_config.card_type}卡未检出（累计{retry_count}次），{retry_minutes}分钟后重试"
             activation_config.card_not_found_count = 0  # 重置计数器并延长下次执行时间
