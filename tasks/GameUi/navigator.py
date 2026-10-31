@@ -496,6 +496,31 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
                 return True
         return False
 
+    def _recover_town_navigation(self, transition: Transition) -> None:
+        """町中入口点击无响应时经庭院重进町中，再交给外层重试。
+
+        Args:
+            transition: 刚刚执行失败的边。
+        """
+
+        current = self.navigator.current_page
+        if (transition.source.key != 'page_town'
+                or transition.destination.key == 'page_main'
+                or current is None
+                or current.key != 'page_town'):
+            return
+        back = next((edge for edge in current.transitions
+                     if edge.destination.key == 'page_main'), None)
+        if back is None:
+            return
+        enter = next((edge for edge in back.destination.transitions
+                      if edge.destination.key == 'page_town'), None)
+        if enter is None:
+            return
+        logger.info('[界面] 町中入口未响应，先返回庭院再重新进入町中')
+        if self._execute_transition(back):
+            self._execute_transition(enter)
+
     def _execute_transition(self, transition: Transition) -> bool:
         """执行一条导航边。
 
@@ -530,6 +555,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
                 skip_first_screenshot=False,
                 categories=self._navigation_detect_categories(destination),
             )
+            self._recover_town_navigation(transition)
             return False
 
         if self._wait_for_destination(destination):
@@ -552,6 +578,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             skip_first_screenshot=False,
             categories=self._navigation_detect_categories(destination),
         )
+        self._recover_town_navigation(transition)
         return False
 
     def _collect_page_check_results(self, destination: Page) -> list[str]:
