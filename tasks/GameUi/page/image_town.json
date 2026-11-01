@@ -108,6 +108,15 @@
     "description": "description"
   },
   {
+    "itemName": "draft_duel_title",
+    "imageName": "page_draft_duel_title.png",
+    "roiFront": "146,8,123,40",
+    "roiBack": "48,0,339,76",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "协同对弈标题"
+  },
+  {
     "itemName": "town_goto_hyakkiyakou",
     "imageName": "page_town_goto_hyakkiyakou.png",
     "roiFront": "880,165,53,69",

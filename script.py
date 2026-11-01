@@ -39,6 +39,7 @@ from module.ocr.rpc import ensure_ocr_server_ready, set_ocr_low_spec_mode, get_o
 from module.script import ScriptRuntimeController, ScriptRuntimeDecision
 from tasks.Restart.server_update import delay_pending_tasks_for_server_update, is_server_update_window
 from module.server.log_service import build_error_log_dir_name
+from module.cooperation import Cooperation, BATTLE_TASKS, prepare_task_cooperation
 
 _log_switch_lock = threading.Lock()#线程锁
 
@@ -333,6 +334,9 @@ class Script:
 
             time.sleep(5)
 
+            cooperation = self.__dict__.get('_cooperation')
+            if cooperation is not None and cooperation.requested():
+                return False
             if self.config.should_reload():
                 return False
 
@@ -450,12 +454,18 @@ class Script:
         :return:
         """
         while True:
+            cooperation = self.__dict__.get('_cooperation')
+            wake_task = cooperation.wake_next(self.config) if cooperation is not None else None
             task = self.config.get_next()
             now = datetime.now()
             antiban_wake = self.anti_ban_guard.wake_time(now, self.config.script.anti_ban)
             if antiban_wake is not None:
                 task.next_run = max(task.next_run, antiban_wake)
-            task = self._hoard_next_task(task, now)
+            if wake_task and task.command != 'Restart':
+                # 协同唤醒优先：直接取被唤醒任务，跳过囤积延迟
+                task = next((t for t in self.config.pending_task if t.command == wake_task), task)
+            else:
+                task = self._hoard_next_task(task, now)
             self.config.task = task
             if self.state_queue:
                 self.state_queue.put({"schedule": self.config.get_schedule_data()})
@@ -602,6 +612,10 @@ class Script:
 
         self._reset_task_runtime_outcome()
         try:
+            cooperation = self.__dict__.get('_cooperation')
+            self.config.cooperation_runtime = cooperation
+            if command in BATTLE_TASKS:
+                prepare_task_cooperation(self.config, command)
             self.device.screenshot()
             module_name = 'script_task'
             module_path = str(Path.cwd() / 'tasks' / command / (module_name + '.py'))
@@ -621,6 +635,8 @@ class Script:
             logger.set_file_logger(self.config_name, do_cleanup=True)
         start_day = date.today()
         logger.info(f'[脚本] 启动调度循环: {self.config_name}')
+        self._cooperation = Cooperation(self.config_name)
+        self._cooperation.start()
         if self.resource_precache_enable:
             logger.info('[脚本] 资源预缓存已启用，正在预热 OCR 模型')
             try:
@@ -745,6 +761,8 @@ class Script:
                 continue
             else:
                 break
+
+        self._cooperation.close()
 
     def _handle_task_exception(self, e: Exception, command: str) -> bool:
         """

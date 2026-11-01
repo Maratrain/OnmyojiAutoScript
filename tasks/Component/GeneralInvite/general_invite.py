@@ -45,6 +45,45 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
     timer_wait = None
     timer_emoji = None  # 等待期间如果没有操作的话，可能会导致长时间无响应报错
 
+    def prepare_battle_cooperation(self, task: str) -> None:
+        from module.cooperation import prepare_battle_cooperation
+        prepare_battle_cooperation(self, task)
+
+    def _room_cooperation(self):
+        task = getattr(self, '_battle_cooperation_task', '')
+        runtime = getattr(self.config, 'cooperation_runtime', None)
+        if task == 'DraftDuel' and not self.config.draft_duel.invite_config.cooperation_script:
+            return runtime, task, ''
+        peer = runtime.peers.get(task, '') if runtime and task else ''
+        return runtime, task, peer
+
+    def screenshot(self):
+        runtime, task, peer = self._room_cooperation()
+        token = runtime.pending_room_check(task, peer) if peer else None
+        result = super().screenshot()
+        if token:
+            ready = self.is_in_room(False)
+            runtime.answer_room_check(task, peer, token, ready)
+            logger.info(f'[协同] {peer} 请求房间确认，本端在房: {ready}')
+        return result
+
+    def _cooperation_rooms_ready(self):
+        runtime, task, peer = self._room_cooperation()
+        if not peer:
+            return True
+        token = getattr(self, '_cooperation_room_token', None)
+        if token:
+            ready = runtime.room_check_result(task, peer, token)
+            if ready is None:
+                return False
+            self._cooperation_room_token = None
+            if ready:
+                logger.info(f'[协同] {peer} 已确认在房，开始挑战')
+                return True
+        self._cooperation_room_token = runtime.request_room_check(task, peer)
+        logger.info(f'[协同] 请求 {peer} 在开战前确认房间状态')
+        return False
+
     def run_invite(self, config: InviteConfig, is_first: bool = False) -> bool:
         """
         队长！！身份。。。在组队界面邀请好友（ 如果开启is_first） 等待队员进入开启挑战
@@ -243,13 +282,18 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         return False
 
     def click_fire(self):
+        started = False
         while 1:
             self.screenshot()
             if not self.is_in_room(False):
                 break
+            if not started and not self._cooperation_rooms_ready():
+                return False
             if self.appear_then_click(self.I_FIRE, interval=1):
+                started = True
                 continue
             if self.appear_then_click(self.I_FIRE_SEA, interval=1):
+                started = True
                 continue
 
     @cached_property
@@ -547,21 +591,30 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         logger.info(f'[通用邀请] 好友分类: {friend_class}')
         return friend_class
 
-    def _switch_friend_class(self, index: int) -> None:
+    def _switch_friend_class(self, index: int) -> bool:
         """
         切换到指定索引的好友分类标签。
         :param index: 分类索引，0~3
-        :return:
+        :return: 是否确认切换成功
         """
-        match index:
-            case 0:
-                self.ui_click(self.I_FLAG_1_OFF, self.I_FLAG_1_ON, interval=1.2)
-            case 1:
-                self.ui_click(self.I_FLAG_2_OFF, self.I_FLAG_2_ON, interval=1.2)
-            case 2:
-                self.ui_click(self.I_FLAG_3_OFF, self.I_FLAG_3_ON, interval=1.2)
-            case 3:
-                self.ui_click(self.I_FLAG_4_OFF, self.I_FLAG_4_ON, interval=1.2)
+        if index not in range(4):
+            return False
+        off = getattr(self, f'I_FLAG_{index + 1}_OFF')
+        on = getattr(self, f'I_FLAG_{index + 1}_ON')
+        if self.ui_click_until_appear_or_timeout(off, on, interval=1.2, timeout=3):
+            return True
+        # 不同邀请面板的选中高亮有差异。用已有 OCR 区域核验后点击，
+        # 不降低公共模板阈值，也不在 ui_click 中无限等待高亮。
+        self.screenshot()
+        rule = getattr(self, f'O_F_LIST_{index + 1}')
+        text = rule.ocr(self.device.image).replace(' ', '').replace('、', '')
+        text = self._normalize_friend_class_name(text)
+        if text != ('好友', '最近', '寮友', '跨区')[index]:
+            logger.warning(f'[通用邀请] 无法确认好友分类 {index + 1}: {text!r}')
+            return False
+        logger.info(f'[通用邀请] 高亮未匹配，按 OCR 文案点击分类: {text}')
+        self.click(rule)
+        return True
 
     def _select_current_page_friends(self, friend_list: list[str], selected_set: set[str]) -> None:
         """
@@ -587,7 +640,8 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
             logger.warning('[通用邀请] 未找到最近分类')
             return False
         recent_index = friend_class.index('最近')
-        self._switch_friend_class(recent_index)
+        if self._switch_friend_class(recent_index) is False:
+            return False
         sleep(0.5)
         self.wait_until_disappear(self.I_I_LOAD, timeout=5)
         logger.info('[通用邀请] 正在「最近」分类中查找好友')
@@ -605,7 +659,8 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         for index in range(len(friend_class)):
             if len(selected_set) == len(friend_list):
                 break
-            self._switch_friend_class(index)
+            if self._switch_friend_class(index) is False:
+                continue
             sleep(0.5)
             self.wait_until_disappear(self.I_I_LOAD, timeout=5)
             logger.info(f'[通用邀请] 正在 {friend_class[index]} 分类中查找好友')
@@ -701,15 +756,21 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
 
         return True
 
-    def check_then_accept(self) -> bool:
+    def check_then_accept(self, timeout: float | None = None, default_invite: bool = True) -> bool:
         """
         队员接受邀请
+        :param timeout: 整体等待超时（秒），None 表示不限制
+        :param default_invite: 是否允许点击默认接受勾选
         :return:
         """
         if not self.appear_accept():
             return False
         logger.info('[通用邀请] 点击接受邀请')
+        timer = Timer(timeout).start() if timeout is not None else None
         while True:
+            if timer is not None and timer.reached():
+                logger.warning('[通用邀请] 等待进入房间超时')
+                return False
             self.screenshot()
             if self.is_in_room():
                 return True
@@ -721,7 +782,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM, interval=1):
                 continue
-            if self.appear_then_click(self.I_I_ACCEPT_DEFAULT, interval=1):
+            if default_invite and self.appear_then_click(self.I_I_ACCEPT_DEFAULT, interval=1):
                 continue
             if self.appear_then_click(self.I_I_ACCEPT, interval=1) or \
                     self.appear_then_click(self.I_I_ACCEPT_APPRENTICE, interval=1):
