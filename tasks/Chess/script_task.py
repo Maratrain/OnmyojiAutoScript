@@ -8,6 +8,7 @@ from module.logger import logger
 from module.base.utils.utils import get_color
 from tasks.Chess.assets import ChessAssets
 from tasks.Chess.config import Chess
+from tasks.Chess.runtime.cache import economy_scope
 from tasks.Chess.runtime.economy import ChessEconomyMixin
 from tasks.Chess.runtime.hand_operations import ChessHandOperationsMixin
 from tasks.Chess.runtime.hyakki_draft import ChessHyakkiDraftMixin
@@ -36,12 +37,33 @@ class ChessLegacyScriptTask(
 
     conf: Chess = None
 
+    def select_chess_sixrealms_if_visible(self) -> bool:
+        """关闭选择开关时不点击六道，持续截图等待阶段结束。"""
+        chess_config = getattr(getattr(self.config, 'chess', None), 'chess_config', None)
+        if getattr(chess_config, 'sixrealms_selection_enabled', True):
+            return super().select_chess_sixrealms_if_visible()
+        if not self.appear(self.I_SELECT_SIXREALMS):
+            return False
+        logger.info('[棋局] 六道选择已关闭；等待正常对局')
+        while self.appear(self.I_SELECT_SIXREALMS):
+            self.device.stuck_record_clear()
+            time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+            self.screenshot()
+        logger.info('[棋局] 六道选择等待完成')
+        return True
+
     def _burst(self) -> bool:
-        """棋局任务的所有截图均检查红叉，关闭遮挡操作的浮窗。"""
+        """所有截图统一清理浮窗；仅显式读取详情的环节允许保留详情页。"""
         if super()._burst():
             return True
         if self.appear_then_click(self.I_CLOSE_RED, interval=0.8):
             logger.info('[棋局] 关闭红叉浮窗')
+            return True
+        if (not getattr(self, '_chess_details_depth', 0)
+                and self.appear(self.I_SHIKIGAMI_SPECIFICS)):
+            if self.click(self.C_CLICK_CLOSE_SPECIFICS_AREA, interval=0.8):
+                logger.info('[棋局] 全局关闭意外打开的式神详情')
+            # Base screenshot refreshes and rechecks before returning the image.
             return True
         return False
 
@@ -255,7 +277,6 @@ class ChessLegacyScriptTask(
         battle_economy_done = False
         battle_hand_cleanup_done = False
         hyakki_round_seen = False
-        hyakki_lineup_checked = False
 
         while True:
             self.device.stuck_record_clear()
@@ -290,11 +311,6 @@ class ChessLegacyScriptTask(
                     next_round_confirmed = 1
                 round_transition_pending = True
                 if next_round_confirmed >= self.ROUND_CONFIRM_FRAMES:
-                    if hyakki_round_seen and not hyakki_lineup_checked:
-                        self._reconcile_lineup_after_hyakki_round(
-                            next_round_no=observed_round,
-                        )
-                        hyakki_lineup_checked = True
                     logger.debug(
                         f'[棋局] 回合边界已确认: {round_no} -> '
                         f'{observed_round}, 阶段={phase}, '
@@ -359,7 +375,7 @@ class ChessLegacyScriptTask(
 
                 if phase == 'await_preparation':
                     # 回合开始先独立购买一次：开商店、扫商店、买目标。
-                    # 15 秒保护只约束后面的升级/刷新循环，不影响这次买卡。
+                    # 12 秒保护只约束后面的升级/刷新循环，不影响这次买卡。
                     self.purchase_lineup_cards_once()
                     self._run_preparation_economy_until_time_limit()
                     if not self._is_preparation_mode():
@@ -383,9 +399,11 @@ class ChessLegacyScriptTask(
     def _run_round_loop(self) -> None:
         """运行单局回目循环；Chess 自行持续刷新通用卡死计时。"""
         self.device.stuck_record_clear()
+        self.device.screenshot_interval_set('combat')
         try:
             self._run_game_by_rounds_without_device_stuck_timeout()
         finally:
+            self.device.screenshot_interval_set()
             self.device.stuck_record_clear()
 
     def _handle_preparation(self) -> bool:
@@ -394,6 +412,15 @@ class ChessLegacyScriptTask(
             self.select_grigri()
             return False
         if not self._is_preparation_mode():
+            return False
+        round_no = self._read_round_number()
+        if round_no is None:
+            return False
+        # Closing confirms one screenshot for both health and lineup inspection.
+        if not self._ensure_shop_closed():
+            return False
+        if (self._read_round_number() != round_no
+                or not self._is_preparation_mode()):
             return False
         # deploy_shikigami_from_hand 内部负责确认商店关闭、人数上限和
         # 每次拖动后的重新定位，准备阶段不重复实现这些约束。
@@ -413,6 +440,7 @@ class ChessLegacyScriptTask(
         self.equip_souls_from_hand(verified_board_names)
         return self._is_preparation_mode()
 
+    @economy_scope
     def _run_preparation_economy_until_time_limit(self) -> None:
         """备阶段升级/刷新循环：仅这部分受剩余时间限制。"""
         if not self._is_preparation_mode():
@@ -427,10 +455,10 @@ class ChessLegacyScriptTask(
             # 只有升级/刷新循环受剩余时间限制；第二套布局从第一套阶段
             # 框读取倒计时，第一套布局使用独立 now_time 区域。
             remaining = self._read_remaining_time()
-            if remaining is not None and remaining < 15:
+            if remaining is not None and remaining < 12:
                 logger.info(
                     '[棋局] 停止准备升级/刷新循环: '
-                    f'剩余时间={remaining} < 15'
+                    f'剩余时间={remaining} < 12'
                 )
                 return
             result = self._run_economy_atomic_batch(battle_mode=False)
@@ -438,8 +466,9 @@ class ChessLegacyScriptTask(
                 return
             self.screenshot()
 
+    @economy_scope
     def _run_battle_economy_until_budget_limit(self) -> None:
-        """战阶段购买体系卡后续跑升级/刷新，并受 15 秒保护。"""
+        """战阶段按预算购买、升级；末尾五秒由刷新入口禁止刷新。"""
         if self._read_chess_mode() != '战':
             return
         # 与备阶段使用同一入口：先确保商店打开并购买当前体系卡，
@@ -452,13 +481,7 @@ class ChessLegacyScriptTask(
             self._read_chess_mode() == '战'
             and getattr(self, '_economy_pending', False)
         ):
-            remaining = self._read_remaining_time()
-            if remaining is not None and remaining < 15:
-                logger.info(
-                    '[棋局] 停止战斗升级/刷新循环: '
-                    f'剩余时间={remaining} < 15'
-                )
-                return
+
             result = self._run_economy_atomic_batch(battle_mode=True)
             if result in ('complete', 'blocked'):
                 return
@@ -473,10 +496,18 @@ class ChessLegacyScriptTask(
         """战阶段独立卖卡：持续清理杂卡和纹章，直到确认手牌干净。"""
         if self._read_chess_mode() != '战':
             return False
+        round_no = self._read_round_number()
         logger.debug('[棋局] 战斗手牌清理')
         sold = self.cleanup_non_lineup_hand_cards(allowed_modes=('战',))
         logger.debug(f'[棋局] 战斗手牌清理完成: 售出={sold}')
-        return self._read_chess_mode() == '战'
+        if (self._is_soul_equipment_allowed()
+                and self._ensure_shop_closed(allowed_modes=('战',))):
+            verified = set(self._board_lineup_names) & set(self.shikigami_deploy_positions)
+            self.equip_souls_from_hand(verified)
+        # 被阻挡的目标延后到当局再处理；经济循环继续跑。
+        return (self.chess_state.hand_cleanup_status != 'interrupted'
+                and self._read_round_number() == round_no
+                and self._read_chess_mode() == '战')
 
     def _handle_passive_stage(self, mode: str) -> bool:
         """战和待阶段等待；鬼阶段执行试行投掷。"""
@@ -1000,7 +1031,6 @@ class ChessLegacyScriptTask(
         self._board_actual_positions = {}
         self._player_deployed_positions = set()
         self._arakawa_goldfish_current_position = None
-        self._pending_goldfish_probe = None
         self._goldfish_relocation_pending = False
         self._board_special_units = {}
         self._last_game_rank = None

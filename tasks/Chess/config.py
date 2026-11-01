@@ -22,6 +22,10 @@ class ChessConfig(ConfigBase):
                 value['custom_lineup'] = 'builtin:haiguo'
         return value
 
+    sixrealms_selection_enabled: bool = Field(
+        title='选择六道', default=True,
+    )
+
     hyakki_draft_enabled: bool = Field(
         title='百鬼优先所需御魂', default=True,
         description='本人锁消失四秒后投掷；勾选时优先阵容所需御魂，未勾选时完全随机。',

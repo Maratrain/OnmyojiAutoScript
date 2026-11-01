@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from module.atom.image import RuleImage
+from module.atom.click import RuleClick
 from module.logger import logger
 from tasks.Chess.assets import ChessAssets
 from tasks.Chess.strategy.shikigami_catalog import normalize_bond_ocr_text, bond_key, SHIKIGAMI_BONDS_BY_ROMAJI
@@ -29,6 +30,11 @@ def frame_layout(name):
 
 
 def layout_bytes(rule):
+    # Annotator may explicitly save the default false on older layouts.
+    # This does not alter recognition or the generated portrait references.
+    rule = dict(rule)
+    if rule.get('badgeGrayscale') is False:
+        rule.pop('badgeGrayscale')
     return json.dumps(rule, ensure_ascii=False, sort_keys=True).encode('utf-8')
 
 EMBLEM_ROOT = ROOT / 'fetter/portraits'
@@ -38,10 +44,22 @@ class ChessFrameCardsMixin:
     # 只有头像身份匹配使用灰度；badge/OCR/Frame 输出保持 RGB。
     FRAME_PORTRAIT_GRAYSCALE = True
 
-    def _board_frame_scan(self):
+    def _board_frame_scan(self, round_no=None):
         """用表情开关定位，一帧读取十二个站位的勾玉及星级。"""
+        if self._read_chess_mode() != '备':
+            return []
+        if (self._shop_refresh_marker_visible()
+                or getattr(self, '_shop_assumed_open', False)):
+            if not self._ensure_shop_closed():
+                logger.debug('[棋局] 棋盘 Frame 不可用: 商店无法关闭')
+                return []
+            self.screenshot()
+            if self._read_chess_mode() != '备' or self._shop_refresh_marker_visible():
+                return []
+        if round_no is not None and self._read_round_number() != round_no:
+            return []
         image = self.device.image
-        boss = self._is_boss_challenge_round()
+        boss = self._is_boss_challenge_round(round_no=round_no)
         key = (getattr(self.device, 'image_frame_id', None), id(image), boss)
         cached = getattr(self, '_board_frame_cache', None)
         if cached is not None and cached[0] == key:
@@ -151,8 +169,8 @@ class ChessFrameCardsMixin:
         }
 
 
-    def _frame_card_identity(self, kind, portrait, text):
-        """要求头像命中；用名称/特质区分分数接近的候选。"""
+    def _frame_card_candidates(self, kind, portrait):
+        """仅返回与最佳匹配分差足够接近的头像候选。"""
         portrait = self._frame_matching_portrait(portrait)
         frame = ChessAssets.F_HAND_CARD if kind == 'card' else ChessAssets.F_STORE_CARD
         threshold = frame.operations[-2].get('threshold', 0.8)
@@ -164,23 +182,52 @@ class ChessFrameCardsMixin:
             if np.isfinite(score) and score >= threshold:
                 scored.append((score, name))
         if not scored:
-            return None, 0.0
+            return []
         scored.sort(reverse=True)
-        near = [(score, name) for score, name in scored if scored[0][0]-score < 0.03]
+        return [(score, name) for score, name in scored if scored[0][0]-score < 0.03]
+
+    def _frame_card_identity(self, kind, portrait, text, candidates=None):
+        """头像优先，其次羁绊，商店卡再按名称兜底区分。"""
+        near = self._frame_card_candidates(kind, portrait) if candidates is None else candidates
+        if not near:
+            return None, 0.0
         if len(near) == 1:
             return near[0][1], near[0][0]
-        entries = self.frame_card_library['cards'][kind]
+        best_score = near[0][0]
+        bond_text = text[1:4] if kind == 'store' else text[:3]
+        observed = bond_key(tuple(normalize_bond_ocr_text(t) for t in bond_text))
+        matching = [(score, name) for score, name in near
+                    if observed and observed == bond_key(SHIKIGAMI_BONDS_BY_ROMAJI[name])]
+        if len(matching) == 1:
+            return matching[0][1], matching[0][0]
+        if matching:
+            near = matching
         if kind == 'store':
             raw = normalize_bond_ocr_text(text[0])
+            entries = self.frame_card_library['cards']['store']
             names = [(score, name) for score, name in near if entries[name]['name'] == raw]
             if len(names) == 1:
                 return names[0][1], names[0][0]
-        observed = bond_key(tuple(normalize_bond_ocr_text(t) for t in text[-3:]))
-        matching = [
-            (score, name) for score, name in near
-            if observed and observed == bond_key(SHIKIGAMI_BONDS_BY_ROMAJI[name])
-        ]
-        return (matching[0][1], matching[0][0]) if len(matching) == 1 else (None, scored[0][0])
+        return None, best_score
+
+    def _resolve_frame_card(self, kind, local, image, portrait):
+        """Read only the ranges needed to disambiguate the portrait candidates."""
+        text = [''] * (4 if kind == 'store' else 3)
+        candidates = self._frame_card_candidates(kind, portrait)
+        name, score = self._frame_card_identity(kind, portrait, text, candidates)
+        if name is not None or not candidates:
+            return name, score, tuple(text)
+        _, targets = local.range_targets(image.shape, allow_missing_image=True)
+        # Store: range1 name, range2-4 bonds (range4 may be empty).
+        # Hand: range1-3 bonds. Neither path reads the image or click ranges as text.
+        bond_indexes = range(1, 4) if kind == 'store' else range(3)
+        for index in bond_indexes:
+            text[index] = targets[index].ocr(image)
+        name, score = self._frame_card_identity(kind, portrait, text, candidates)
+        if name is None and kind == 'store':
+            text[0] = targets[0].ocr(image)
+            name, score = self._frame_card_identity(kind, portrait, text, candidates)
+        return name, score, tuple(text)
 
     def _frame_card_scan(self, kind):
         """先定位全部 badge，再每张卡执行一个 Frame；同一截图内复用输出。"""
@@ -197,6 +244,15 @@ class ChessFrameCardsMixin:
         bx, by, bw, bh = frame.badge_references[0]
         x, y, w, h = frame.roi_back
         back = image[y:y+h, x:x+w]
+        store_key = None
+        if kind == 'store':
+            # Upgrading changes gold/level, but often leaves every shop pixel
+            # unchanged. Reuse identities only when the entire panel is identical.
+            store_key = (back.shape, hashlib.blake2b(back.tobytes(), digest_size=16).digest())
+            previous = getattr(self, '_unchanged_store_cache', None)
+            if previous is not None and previous[0] == store_key:
+                cache[1][kind] = previous[1]
+                return previous[1]
         if frame.badge_grayscale:
             back = cv2.cvtColor(back, cv2.COLOR_RGB2GRAY)
         candidates = []
@@ -262,17 +318,15 @@ class ChessFrameCardsMixin:
                 })
                 logger.debug(f'[棋局] 棋局帧标志: 名称={reference.get("name")}, 得分={identity_score:.3f}, roi={roi}, 文本={raw_text}')
                 continue
-            text = tuple(result[:-2])
-            name, identity_score = self._frame_card_identity(kind, result[-2], text)
-            if name is None and identity_score > 0:
-                local.defer_ocr = False
-                result = self.runframe(local)
-                if not result:
-                    continue
-                text = tuple(result[:-2])
-                name, identity_score = self._frame_card_identity(kind, result[-2], text)
+            name, identity_score, text = self._resolve_frame_card(kind, local, image, result[-2])
             roi = result[-1]
             cx, cy, cw, ch = roi
+            click_rule = None
+            if kind == 'store':
+                _, range_targets = local.range_targets(image.shape, allow_missing_image=True)
+                click_rule = range_targets[5]
+                column = self._frame_shop_column(cx + cw / 2)
+                click_rule.name = f'CHESS_STORE_SLOT_{5-column}_RANGE_6'
             reference = self.frame_card_library['cards'][kind].get(name, {})
             cards.append({
                 'type': 'shikigami' if name else 'unknown', 'name': name,
@@ -283,10 +337,13 @@ class ChessFrameCardsMixin:
                 'bonds': SHIKIGAMI_BONDS_BY_ROMAJI.get(name, ()) if name else tuple(normalize_bond_ocr_text(t) for t in text[-3:] if normalize_bond_ocr_text(t)),
                 'raw_text': text, 'raw_name': text[0] if kind == 'store' else '',
                 'star': None if kind == 'store' else self._frame_star(frame.files[index]),
+                'click_rule': click_rule,
                 'action': None,
             })
             logger.debug(f'[棋局] 棋局帧{kind}: 名称={name}, 星级={cards[-1]["star"]}, 标志={Path(frame.files[index]).name}, 得分={identity_score:.3f}, roi={roi}, 文本={text}')
         cache[1][kind] = cards
+        if store_key is not None:
+            self._unchanged_store_cache = (store_key, cards)
         return cards
 
     @staticmethod
@@ -298,6 +355,34 @@ class ChessFrameCardsMixin:
         matches = [card for card in self._frame_card_scan('card') + self._frame_card_scan('emblem')
                    if x <= card['position'][0] < x+w and y <= card['position'][1] < y+h]
         return max(matches, key=lambda card: card['score']) if matches else None
+
+    @staticmethod
+    def _frame_shop_column(x):
+        left, _, width, _ = ChessAssets.F_STORE_CARD.roi_back
+        return min(4, max(0, int((x-left) / (width/5))))
+
+    def _frame_shop_slots(self):
+        """用商店 Frame range6 点击；空位保留由 Frame 搜索区划分的刷新采样区。"""
+        frame = ChessAssets.F_STORE_CARD
+        left, _, width, _ = frame.roi_back
+        _, y, _, height = frame.roi_ranges[5]
+        slots = {}
+        for column in range(5):
+            start = round(left + width*column/5)
+            end = round(left + width*(column+1)/5)
+            area = (start, y, end-start, height)
+            index = 5-column
+            slots[index] = RuleClick(roi_front=area, roi_back=area,
+                                    name=f'CHESS_STORE_SLOT_{index}_RANGE_6', profile=frame.profile)
+        candidates = {}
+        for card in self._frame_card_scan('store'):
+            column = self._frame_shop_column(card['position'][0])
+            previous = candidates.get(column)
+            if previous is None or card['badge_score'] > previous['badge_score']:
+                candidates[column] = card
+        for column, card in candidates.items():
+            slots[5-column] = card['click_rule']
+        return sorted(slots.items())
 
     def _frame_shop_in_slot(self, click_rule, expected_name=None):
         slot_key = tuple(click_rule.roi_back)

@@ -9,6 +9,7 @@
     "description": "手牌识别框",
     "roiBadge": "264,552,20,19",
     "badgeSerial": 0,
+    "badgeGrayscale": false,
     "roiRange": [
       "279,665,66,24",
       "279,639,66,24",
@@ -67,6 +68,7 @@
     "description": "",
     "roiBadge": "1042,267,21,23",
     "badgeSerial": 0,
+    "badgeGrayscale": false,
     "roiRange": [
       "908,261,134,32",
       "931,224,134,32",
@@ -126,6 +128,7 @@
     "description": "纹章识别",
     "roiBadge": "574,548,65,20",
     "badgeSerial": 1,
+    "badgeGrayscale": true,
     "roiRange": [
       "564,665,79,23",
       "562,551,86,137",
@@ -152,8 +155,7 @@
         "threshold": 0.8,
         "type": "image"
       }
-    ],
-    "badgeGrayscale": true
+    ]
   },
   {
     "itemName": "board_occupancy",
@@ -199,73 +201,61 @@
     ],
     "rangeOperations": [
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
@@ -352,73 +342,61 @@
     ],
     "rangeOperations": [
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
       },
       {
-        "imageName": "",
         "method": "Template matching",
         "threshold": 0.68,
         "type": "image"
@@ -458,6 +436,132 @@
       },
       {
         "type": "click"
+      }
+    ]
+  },
+  {
+    "itemName": "chess_detail_monster",
+    "imageName": "item_6_badge_1.png",
+    "roiBack": "194,0,616,75",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "",
+    "roiBadge": "267,15,41,38",
+    "badgeSerial": 1,
+    "badgeGrayscale": false,
+    "roiRange": [
+      "497,2,30,26",
+      "706,3,28,26",
+      "736,2,34,29"
+    ],
+    "badges": [
+      {
+        "imageName": "item_6_badge_1.png"
+      }
+    ],
+    "rangeOperations": [
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Single",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
+      }
+    ]
+  },
+  {
+    "itemName": "chess_detail_normal",
+    "imageName": "item_7_badge_1.png",
+    "roiBack": "193,0,623,71",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "",
+    "roiBadge": "267,15,41,38",
+    "badgeSerial": 1,
+    "badgeGrayscale": false,
+    "roiRange": [
+      "460,4,32,23",
+      "740,3,26,25",
+      "767,2,33,27"
+    ],
+    "badges": [
+      {
+        "imageName": "item_7_badge_1.png"
+      }
+    ],
+    "rangeOperations": [
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Single",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
+      }
+    ]
+  },
+  {
+    "itemName": "chess_detail_hyakki",
+    "imageName": "c_stage_hyakki.png",
+    "roiBack": "193,0,623,71",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "profile": "High",
+    "description": "百鬼阶段金色图标定位",
+    "roiBadge": "606,2,31,29",
+    "badgeSerial": 1,
+    "badgeGrayscale": false,
+    "roiRange": [
+      "460,4,32,23",
+      "740,3,26,25",
+      "767,2,33,27"
+    ],
+    "badges": [
+      {
+        "imageName": "c_stage_hyakki.png"
+      }
+    ],
+    "rangeOperations": [
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Single",
+        "method": "Default",
+        "keyword": ""
+      },
+      {
+        "type": "ocr",
+        "mode": "Digit",
+        "method": "Default",
+        "keyword": ""
       }
     ]
   }
