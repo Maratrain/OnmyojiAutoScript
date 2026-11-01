@@ -151,18 +151,18 @@ class MuMu12Handler(EmulatorHandler):
         # Wait for the manager to acknowledge the request before starting the
         # launch timer or releasing the lifecycle lock. Popen alone only proves
         # that the CLI was created, not that it accepted the launch request.
-        logger.info(f'Execute: {command}')
+        logger.info(f'执行启动命令: {command}')
         result = platform.execute_output(
             command, timeout=30, show_window=show_window, encoding='utf-8'
         )
         stdout = result.stdout.strip() if isinstance(result.stdout, str) else ''
         stderr = result.stderr.strip() if isinstance(result.stderr, str) else ''
         logger.info(
-            f'[emu-start] launch command result: serial={instance.serial}, '
-            f'returncode={result.returncode}, stdout={stdout!r}, stderr={stderr!r}'
+            f'[emu-start] 启动命令结果: serial={instance.serial}, '
+            f'返回码={result.returncode}, stdout={stdout!r}, stderr={stderr!r}'
         )
         if result.returncode != 0:
-            logger.error(f'[emu-start] MuMu manager exited with code {result.returncode}')
+            logger.error(f'[emu-start] MuMu 管理器异常退出，返回码 {result.returncode}')
             return False
         for output in (stdout, stderr):
             try:
@@ -173,7 +173,7 @@ class MuMu12Handler(EmulatorHandler):
                 continue
             error = response.get('errcode', response.get('error_code', 0))
             if error not in (None, 0, '0'):
-                logger.error(f'[emu-start] MuMu rejected launch: {response!r}')
+                logger.error(f'[emu-start] MuMu 拒绝启动请求: {response!r}')
                 return False
         return True
 
@@ -346,9 +346,9 @@ class MuMu12Handler(EmulatorHandler):
         player_info = self.query_player_info(instance, state._platform)
         if player_info.get('launch_err_code') not in (None, 0, '0'):
             logger.error(
-                f'[emu-start] MuMu launch failed: serial={instance.serial}, '
-                f'code={player_info["launch_err_code"]}, '
-                f'message={player_info.get("launch_err_msg", "")!r}'
+                f'[emu-start] MuMu 启动失败: serial={instance.serial}, '
+                f'错误码={player_info["launch_err_code"]}, '
+                f'消息={player_info.get("launch_err_msg", "")!r}'
             )
             return 'fail', player_info
         current_state = 'unknown'
