@@ -10,6 +10,7 @@ from tasks.DraftDuel.runtime.round_state import DraftDuelRoundStateMixin
 from tasks.DraftDuel.runtime.invitation import DraftDuelInvitationMixin
 from tasks.DraftDuel.runtime.selection import DraftDuelSelectionMixin
 from tasks.DraftDuel.runtime.matchmaking import DraftDuelMatchmakingMixin
+from tasks.DraftDuel.runtime.ocr_v6 import DraftDuelV6OcrMixin
 from tasks.DraftDuel.runtime.deployment import DraftDuelDeploymentMixin
 from tasks.DraftDuel.runtime.battle import DraftDuelBattleMixin
 from tasks.DraftDuel.runtime.cooperation import DraftDuelCooperationMixin
@@ -19,6 +20,7 @@ from tasks.DraftDuel.runtime.recovery import DraftDuelRecoveryMixin
 
 
 class ScriptTask(
+    DraftDuelV6OcrMixin,
     DraftDuelRoundStateMixin,
     DraftDuelInvitationMixin,
     DraftDuelSelectionMixin,

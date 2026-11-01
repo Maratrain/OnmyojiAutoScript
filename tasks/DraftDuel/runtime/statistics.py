@@ -39,7 +39,7 @@ class DraftDuelStatisticsMixin:
                 self.screenshot()
             if not self.appear(self.I_POST_DRAFT_RANK):
                 break
-            value = self._parse_victory_count(self.O_VICTORY_COUNT.ocr(self.device.image))
+            value = self._parse_victory_count(self._ocr_text(self.O_VICTORY_COUNT))
             if value is not None and value == candidate:
                 stable += 1
             else:

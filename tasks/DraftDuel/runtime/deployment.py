@@ -28,7 +28,7 @@ class DraftDuelDeploymentMixin:
             threshold = max(0.5, round(threshold - 0.05, 10))
 
     def _update_deployment_clock(self):
-        value = self.O_FIGHT_WAIT_TIME.ocr(self.device.image)
+        value = self._ocr_text(self.O_FIGHT_WAIT_TIME)
         if isinstance(value, str) and value.strip().isdigit():
             value = int(value.strip())
         if type(value) is not int or not 1 <= value <= 60:

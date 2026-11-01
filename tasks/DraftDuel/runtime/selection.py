@@ -70,7 +70,7 @@ class DraftDuelSelectionMixin:
                 self._log_selection_wait('未识别到 post_draft_select')
                 time.sleep(0.3)
                 continue
-            raw_number = self.O_SELECT_NUMBER.ocr(self.device.image)
+            raw_number = self._ocr_text(self.O_SELECT_NUMBER)
             number = self._parse_select_number(raw_number)
             if pending:
                 round_number, name, button = pending
@@ -109,7 +109,7 @@ class DraftDuelSelectionMixin:
                 self._log_selection_wait(f'第{number}名空位 select_none_{number} 未识别')
                 time.sleep(0.3)
                 continue
-            raw_names = [getattr(self, f'O_SHIKIGAMI_NAME_{i}').ocr(self.device.image) for i in (1, 2, 3)]
+            raw_names = [self._ocr_text(getattr(self, f'O_SHIKIGAMI_NAME_{i}')) for i in (1, 2, 3)]
             names, ready = self._normalize_selection_candidates(number, raw_names)
             if not ready or not any(names):
                 self._log_selection_wait(f'候选 OCR={raw_names!r}，归一化={names!r}，'
