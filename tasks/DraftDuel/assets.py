@@ -80,6 +80,10 @@ class DraftDuelAssets:
 	I_AUTO_RIGHT = RuleImage(roi_front=(1000,619,58,71), roi_back=(957,579,142,138), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_auto_right.png")
 	# 自动上阵 
 	I_AUTO_DOWN = RuleImage(roi_front=(999,619,58,71), roi_back=(956,574,142,138), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_auto_down.png")
+	# 大轮最终结算横幅（与大厅同屏，仅裁左侧稳定缎带底纹，避开可变的番数数字与×标记）
+	I_DRAFT_FINAL_BANNER = RuleImage(roi_front=(442,290,100,42), roi_back=(414,270,156,82), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_final_banner.png")
+	# 奖励展示页福袋本体（与大厅同屏，仅裁袋身中下部，避开上方会变化的奖励物品）
+	I_DRAFT_REWARD_POUCH = RuleImage(roi_front=(551,515,183,62), roi_back=(523,487,239,118), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_reward_pouch.png")
 
 
 	# Ocr Rule Assets
