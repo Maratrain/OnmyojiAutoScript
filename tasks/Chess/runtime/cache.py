@@ -59,5 +59,5 @@ def timed_action(method):
             return method(self, *args, **kwargs)
         finally:
             from module.logger import logger
-            logger.debug(f'[棋局] 步骤耗时: {method.__name__}={(time.perf_counter()-started)*1000:.1f}ms')
+            logger.debug(f'Chess timing: {method.__name__}={(time.perf_counter()-started)*1000:.1f}ms')
     return run

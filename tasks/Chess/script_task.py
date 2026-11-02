@@ -5,18 +5,17 @@ from datetime import datetime, timedelta
 
 from module.exception import GameStuckError, TaskEnd
 from module.logger import logger
-from module.base.utils.utils import get_color
 from tasks.Chess.assets import ChessAssets
 from tasks.Chess.config import Chess
 from tasks.Chess.runtime.cache import economy_scope
 from tasks.Chess.runtime.economy import ChessEconomyMixin
 from tasks.Chess.runtime.hand_operations import ChessHandOperationsMixin
-from tasks.Chess.runtime.ocr_v6 import ChessV6OcrMixin
 from tasks.Chess.runtime.hyakki_draft import ChessHyakkiDraftMixin
 from tasks.Chess.runtime.recognition import ChessRecognitionMixin
 from tasks.Chess.runtime.round_state import ChessRoundStateMixin
 from tasks.Chess.runtime.settings import ChessRuntimeSettings
 from tasks.Chess.runtime.state_loop import ChessStateLoopMixin
+from tasks.Chess.runtime.ocr_v6 import ChessV6OcrMixin
 from tasks.Chess.runtime.activity_watchdog import ChessActivityWatchdog
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.GameUi.game_ui import GameUi
@@ -24,7 +23,6 @@ from tasks.GameUi.page import page_chess
 
 
 class ChessLegacyScriptTask(
-    ChessV6OcrMixin,
     ChessHyakkiDraftMixin,
     ChessRecognitionMixin,
     ChessHandOperationsMixin,
@@ -46,12 +44,12 @@ class ChessLegacyScriptTask(
             return super().select_chess_sixrealms_if_visible()
         if not self.appear(self.I_SELECT_SIXREALMS):
             return False
-        logger.info('[棋局] 六道选择已关闭；等待正常对局')
+        logger.info('Chess six-realms selection disabled; wait for normal game')
         while self.appear(self.I_SELECT_SIXREALMS):
             self.device.stuck_record_clear()
             time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
             self.screenshot()
-        logger.info('[棋局] 六道选择等待完成')
+        logger.info('Chess six-realms waiting completed')
         return True
 
     def _burst(self) -> bool:
@@ -59,12 +57,12 @@ class ChessLegacyScriptTask(
         if super()._burst():
             return True
         if self.appear_then_click(self.I_CLOSE_RED, interval=0.8):
-            logger.info('[棋局] 关闭红叉浮窗')
+            logger.info('Chess: close floating window with red cross')
             return True
         if (not getattr(self, '_chess_details_depth', 0)
                 and self.appear(self.I_SHIKIGAMI_SPECIFICS)):
             if self.click(self.C_CLICK_CLOSE_SPECIFICS_AREA, interval=0.8):
-                logger.info('[棋局] 全局关闭意外打开的式神详情')
+                logger.info('Chess: globally close unexpected shikigami details')
             # Base screenshot refreshes and rechecks before returning the image.
             return True
         return False
@@ -124,12 +122,12 @@ class ChessLegacyScriptTask(
         rank_protection_exits_remaining = 0
         next_game_already_started = False
         logger.info(
-            '[棋局] 任务约束: '
-            f'阵容={strategy["key"]} ({strategy["display_name"]}), '
-            f'运行局数={target_count}, 时限={self.limit_time}, '
-            f'币满退出={coin_full_exit}, '
-            f'保段位={rank_protection}, '
-            f'匹配超时={self._matchmaking_timeout_seconds}秒'
+            'Chess task constraints: '
+            f'lineup={strategy["key"]} ({strategy["display_name"]}), '
+            f'run_count={target_count}, limit_time={self.limit_time}, '
+            f'coin_full_exit={coin_full_exit}, '
+            f'rank_protection={rank_protection}, '
+            f'matchmaking_timeout={self._matchmaking_timeout_seconds}s'
         )
 
         while (
@@ -144,23 +142,23 @@ class ChessLegacyScriptTask(
             if not game_already_started:
                 if datetime.now() - self.start_time >= self.limit_time:
                     logger.info(
-                        '[棋局] 任务时间已到；'
-                        '在开始下一局前停止'
+                        'Chess task time reached; '
+                        'stop before starting next game'
                     )
                     break
                 self.screenshot()
                 if coin_full_exit and self._coin_is_full():
                     logger.info(
-                        '[棋局] 下一局前停止任务: '
-                        '鼬乐币已达 600/600'
+                        'Stop Chess task before next game: '
+                        'coin reached 600/600'
                     )
                     coin_limit_reached = True
                     break
 
             logger.debug(
-                '[棋局] 对局循环'
+                'Chess game loop '
                 f'{completed + 1}/'
-                f'{"无限" if target_count == -1 else target_count}'
+                f'{"infinite" if target_count == -1 else target_count}'
             )
             self._rank_protection_exit_requested = bool(
                 rank_protection and rank_protection_exits_remaining > 0
@@ -174,10 +172,10 @@ class ChessLegacyScriptTask(
             ):
                 rank_protection_exits_remaining -= 1
                 logger.info(
-                    '[棋局] 保段位退出已完成: '
-                    f'剩余={rank_protection_exits_remaining}/'
+                    'Chess rank-protection exit completed: '
+                    f'remaining={rank_protection_exits_remaining}/'
                     f'{self.RANK_PROTECTION_EXIT_COUNT}, '
-                    f'已完成局数={completed}'
+                    f'completed_games={completed}'
                 )
                 if rank_protection_exits_remaining > 0:
                     next_game_already_started = (
@@ -193,23 +191,23 @@ class ChessLegacyScriptTask(
                     self.RANK_PROTECTION_EXIT_COUNT
                 )
                 logger.info(
-                    '[棋局] 保段位已激活: '
-                    f'上局排名=第{game_rank}名，计划'
-                    f'{self.RANK_PROTECTION_EXIT_COUNT} 次主动退出'
+                    'Chess rank protection activated: '
+                    f'last_rank=第{game_rank}名, schedule '
+                    f'{self.RANK_PROTECTION_EXIT_COUNT} active exits'
                 )
             else:
                 rank_protection_exits_remaining = 0
                 if rank_protection:
                     logger.info(
-                        '[棋局] 保段位未激活: '
-                        f'上局排名='
+                        'Chess rank protection not activated: '
+                        f'last_rank='
                         f'{"未知" if game_rank is None else f"第{game_rank}名"}, '
-                        '需要第1至第4名'
+                        'requires 第1至第4名'
                     )
             logger.info(
-                f'[棋局] 已完成局数: {completed}/'
-                f'{"无限" if target_count == -1 else target_count}, '
-                f'保段位待退出='
+                f'Chess completed games: {completed}/'
+                f'{"infinite" if target_count == -1 else target_count}, '
+                f'rank_protection_exits_pending='
                 f'{rank_protection_exits_remaining}'
             )
 
@@ -218,8 +216,8 @@ class ChessLegacyScriptTask(
             if rank_protection_exits_remaining > 0:
                 if datetime.now() - self.start_time >= self.limit_time:
                     logger.info(
-                        '[棋局] 任务时间已到；'
-                        '跳过保段位重开，返回大厅'
+                        'Chess task time reached; '
+                        'skip rank-protection restart and return to lobby'
                     )
                     self.return_to_chess_lobby()
                     break
@@ -236,15 +234,15 @@ class ChessLegacyScriptTask(
                 self.screenshot()
                 if self._coin_is_full():
                     logger.info(
-                        '[棋局] 本局后停止任务: 鼬乐币已达 600/600'
+                        'Stop Chess task after game: coin reached 600/600'
                     )
                     coin_limit_reached = True
                     break
 
         logger.info(
-            f'[棋局] 任务循环结束: 完成={completed}, '
-            f'目标={target_count}, 币满退出={coin_full_exit}, '
-            f'保段位={rank_protection}'
+            f'Chess task loop finished: completed={completed}, '
+            f'target={target_count}, coin_full_exit={coin_full_exit}, '
+            f'rank_protection={rank_protection}'
         )
         if coin_limit_reached:
             self.set_next_run_next_monday(
@@ -260,17 +258,17 @@ class ChessLegacyScriptTask(
         self._run_round_loop()
         rank = getattr(self, '_last_game_rank', None)
         if isinstance(rank, int) and 1 <= rank <= 8:
-            logger.info(f'[棋局] 对局结束: 第{rank}名')
+            logger.info(f'Chess game ended: 第{rank}名')
             return rank
         logger.warning(
-            f'[棋局] 对局结束: 结算页排名 OCR 不可用 [{rank}]'
+            f'Chess game ended: result-page rank OCR unavailable [{rank}]'
         )
         return None
 
     def run_one_round(self, round_no: int) -> int | None:
         """执行一个回目：回合开始 -> 备 -> 战/鬼/待 -> 等待新回合。"""
         self._current_round_no = int(round_no)
-        logger.debug(f'[棋局] 第 {round_no} 回合')
+        logger.debug(f'Chess round {round_no}')
         phase = 'await_preparation'
         preparation_done = False
         next_round_candidate = None
@@ -291,15 +289,15 @@ class ChessLegacyScriptTask(
                 return None
             if getattr(self, '_rank_protection_exit_requested', False):
                 logger.info(
-                    '[棋局] 保段位: 主动退出本局；'
-                    '本局不计入完成局数'
+                    'Chess rank protection: actively exit this game; '
+                    'the game will not count toward completed runs'
                 )
                 if self.Chess_Exit(return_to_lobby=False):
                     self._rank_protection_exit_succeeded = True
                     return None
                 logger.warning(
-                    '[棋局] 保段位退出不可用；'
-                    '下次状态刷新时重试'
+                    'Chess rank-protection exit was unavailable; '
+                    'retry on the next state refresh'
                 )
             observed_round = self._read_round_number()
             mode = self._read_chess_mode()
@@ -314,9 +312,9 @@ class ChessLegacyScriptTask(
                 round_transition_pending = True
                 if next_round_confirmed >= self.ROUND_CONFIRM_FRAMES:
                     logger.debug(
-                        f'[棋局] 回合边界已确认: {round_no} -> '
-                        f'{observed_round}, 阶段={phase}, '
-                        f'准备完成={preparation_done}'
+                        f'Chess round boundary confirmed: {round_no} -> '
+                        f'{observed_round}, phase={phase}, '
+                        f'preparation_done={preparation_done}'
                     )
                     return observed_round
             else:
@@ -335,7 +333,7 @@ class ChessLegacyScriptTask(
                 unknown_since = time.monotonic()
             elif time.monotonic() - unknown_since >= self.UNKNOWN_STATE_TIMEOUT:
                 raise GameStuckError(
-                    f'[棋局] 第 {round_no} 回合丢失全部标记'
+                    f'Chess: lost all markers during round {round_no}'
                 )
 
             if mode in ('战', '鬼', '待'):
@@ -362,8 +360,8 @@ class ChessLegacyScriptTask(
                     preparation_done = True
                     phase = 'await_battle_end'
                     logger.warning(
-                        f'[棋局] 第 {round_no} 回合: 被动模式恢复，'
-                        f'{mode}；准备阶段视为已通过'
+                        f'Chess round {round_no}: resumed in passive mode '
+                        f'{mode}; treat preparation as already passed'
                     )
 
             elif mode == '备':
@@ -371,7 +369,7 @@ class ChessLegacyScriptTask(
                 # phase/preparation_count；下一轮循环会把它当作新的同阶段备，
                 # 从上式神、上御魂的起点重新执行。
                 if self.appear(self.I_SELECT_GRIGRI):
-                    logger.debug('[棋局] 准备阶段被御念选择打断')
+                    logger.debug('Chess preparation interrupted by grigri selection')
                     self.select_grigri()
                     continue
 
@@ -387,8 +385,8 @@ class ChessLegacyScriptTask(
                         preparation_done = True
                         phase = 'await_battle'
                         logger.debug(
-                            f'[棋局] 第 {round_no} 回合: 准备'
-                            '完成；等待 战/鬼/待'
+                            f'Chess round {round_no}: preparation '
+                            'complete; wait for 战/鬼/待'
                         )
 
             interval = (
@@ -429,8 +427,8 @@ class ChessLegacyScriptTask(
         self.deploy_shikigami_from_hand()
         if self._is_shop_open() or not self._is_preparation_mode():
             logger.warning(
-                '[棋局] 式盘阶段前停止准备: '
-                '商店开着或模式已离开准备'
+                'Stop Chess preparation before soul phase: '
+                'shop is open or mode left preparation'
             )
             return False
         # 上式神与上御魂保持为两个独立操作，由准备阶段明确编排顺序。
@@ -459,8 +457,8 @@ class ChessLegacyScriptTask(
             remaining = self._read_remaining_time()
             if remaining is not None and remaining < 12:
                 logger.info(
-                    '[棋局] 停止准备升级/刷新循环: '
-                    f'剩余时间={remaining} < 12'
+                    'Stop Chess preparation upgrade/refresh loop: '
+                    f'remaining_time={remaining} < 12'
                 )
                 return
             result = self._run_economy_atomic_batch(battle_mode=False)
@@ -483,7 +481,6 @@ class ChessLegacyScriptTask(
             self._read_chess_mode() == '战'
             and getattr(self, '_economy_pending', False)
         ):
-
             result = self._run_economy_atomic_batch(battle_mode=True)
             if result in ('complete', 'blocked'):
                 return
@@ -491,7 +488,7 @@ class ChessLegacyScriptTask(
 
     def _handle_preparation_stage(self, stage_index: int) -> bool:
         """执行一次完整备阶段；卖卡已移至独立的战阶段环节。"""
-        logger.debug(f'[棋局] 准备阶段 {stage_index}/2')
+        logger.debug(f'Chess preparation stage {stage_index}/2')
         return self._handle_preparation() and self._is_preparation_mode()
 
     def _handle_battle_sell_stage(self) -> bool:
@@ -499,14 +496,14 @@ class ChessLegacyScriptTask(
         if self._read_chess_mode() != '战':
             return False
         round_no = self._read_round_number()
-        logger.debug('[棋局] 战斗手牌清理')
+        logger.debug('Chess battle hand-card cleanup')
         sold = self.cleanup_non_lineup_hand_cards(allowed_modes=('战',))
-        logger.debug(f'[棋局] 战斗手牌清理完成: 售出={sold}')
+        logger.debug(f'Chess battle hand-card cleanup complete: sold={sold}')
         if (self._is_soul_equipment_allowed()
                 and self._ensure_shop_closed(allowed_modes=('战',))):
             verified = set(self._board_lineup_names) & set(self.shikigami_deploy_positions)
             self.equip_souls_from_hand(verified)
-        # 被阻挡的目标延后到当局再处理；经济循环继续跑。
+        # A blocked target is deferred for this round; keep economy running.
         return (self.chess_state.hand_cleanup_status != 'interrupted'
                 and self._read_round_number() == round_no
                 and self._read_chess_mode() == '战')
@@ -528,101 +525,69 @@ class ChessLegacyScriptTask(
         if not self.appear(self.I_SELECT_GRIGRI):
             return False
         logger.info(
-            '[棋局] 回合状态刷新被御念选择打断；'
-            '先处理御念再读回合与模式'
+            'Chess round-state refresh interrupted by grigri selection; '
+            'resolve grigri before reading round and mode'
         )
         self.select_grigri()
         self.screenshot()
         return True
 
-    def _is_black_frame(self) -> bool:
-        """当前截屏是否全黑（模拟器黑屏）。
-
-        黑屏时所有局内标记与 I_GAME_OVER 均匹配不到，不可据此判定对局状态。
-        """
-        if self.device.image is None:
-            return False
-        color = get_color(self.device.image, area=(0, 0, 1280, 720))
-        return sum(color) < 1
-
     def _finish_chess_game_after_markers_missing(
         self,
         context: str,
     ) -> bool:
-        """两个局内标志连续三帧消失后，等待结算页并读取实际名次。
-
-        黑屏防御：模拟器黑屏时局内标记会全部消失、I_GAME_OVER 也匹配不到，
-        若据此判定对局结束会误触发 GameStuckError。黑屏帧不累计“标记消失”，
-        需连续 GAME_END_CONFIRM_FRAMES 帧非黑且标记消失才确认结束。
-        """
+        """两个局内标志连续三帧消失后，等待结算页并读取实际名次。"""
         if self._is_in_chess_game():
             return False
 
-        consecutive_missing = 0
-        for _ in range(self.GAME_END_CONFIRM_FRAMES * 8):
+        for frame in range(2, self.GAME_END_CONFIRM_FRAMES + 1):
             time.sleep(2 * self.SLOW_POLL_INTERVAL)
             self.device.stuck_record_clear()
             self.screenshot()
             if self._is_in_chess_game():
                 logger.debug(
-                    '[棋局] 对局结束确认已取消: '
-                    f'局内标记恢复，上下文={context}'
+                    'Chess game-end confirmation cancelled: '
+                    f'in-game marker recovered at frame={frame}, '
+                    f'context={context}'
                 )
                 return False
-            if self._is_black_frame():
-                consecutive_missing = 0
-                logger.warning('[棋局] 截屏全黑，疑似模拟器黑屏，暂停对局结束判定')
-                continue
-            consecutive_missing += 1
-            if consecutive_missing >= self.GAME_END_CONFIRM_FRAMES:
-                break
-        else:
-            raise GameStuckError(
-                '[棋局] 等待对局结束确认超时: '
-                f'持续黑屏或标记未稳定，上下文={context}'
-            )
 
         logger.info(
-            '[棋局] 检测到对局结束: 局内标记全部消失持续'
-            f'{self.GAME_END_CONFIRM_FRAMES} 帧，上下文={context}'
+            'Chess game end detected: all in-game markers absent for '
+            f'{self.GAME_END_CONFIRM_FRAMES} frames, context={context}'
         )
         deadline = time.monotonic() + self.GAME_OVER_WAIT_TIMEOUT
         while time.monotonic() < deadline:
             self.device.stuck_record_clear()
             if self._is_in_chess_game():
                 logger.info(
-                    '[棋局] 对局结束等待已取消: 局内标记恢复；'
-                    f'重置缺失帧计数，上下文={context}'
+                    'Chess game-end wait cancelled: in-game marker recovered; '
+                    f'reset missing-frame count, context={context}'
                 )
                 return False
-            if self._is_black_frame():
-                logger.warning('[棋局] 结算等待期间截屏全黑，疑似模拟器黑屏，重试')
-                time.sleep(2 * self.SLOW_POLL_INTERVAL)
-                self.screenshot()
-                continue
             if self.appear(self.I_GAME_OVER_1) or self.appear(self.I_GAME_OVER_2):
                 rank, raw = self._read_game_rank()
                 self._last_game_rank = rank
                 if rank is None:
                     logger.warning(
-                        f'[棋局] 结算排名 OCR 无效: [{raw}]'
+                        f'Chess game-over rank OCR invalid: [{raw}]'
                     )
                 else:
                     logger.info(
-                        f'[棋局] 结算排名 OCR: [{raw}] -> 第{rank}名'
+                        f'Chess game-over rank OCR: [{raw}] -> 第{rank}名'
                     )
                 return True
             time.sleep(2 * self.SLOW_POLL_INTERVAL)
             self.screenshot()
 
         raise GameStuckError(
-            '[棋局] 局内标记全部消失，但 '
-            f'{self.GAME_OVER_WAIT_TIMEOUT:.0f} 秒内未出现 I_GAME_OVER'
+            'Chess: all in-game markers disappeared, but I_GAME_OVER did not '
+            f'appear within {self.GAME_OVER_WAIT_TIMEOUT:.0f}s'
         )
 
     def _restart_chess_game_from_result(self) -> bool:
         """推进到排名页并点击“再来一局”；回到大厅时返回 False。"""
-        logger.debug('[棋局] 结算流程: 从排名页重开')
+        logger.debug('Chess result flow: restart from rank page')
         self._chess_share_advancing = False
         deadline = time.monotonic() + self.CHESS_EXIT_TIMEOUT
         exit_clicked = False
@@ -652,30 +617,35 @@ class ChessLegacyScriptTask(
                         lambda: not self.appear(self.I_RESTART_AGAIN)
                     ):
                         logger.info(
-                            '[棋局] 已从排名页点击再次开始: '
-                            f'尝试={attempt}/'
+                            'Chess restart-again clicked from rank page: '
+                            f'attempt={attempt}/'
                             f'{self.ACTION_ICON_MAX_ATTEMPTS}'
                         )
                         return True
                     logger.warning(
-                        '[棋局] 点击后再次开始仍可见: '
-                        f'尝试={attempt}/'
+                        'Chess restart-again remained visible after click: '
+                        f'attempt={attempt}/'
                         f'{self.ACTION_ICON_MAX_ATTEMPTS}'
                     )
                 raise GameStuckError(
-                    '[棋局] 从排名页开始下一局 3 次尝试后失败'
+                    'Chess: failed to start next game from rank page '
+                    'after 3 attempts'
                 )
 
             if self.appear(self.I_CHECK_CHESS):
                 logger.warning(
-                    '[棋局] 结算流程在再次开始前已到达大厅；'
-                    '改为从大厅开始下一局'
+                    'Chess result flow reached lobby before restart-again; '
+                    'start the next game from lobby instead'
                 )
                 return False
 
             # 已到排名页但按钮仍在动画中时只等待，不执行安全区点击，
             # 避免误触左侧“返回大厅”。
             if self.appear(self.I_CHECK_CHESS_RANK):
+                time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                continue
+
+            if self._close_unknown_chess_result_page():
                 time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
                 continue
 
@@ -702,8 +672,8 @@ class ChessLegacyScriptTask(
                     continue
                 if time.monotonic() >= fallback_exit_at:
                     logger.warning(
-                        '[棋局] 结算流程在之前未见到返回图标，'
-                        '重开；点击固定返回区'
+                        'Chess result flow missed return image before '
+                        'restart; click fixed return area'
                     )
                     self.click(self.I_CHESS_EXIT_TO_LOBBY)
                     exit_clicked = True
@@ -724,8 +694,8 @@ class ChessLegacyScriptTask(
             time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
 
         raise GameStuckError(
-            '[棋局] '
-            f'{self.CHESS_EXIT_TIMEOUT:.0f} 秒内未出现再来一局, 安全点击={safe_clicks}'
+            'Chess: restart-again did not appear within '
+            f'{self.CHESS_EXIT_TIMEOUT:.0f}s, safe_clicks={safe_clicks}'
         )
 
     def _wait_for_round_start(self) -> int | None:
@@ -773,8 +743,8 @@ class ChessLegacyScriptTask(
         if not self.appear(self.I_BACK_RED):
             return False
         logger.warning(
-            '[棋局] 启动被异常大厅页阻塞；'
-            '用红叉关闭它'
+            'Chess start blocked by abnormal lobby page; '
+            'close it with back red'
         )
         for attempt in range(1, self.ACTION_ICON_MAX_ATTEMPTS + 1):
             self.device.click_record_remove(self.I_BACK_RED)
@@ -783,17 +753,17 @@ class ChessLegacyScriptTask(
                 lambda: not self.appear(self.I_BACK_RED)
             ):
                 logger.info(
-                    '[棋局] 异常大厅页已关闭；'
-                    f'尝试={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}'
+                    'Chess abnormal lobby page closed; '
+                    f'attempt={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}'
                 )
                 return True
             logger.warning(
-                '[棋局] 点击后异常大厅页仍可见: '
-                f'尝试={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}, '
-                f'超时={self.ACTION_ICON_WAIT_TIMEOUT:.0f}秒'
+                'Chess abnormal lobby page still visible after click: '
+                f'attempt={attempt}/{self.ACTION_ICON_MAX_ATTEMPTS}, '
+                f'timeout={self.ACTION_ICON_WAIT_TIMEOUT:.0f}s'
             )
         raise GameStuckError(
-            '[棋局] 关闭异常大厅页面 3 次尝试后失败'
+            'Chess: failed to close abnormal lobby page after 3 attempts'
         )
 
     def _wait_until_in_chess_game(
@@ -824,7 +794,7 @@ class ChessLegacyScriptTask(
             # 以阵容入口或问号图标确认真正进入棋局；商店按钮不再作为
             # 开局成功标志，避免大厅或匹配动画中的相似区域造成误判。
             if self._is_in_chess_game():
-                logger.info('[棋局] 匹配完成: 已进入战斗')
+                logger.info('Chess matchmaking complete: entered battle')
                 self._consecutive_matchmaking_timeouts = 0
                 return
 
@@ -833,8 +803,8 @@ class ChessLegacyScriptTask(
             # 将该页当作未知页面。
             if self.chess_result_page_visible():
                 logger.warning(
-                    '[棋局] 匹配加载在到达结算页前结束，'
-                    '局内标记出现；恢复到大厅并重试'
+                    'Chess matched loading ended on result page before '
+                    'in-game markers appeared; recover to lobby and retry'
                 )
                 self.return_to_chess_lobby()
                 deadline = time.monotonic() + timeout
@@ -854,8 +824,8 @@ class ChessLegacyScriptTask(
                     waiting_started_at = now
                 if not waiting_logged:
                     logger.info(
-                        '[棋局] 匹配中: 等待其他玩家；'
-                        f'上限={matchmaking_timeout:.0f}秒'
+                        'Chess matchmaking: waiting for other players; '
+                        f'limit={matchmaking_timeout:.0f}s'
                     )
                     waiting_logged = True
                 self.device.stuck_record_clear()
@@ -866,8 +836,8 @@ class ChessLegacyScriptTask(
                     self.screenshot()
                     if not self.appear(self.I_CANCEL_WAITING):
                         logger.info(
-                            '[棋局] 超时退出时匹配完成'
-                            '正在验证中；中止取消'
+                            'Chess matchmaking completed while timeout exit '
+                            'was being verified; abort cancellation'
                         )
                         waiting_started_at = None
                         waiting_logged = False
@@ -883,8 +853,8 @@ class ChessLegacyScriptTask(
                         self.screenshot()
                         if self._is_in_chess_game():
                             logger.info(
-                                '[棋局] 退出匹配时进入战斗'
-                                '失败；中止取消'
+                                'Chess entered battle while matchmaking exit '
+                                'failed; abort cancellation'
                             )
                             self._consecutive_matchmaking_timeouts = 0
                             return
@@ -893,8 +863,8 @@ class ChessLegacyScriptTask(
                             and not self.appear(self.I_CHESS_START)
                         ):
                             logger.info(
-                                '[棋局] 退出时匹配完成'
-                                '点击失败；等待战斗加载'
+                                'Chess matchmaking completed while exit '
+                                'click failed; wait for battle loading'
                             )
                             waiting_started_at = None
                             waiting_logged = False
@@ -906,8 +876,8 @@ class ChessLegacyScriptTask(
                             time.sleep(self.SLOW_POLL_INTERVAL)
                             continue
                         logger.info(
-                            '[棋局] 点击前退出匹配已完成；'
-                            '从大厅重试'
+                            'Chess matchmaking exit completed before click; '
+                            'retry from lobby'
                         )
 
                     # 点击取消后再次确认实际结果。仍显示取消按钮表示退出失败；
@@ -917,21 +887,21 @@ class ChessLegacyScriptTask(
                     self.screenshot()
                     if self._is_in_chess_game():
                         logger.info(
-                            '[棋局] 退出匹配过程中进入战斗；'
-                            '中止取消'
+                            'Chess entered battle during matchmaking exit; '
+                            'abort cancellation'
                         )
                         self._consecutive_matchmaking_timeouts = 0
                         return
                     if self.appear(self.I_CANCEL_WAITING):
                         logger.warning(
-                            '[棋局] 退出匹配未完成；重试'
+                            'Chess matchmaking exit was not completed; retry'
                         )
                         continue
                     if not self.appear(self.I_CHESS_START):
                         logger.info(
-                            '[棋局] 匹配标记消失但未'
-                            '返回大厅；按已匹配处理并等待'
-                            '战斗加载'
+                            'Chess matchmaking marker disappeared without '
+                            'returning to lobby; treat as matched and wait '
+                            'for battle loading'
                         )
                         waiting_started_at = None
                         waiting_logged = False
@@ -941,18 +911,18 @@ class ChessLegacyScriptTask(
                         continue
                     self._consecutive_matchmaking_timeouts += 1
                     logger.warning(
-                        '[棋局] 匹配超时: '
+                        'Chess matchmaking timeout: '
                         f'{self._consecutive_matchmaking_timeouts}/3, '
-                        f'上限={matchmaking_timeout:.0f}秒'
+                        f'limit={matchmaking_timeout:.0f}s'
                     )
                     if self._consecutive_matchmaking_timeouts >= 3:
-                        logger.warning('[棋局] 匹配: 等待过多，结束任务')
+                        logger.warning('Chess matchmaking: 等待过多，结束任务')
                         self.set_next_run(
                             task='Chess',
                             success=False,
                             finish=True,
                         )
-                        raise TaskEnd('Chess')
+                        raise TaskEnd('Chess: 等待过多')
                     waiting_started_at = None
                     waiting_logged = False
                     waiting_seen = False
@@ -1000,9 +970,9 @@ class ChessLegacyScriptTask(
                     self._consecutive_matchmaking_timeouts = 0
                 if not matched_loading_logged:
                     logger.info(
-                        '[棋局] 匹配完成: 等待进入战斗'
-                        '加载；'
-                        f'上限={self.MATCHED_LOADING_TIMEOUT:.0f}秒'
+                        'Chess matchmaking complete: waiting for battle '
+                        'loading; '
+                        f'limit={self.MATCHED_LOADING_TIMEOUT:.0f}s'
                     )
                     matched_loading_logged = True
                 if (
@@ -1010,22 +980,23 @@ class ChessLegacyScriptTask(
                     >= self.MATCHED_LOADING_TIMEOUT
                 ):
                     raise GameStuckError(
-                        '[棋局] 匹配成功，但 '
-                        f'{self.MATCHED_LOADING_TIMEOUT:.0f} 秒内未进入战斗或结算页'
+                        'Chess: matched successfully, but loading did not '
+                        'reach battle or result page within '
+                        f'{self.MATCHED_LOADING_TIMEOUT:.0f}s'
                     )
                 time.sleep(self.SLOW_POLL_INTERVAL)
                 continue
 
             if time.monotonic() >= deadline:
                 raise GameStuckError(
-                    '[棋局] 等待局内标记超时'
+                    'Chess: timeout waiting for in-game markers'
                 )
             time.sleep(self.SLOW_POLL_INTERVAL)
 
     def _start_chess_game(self) -> None:
         """从棋局大厅开战，确认进入局内后直接开始回合流程。"""
         self.select_lineup_strategy(self._configured_lineup_key(reload=True))
-        logger.debug('[棋局] 对局开始')
+        logger.debug('Chess game start')
         # 式神本局属性：(守护之印, 御魂1, 御魂2)。
         # 守护之印不占普通御魂槽，三个属性均允许为空。
         self._board_shikigami_attributes = {}
@@ -1039,15 +1010,15 @@ class ChessLegacyScriptTask(
         self._reset_economy_state()
         strategy = self.get_lineup_strategy()
         logger.debug(
-            '[棋局] 重置每局状态: '
-            f'阵容={strategy["key"]} ({strategy["display_name"]})'
+            'Reset Chess per-game state: '
+            f'lineup={strategy["key"]} ({strategy["display_name"]})'
         )
         self._wait_until_in_chess_game(
             timeout=self.GAME_ENTER_TIMEOUT,
             retry_start=True,
         )
         logger.debug(
-            '[棋局] 已进入对局；跳过阵容预设，开始回合循环'
+            'Chess entered game; skip lineup preset and start round loop'
         )
 
     def _recover_interrupted_chess_game(self) -> bool:
@@ -1060,7 +1031,7 @@ class ChessLegacyScriptTask(
 
         # 上次可能已经进入结算、分享或排名阶段，直接继续既有返回流程。
         if self.chess_result_flow_visible():
-            logger.debug('[棋局] 启动恢复: 检测到未完成的结算流程')
+            logger.debug('Chess startup recovery: unfinished result flow detected')
             self.return_to_chess_lobby()
             return True
 
@@ -1073,12 +1044,12 @@ class ChessLegacyScriptTask(
             return False
 
         logger.warning(
-            '[棋局] 启动恢复: 检测到中断的局内状态，'
-            '经 I_OPEN_LINEUP 或 I_QUESTION_CHECK'
+            'Chess startup recovery: interrupted in-game state detected '
+            'by I_OPEN_LINEUP or I_QUESTION_CHECK'
         )
         if not self.Chess_Exit():
             raise GameStuckError(
-                '[棋局] 检测到中断的对局，但无法主动退出'
+                'Chess: interrupted game detected but active exit was unavailable'
             )
         return True
 
@@ -1089,5 +1060,5 @@ class ChessLegacyScriptTask(
             round_no = self.run_one_round(round_no)
 
 
-class ScriptTask(ChessStateLoopMixin, ChessLegacyScriptTask):
+class ScriptTask(ChessV6OcrMixin, ChessStateLoopMixin, ChessLegacyScriptTask):
     """正式 Chess 入口：状态驱动回合循环复用原有执行动作。"""

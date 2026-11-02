@@ -58,13 +58,13 @@ class ChessStateLoopMixin:
                 roi = (left, top, width, height)
                 rule = RuleOcr(name='chess_current_health', roi=roi, area=roi,
                                mode='Digit', method='Default', keyword='')
-                raw = self._normalize_ocr_text(self._ocr_rule(rule))
+                raw = self._normalize_ocr_text(rule.ocr(image))
                 if re.fullmatch(r'\d{1,3}', raw) and 0 <= int(raw) <= 100:
                     state.current_health = int(raw)
         self._record_observation(player_name=state.player_name,
                                  current_health=state.current_health)
-        logger.info(f'[棋局] 本人生命: 回合={round_no}, '
-                    f'名字={state.player_name}, 生命={state.current_health}')
+        logger.info(f'Chess player health: round={round_no}, '
+                    f'name={state.player_name}, health={state.current_health}')
         return state.current_health
 
     def _ensure_shop_closed(self, allowed_modes=('备',)) -> bool:
@@ -101,8 +101,8 @@ class ChessStateLoopMixin:
         if not hasattr(self, '_logged_chess_mode') or self._logged_chess_mode != value:
             self._logged_chess_mode = value
             logger.info(
-                f'[棋局] 阶段识别: 模式={value or "未识别"}, '
-                f'回合={getattr(self, "_current_round_no", None)}'
+                f'Chess phase detected: mode={value or "未识别"}, '
+                f'round={getattr(self, "_current_round_no", None)}'
             )
         return value
 
@@ -167,7 +167,7 @@ class ChessStateLoopMixin:
         self._unchanged_store_cache = None
         self._closed_shop_inspection_frame = None
         self.chess_events.reset()
-        logger.info(f'[棋局] 状态: 开始第 {self.chess_state.game_number} 局')
+        logger.info(f'Chess state: begin game {self.chess_state.game_number}')
         super()._start_chess_game()
 
     def _publish_chess_events(self, *, decision=None,
@@ -180,9 +180,9 @@ class ChessStateLoopMixin:
         )
         for event in events:
             logger.debug(
-                f'[棋局] 棋局事件: {event.kind.value}, '
-                f'回合={event.round_no}, 模式={event.mode}, '
-                f'帧={event.frame_id}'
+                f'Chess event: {event.kind.value}, '
+                f'round={event.round_no}, mode={event.mode}, '
+                f'frame={event.frame_id}'
             )
         return events
 
@@ -208,7 +208,7 @@ class ChessStateLoopMixin:
         """观察→决策→同步执行；原动作及优先级不变。"""
         progress = self.chess_state.begin_round(round_no)
         self._current_round_no = int(round_no)
-        logger.debug(f'[棋局] 第 {round_no} 回合')
+        logger.debug(f'Chess round {round_no}')
 
         while True:
             self.device.stuck_record_clear()
@@ -217,8 +217,8 @@ class ChessStateLoopMixin:
                 self._record_observation(grigri_visible=True)
                 self._publish_chess_events(grigri_visible=True)
                 logger.info(
-                    '[棋局] 回合状态刷新被御念选择打断；'
-                    '先处理御念再读回合与模式'
+                    'Chess round-state refresh interrupted by grigri selection; '
+                    'resolve grigri before reading round and mode'
                 )
                 self.select_grigri()
                 time.sleep(self.SLOW_POLL_INTERVAL)
@@ -231,16 +231,16 @@ class ChessStateLoopMixin:
                 return None
             if getattr(self, '_rank_protection_exit_requested', False):
                 logger.info(
-                    '[棋局] 保段位: 主动退出本局；'
-                    '本局不计入完成局数'
+                    'Chess rank protection: actively exit this game; '
+                    'the game will not count toward completed runs'
                 )
                 if self.Chess_Exit(return_to_lobby=False):
                     self._rank_protection_exit_succeeded = True
                     self._publish_chess_events(game_ended=True)
                     return None
                 logger.warning(
-                    '[棋局] 保段位退出不可用；'
-                    '下次状态刷新时重试'
+                    'Chess rank-protection exit was unavailable; '
+                    'retry on the next state refresh'
                 )
             observed_round = self._read_round_number()
             mode = self._read_chess_mode()
@@ -279,9 +279,9 @@ class ChessStateLoopMixin:
 
             if any(event.kind is ChessEventKind.ROUND_CONFIRMED for event in events):
                 logger.debug(
-                    f'[棋局] 回合边界已确认: {round_no} -> '
-                    f'{observed_round}, 阶段={progress.phase}, '
-                    f'准备完成={progress.preparation_done}'
+                    f'Chess round boundary confirmed: {round_no} -> '
+                    f'{observed_round}, phase={progress.phase}, '
+                    f'preparation_done={progress.preparation_done}'
                 )
                 return observed_round
 
@@ -289,11 +289,11 @@ class ChessStateLoopMixin:
                 continue
             if decision.action is ChessAction.LOST_MARKERS:
                 raise GameStuckError(
-                    f'[棋局] 第 {round_no} 回合丢失全部标记'
+                    f'Chess: lost all markers during round {round_no}'
                 )
 
             if decision.action is ChessAction.RESOLVE_GRIGRI:
-                logger.debug('[棋局] 准备阶段被御念选择打断')
+                logger.debug('Chess preparation interrupted by grigri selection')
                 self.select_grigri()
                 continue
 
@@ -301,7 +301,7 @@ class ChessStateLoopMixin:
                 if mode == '鬼' and not progress.hyakki_round_seen:
                     progress.hyakki_round_seen = True
                     logger.info(
-                        f'[棋局] 检测到百鬼模式: 回合={round_no}'
+                        f'Chess Hyakki mode observed: round={round_no}'
                     )
                 if decision.action is ChessAction.BATTLE:
                     if not progress.battle_hand_cleanup_done:
@@ -323,8 +323,8 @@ class ChessStateLoopMixin:
                     progress.preparation_done = True
                     progress.phase = 'await_battle_end'
                     logger.warning(
-                        f'[棋局] 第 {round_no} 回合: 被动模式恢复，'
-                        f'{mode}；准备阶段视为已通过'
+                        f'Chess round {round_no}: resumed in passive mode '
+                        f'{mode}; treat preparation as already passed'
                     )
 
             elif decision.action is ChessAction.PREPARE:
@@ -346,8 +346,8 @@ class ChessStateLoopMixin:
                         progress.preparation_done = True
                         progress.phase = 'await_battle'
                         logger.debug(
-                            f'[棋局] 第 {round_no} 回合: 准备'
-                            '完成；等待 战/鬼/待'
+                            f'Chess round {round_no}: preparation '
+                            'complete; wait for 战/鬼/待'
                         )
 
             # 下一轮截图由设备的 combat 截图限速控制，不叠加固定轮询等待。

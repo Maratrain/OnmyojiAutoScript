@@ -1,4 +1,4 @@
-"""用共享 Frame 布局与生成的头像参考读取棋局卡牌。"""
+"""Read Chess cards with shared Frame layouts and generated portrait references."""
 from copy import copy
 from functools import cached_property
 import hashlib
@@ -20,12 +20,12 @@ ROOT = Path(__file__).resolve().parents[1] / 'resource'
 def read_image(path):
     image = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
     if image is None:
-        raise ValueError(f'无法解码图片 {path}')
+        raise ValueError(f'Cannot decode {path}')
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
 def frame_layout(name):
-    rules = json.loads((ROOT/'c_frame.json').read_text(encoding='utf-8'))
+    rules = json.loads((ROOT.parent/'c/c_frame.json').read_text(encoding='utf-8'))
     return next(rule for rule in rules if rule['itemName'] == name)
 
 
@@ -41,7 +41,7 @@ EMBLEM_ROOT = ROOT / 'fetter/portraits'
 
 
 class ChessFrameCardsMixin:
-    # 只有头像身份匹配使用灰度；badge/OCR/Frame 输出保持 RGB。
+    # Only portrait identity matching uses grayscale; badge/OCR/Frame outputs stay RGB.
     FRAME_PORTRAIT_GRAYSCALE = True
 
     def _board_frame_scan(self, round_no=None):
@@ -51,7 +51,7 @@ class ChessFrameCardsMixin:
         if (self._shop_refresh_marker_visible()
                 or getattr(self, '_shop_assumed_open', False)):
             if not self._ensure_shop_closed():
-                logger.debug('[棋局] 棋盘 Frame 不可用: 商店无法关闭')
+                logger.debug('Chess board Frame unavailable: shop could not be closed')
                 return []
             self.screenshot()
             if self._read_chess_mode() != '备' or self._shop_refresh_marker_visible():
@@ -86,7 +86,7 @@ class ChessFrameCardsMixin:
                 slots.append({'occupied': bool(scores), 'star': star,
                               'roi': tuple(int(round(v)) for v in area)})
         else:
-            logger.debug('棋局棋盘 Frame: 未找到表情锚点')
+            logger.debug('Chess board Frame: emoji anchor not found')
         self._board_frame_cache = (key, slots)
         return slots
 
@@ -113,7 +113,7 @@ class ChessFrameCardsMixin:
         library = json.loads((EMBLEM_ROOT/'index.json').read_text(encoding='utf-8'))
         current = frame_layout('fetter_badge')
         if current != library['layout']:
-            raise ValueError('[棋局] 纹章 Frame 布局已变化: 请用 dev_tools.chess.build_fetter_library 重建')
+            raise ValueError('Emblem Frame changed: rebuild with dev_tools.chess.build_fetter_library')
         return library
 
     @cached_property
@@ -149,7 +149,7 @@ class ChessFrameCardsMixin:
         for kind in ('card', 'store'):
             digest = hashlib.sha256(layout_bytes(frame_layout({'card':'hand_card','store':'store_card'}[kind]))).hexdigest()
             if digest != library['layouts'][kind]:
-                raise ValueError('[棋局] Frame 布局已变化: 请用 dev_tools.chess.build_card_library 重建')
+                raise ValueError('Chess Frame layout changed: rebuild with dev_tools.chess.build_card_library')
         return library
 
     @cached_property
@@ -170,7 +170,7 @@ class ChessFrameCardsMixin:
 
 
     def _frame_card_candidates(self, kind, portrait):
-        """仅返回与最佳匹配分差足够接近的头像候选。"""
+        """Return only portrait candidates close enough to the best match."""
         portrait = self._frame_matching_portrait(portrait)
         frame = ChessAssets.F_HAND_CARD if kind == 'card' else ChessAssets.F_STORE_CARD
         threshold = frame.operations[-2].get('threshold', 0.8)
@@ -187,7 +187,7 @@ class ChessFrameCardsMixin:
         return [(score, name) for score, name in scored if scored[0][0]-score < 0.03]
 
     def _frame_card_identity(self, kind, portrait, text, candidates=None):
-        """头像优先，其次羁绊，商店卡再按名称兜底区分。"""
+        """Portrait first, bonds second, then shop name if still ambiguous."""
         near = self._frame_card_candidates(kind, portrait) if candidates is None else candidates
         if not near:
             return None, 0.0
@@ -222,15 +222,15 @@ class ChessFrameCardsMixin:
         # Hand: range1-3 bonds. Neither path reads the image or click ranges as text.
         bond_indexes = range(1, 4) if kind == 'store' else range(3)
         for index in bond_indexes:
-            text[index] = self._ocr_rule(targets[index])
+            text[index] = targets[index].ocr(image)
         name, score = self._frame_card_identity(kind, portrait, text, candidates)
         if name is None and kind == 'store':
-            text[0] = self._ocr_rule(targets[0])
+            text[0] = targets[0].ocr(image)
             name, score = self._frame_card_identity(kind, portrait, text, candidates)
         return name, score, tuple(text)
 
     def _frame_card_scan(self, kind):
-        """先定位全部 badge，再每张卡执行一个 Frame；同一截图内复用输出。"""
+        """Locate all badges, then run one Frame per card; reuse outputs on the same screenshot."""
         image = self.device.image
         key = (getattr(self.device, 'image_frame_id', None), id(image))
         cache = getattr(self, '_chess_frame_card_cache', None)
@@ -271,7 +271,7 @@ class ChessFrameCardsMixin:
         cards = []
         for score, ax, ay, index in sorted(anchors, key=lambda a: a[1]):
             local = copy(frame)
-            # 第三项特质可选；此处 OCR 为空属正常。
+            # The third trait is optional; an empty OCR result is normal here.
             local.optional_ocr_ranges = {'card': (2,), 'store': (3,), 'emblem': ()}[kind]
             local.files = [frame.files[index]]
             local.badgefile = local.files
@@ -280,7 +280,7 @@ class ChessFrameCardsMixin:
             local._badge_reference = local.badge_references[0]
             local.roi_front = [bx, by, bw, bh]
             local.roi_back = (ax, ay, self.frame_badges[kind][index].shape[1], self.frame_badges[kind][index].shape[0])
-            # 先拒绝被屏幕边缘裁切的卡，再执行 OCR。
+            # Reject cards clipped by screen edges before executing any OCR.
             dx, dy = ax-bx, ay-by
             if any(rx+dx < 0 or ry+dy < 0 or rx+dx+rw > image.shape[1] or ry+dy+rh > image.shape[0]
                    for rx, ry, rw, rh in frame.roi_ranges):
@@ -291,15 +291,14 @@ class ChessFrameCardsMixin:
                 continue
             if kind == 'emblem':
                 raw_text, roi, portrait = result
-                # 图像身份优先；只有未知/歧义的头像才需要 OCR。
+                # Image identity first. Only an unknown/ambiguous portrait needs OCR.
                 copy_score = self._golden_copy_score(portrait)
                 golden_copy = copy_score >= .8
-                key, identity_score = ((None, copy_score) if golden_copy
-                                       else self._frame_emblem_identity(portrait, ''))
+                key, identity_score = (None, copy_score) if golden_copy else self._frame_emblem_identity(portrait, '')
                 discovery = None
                 if key is None and not golden_copy:
                     _, targets = local.range_targets(image.shape, allow_missing_image=True)
-                    raw_text = self._ocr_rule(targets[0])
+                    raw_text = targets[0].ocr(image)
                     text = ''.join(str(raw_text).split()).strip('()（）[]【】')
                     discovery = text if text in ('发现纹章', '发现御魂') else None
                     golden_copy = text == '黄金复制术'
@@ -316,7 +315,7 @@ class ChessFrameCardsMixin:
                     'position': (cx+cw//2, cy+ch//2), 'roi': roi, 'source': 'frame',
                     'text': raw_text, 'raw_text': (raw_text,), 'action': None,
                 })
-                logger.debug(f'[棋局] 棋局帧标志: 名称={reference.get("name")}, 得分={identity_score:.3f}, roi={roi}, 文本={raw_text}')
+                logger.debug(f'Chess Frame emblem: name={reference.get("name")}, score={identity_score:.3f}, roi={roi}, text={raw_text}')
                 continue
             name, identity_score, text = self._resolve_frame_card(kind, local, image, result[-2])
             roi = result[-1]
@@ -340,7 +339,7 @@ class ChessFrameCardsMixin:
                 'click_rule': click_rule,
                 'action': None,
             })
-            logger.debug(f'[棋局] 棋局帧{kind}: 名称={name}, 星级={cards[-1]["star"]}, 标志={Path(frame.files[index]).name}, 得分={identity_score:.3f}, roi={roi}, 文本={text}')
+            logger.debug(f'Chess Frame {kind}: name={name}, star={cards[-1]["star"]}, badge={Path(frame.files[index]).name}, score={identity_score:.3f}, roi={roi}, text={text}')
         cache[1][kind] = cards
         if store_key is not None:
             self._unchanged_store_cache = (store_key, cards)
@@ -391,7 +390,7 @@ class ChessFrameCardsMixin:
             references = self._chess_shop_slot_references = {}
         reference = references.get((slot_key, expected_name)) if expected_name else None
         if reference is not None:
-            # 购买其他槽位后，只复查这个已识别的头像。
+            # After buying another slot, only recheck this already identified portrait.
             x, y, w, h = reference['portrait_roi']
             crop = self.device.image[y:y+h, x:x+w]
             front = self.frame_portraits['store'][expected_name]

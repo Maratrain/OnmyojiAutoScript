@@ -1,4 +1,4 @@
-"""Chess 阵容、模板加载与手牌识别。"""
+"""Chess lineup, template loading, and hand-card recognition."""
 
 # This Python file uses the following encoding: utf-8
 
@@ -21,7 +21,7 @@ CHESS_TASK_DIR = Path(__file__).resolve().parents[1]
 
 
 class ChessRecognitionMixin(ChessFrameCardsMixin):
-    """内部 mixin；仅通过 ``ScriptTask`` 使用。"""
+    """Internal mixin; use through ``ScriptTask`` only."""
 
     def _configured_lineup_key(self, reload=False):
         if reload:
@@ -66,7 +66,7 @@ class ChessRecognitionMixin(ChessFrameCardsMixin):
         self._active_lineup_key = strategy['key']
         self._lineup_snapshot = strategy
         self.__dict__.pop('hakuzosu_protect_rule', None)
-        logger.info(f'[棋局] 加载阵容快照: {strategy["key"]} ({strategy["display_name"]})')
+        logger.info(f'Select Chess lineup snapshot: {strategy["key"]} ({strategy["display_name"]})')
         return strategy
 
     def _shikigami_display_name(self, name: str | None) -> str:
@@ -127,7 +127,7 @@ class ChessRecognitionMixin(ChessFrameCardsMixin):
             )
             rules.append((name, rule))
 
-        logger.debug(f'[棋局] 已加载 {len(rules)} 个{folder}手牌模板')
+        logger.debug(f'Loaded {len(rules)} Chess {folder} hand templates')
         return rules
 
 
@@ -172,7 +172,7 @@ class ChessRecognitionMixin(ChessFrameCardsMixin):
             entry = SOUL_BY_ROMAJI.get(romaji)
             if entry is None:
                 logger.warning(
-                    f'[棋局] 忽略未登记的式盘模板: {romaji}'
+                    f'Ignore unregistered Chess soul template: {romaji}'
                 )
                 continue
             normalized.append((entry.romaji, rule))

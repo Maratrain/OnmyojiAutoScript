@@ -1,7 +1,5 @@
 """百鬼试行投掷：黄色文字框、对应锁、六秒计时及场上御魂定位。"""
 
-# This Python file uses the following encoding: utf-8
-
 from pathlib import Path
 from dataclasses import dataclass, field
 import random
@@ -143,7 +141,7 @@ class ChessHyakkiDraftMixin:
                 or now - getattr(self, '_hyakki_skip_at', float('-inf')) >= 5):
             self._hyakki_skip_reason = reason
             self._hyakki_skip_at = now
-            logger.info(f'[棋局] 百鬼投掷跳过: {reason}')
+            logger.info(f'Chess Hyakki throw skipped: {reason}')
 
     @cached_property
     def hyakki_soul_fronts(self):
@@ -165,7 +163,7 @@ class ChessHyakkiDraftMixin:
         identity = player[0]
         if getattr(self, '_hyakki_player_row', None) != identity:
             self._hyakki_player_row = identity
-            logger.info(f'[棋局] 百鬼本人标识: 昵称={player[0]}, 区域={player[1]}')
+            logger.info(f'Chess Hyakki own player: name={player[0]}, box={player[1]}')
         return own_lock_score(self.device.image, player[1], self.I_HYAKKI_WAIT,
                               self.hyakki_wait_front)
 
@@ -197,9 +195,9 @@ class ChessHyakkiDraftMixin:
         if preferred:
             return preferred
         if candidates and self._hyakki_all_locks_gone():
-            logger.info('[棋局] 百鬼全员锁已消失: 无所需御魂，随机选择目标')
+            logger.info('Chess Hyakki all locks gone: no needed soul visible, select random target')
             return candidates
-        self._hyakki_skip('等待所需御魂出现或全员锁消失')
+        self._hyakki_skip('waiting for needed soul or all player locks to disappear')
         return []
 
     def _handle_hyakki_draft(self):
@@ -209,7 +207,7 @@ class ChessHyakkiDraftMixin:
         state = getattr(self, '_hyakki_turn', None)
         if state is None or state.key != key:
             state = self._hyakki_turn = HyakkiTurn(key)
-            logger.info(f'[棋局] 百鬼试行投掷: 等待本人锁消失, 回合={key[1]}')
+            logger.info(f'Chess Hyakki trial: waiting for own lock, round={key[1]}')
         if state.throws >= 2:
             return
         score = self._hyakki_own_lock()
@@ -219,18 +217,17 @@ class ChessHyakkiDraftMixin:
         if now - getattr(self, '_hyakki_status_at', float('-inf')) >= 5:
             self._hyakki_status_at = now
             logger.info(
-                f'[棋局] 百鬼投掷门槛: '
-                f'本人={getattr(self, "_hyakki_player_found", False)}, '
-                f'锁得分={score}, 见过锁={state.seen_lock}, '
-                f'消失帧数={state.absent_frames}, '
-                f'消失秒数={now-state.unlocked_at if state.unlocked_at is not None else None}, '
-                f'就绪={ready}, 尝试={state.throws}/2'
+                f'Chess Hyakki gate: player_found={getattr(self, "_hyakki_player_found", False)}, '
+                f'lock_score={score}, seen_lock={state.seen_lock}, '
+                f'absent_frames={state.absent_frames}, '
+                f'unlocked_seconds={now-state.unlocked_at if state.unlocked_at is not None else None}, '
+                f'ready={ready}, attempts={state.throws}/2'
             )
         if previous_unlock is None and state.unlocked_at is not None:
             logger.info(
-                f'[棋局] 百鬼本人锁已消失: 等待 {state.wait_seconds:.2f} 秒'
+                f'Chess Hyakki own lock disappeared: wait {state.wait_seconds:.2f} seconds'
                 if state.seen_lock else
-                f'[棋局] 百鬼本人无锁: 等待 {state.wait_seconds:.2f} 秒'
+                f'Chess Hyakki own player has no lock: wait {state.wait_seconds:.2f} seconds'
             )
         if not ready:
             return
@@ -241,8 +238,7 @@ class ChessHyakkiDraftMixin:
         candidates = [item for item in candidates if throw_point(item, item, 0, 0, roi)]
         if not candidates:
             self._hyakki_skip(
-                f'投掷范围内无识别到的御魂: '
-                f'模板数={len(self.hyakki_soul_fronts)}, 区域={roi}'
+                f'no recognizable soul in throw range; templates={len(self.hyakki_soul_fronts)}, roi={roi}'
             )
             return
         needed = self._hyakki_needed_souls() if prefer_needed else set()
@@ -254,15 +250,15 @@ class ChessHyakkiDraftMixin:
         self.screenshot()
         captured_at = time.monotonic()
         if self._read_chess_mode() != '鬼':
-            self._hyakki_skip('刷新帧后未确认仍为百鬼阶段')
+            self._hyakki_skip('Hyakki stage not confirmed on refreshed frame')
             return
         if not state.ready(self._hyakki_own_lock(), time.monotonic()):
-            self._hyakki_skip('刷新帧后本人/锁条件未就绪')
+            self._hyakki_skip('own player/lock gate not ready on refreshed frame')
             return
         fresh = [item for item in find_souls(self.device.image, roi, self.hyakki_soul_fronts)
                  if throw_point(item, item, 0, 0, roi)]
         if not fresh:
-            self._hyakki_skip('刷新帧后投掷范围内无识别到的御魂')
+            self._hyakki_skip('no recognizable soul in throw range on refreshed frame')
             return
         fresh_pool = self._hyakki_target_pool(fresh, needed, prefer_needed)
         if not fresh_pool:
@@ -277,21 +273,20 @@ class ChessHyakkiDraftMixin:
             # 不把不同目标的位移用于速度预测。
             point = throw_point(target, target, 0, 0, roi)
             logger.info(
-                f'[棋局] 百鬼目标已在刷新帧重选: '
-                f'旧={chosen["name"]}@{chosen["center"]}, '
-                f'新={target["name"]}@{target["center"]}'
+                f'Chess Hyakki target reselected on refreshed frame: '
+                f'old={chosen["name"]}@{chosen["center"]}, '
+                f'new={target["name"]}@{target["center"]}'
             )
         else:
             target = min(latest, key=lambda item: abs(item['center'][0]-chosen['center'][0]))
             point = throw_point(chosen, target, captured_at-first_at,
                                 time.monotonic()-captured_at, roi)
         if point is None:
-            self._hyakki_skip(f'预测投掷点超出范围: '
-                              f'御魂={target["name"]}, 中心={target["center"]}')
+            self._hyakki_skip(f'predicted throw point outside range: soul={target["name"]}, center={target["center"]}')
             return
         state.throws += 1
         self.device.click(x=point[0], y=point[1], control_name='CHESS_HYAKKI_THROW')
-        logger.info(f'[棋局] 百鬼投掷尝试: 御魂={target["name"]}, '
-                    f'优先={target["name"] in needed}, 得分={target["score"]:.3f}, '
-                    f'图标={target["center"]}, 落点={point}, 回合={key[1]}, '
-                    f'尝试={state.throws}/2')
+        logger.info(f'Chess Hyakki throw attempted: soul={target["name"]}, '
+                    f'preferred={target["name"] in needed}, score={target["score"]:.3f}, '
+                    f'icon={target["center"]}, point={point}, round={key[1]}, '
+                    f'attempt={state.throws}/2')

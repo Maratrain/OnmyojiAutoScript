@@ -1,4 +1,4 @@
-"""百鬼棋局专用看门狗：截图、识别与输入均视为活动。"""
+"""Chess-only watchdog: screenshots, recognition and input all count as activity."""
 
 import ctypes
 import sys
@@ -40,18 +40,18 @@ class ChessActivityWatchdog:
             self.previous_profile(frame, event, arg)
 
     def _raise_timeout(self):
-        # 把普通任务错误投递到任务自己的线程，让现有的错误截图/恢复
-        # 流程接手处理。
+        # Deliver the ordinary task error to the task's own thread, so the
+        # existing error screenshot/recovery path can handle it.
         api = ctypes.pythonapi.PyThreadState_SetAsyncExc
         count = api(ctypes.c_ulong(self.owner_thread), ctypes.py_object(ChessInactiveError))
         if count > 1:
             api(ctypes.c_ulong(self.owner_thread), ctypes.c_void_p(0))
-            logger.error('[棋局] 看门狗无法定位唯一的任务线程')
+            logger.error('Chess inactivity watchdog could not identify a unique task thread')
 
     def _watch(self):
         while not self.stop_event.wait(1):
             if time.monotonic() - self.last_activity >= self.timeout:
-                logger.error(f'[棋局] 等待超时: 已 {self.timeout}s 没有截图、识别或输入活动')
+                logger.error(f'Wait too long: Chess has no screenshot, recognition or input activity for {self.timeout}s')
                 self._raise_timeout()
                 return
 

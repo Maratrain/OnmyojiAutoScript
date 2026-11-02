@@ -1,4 +1,4 @@
-"""Chess 任务的运行时常量。"""
+"""Runtime constants for the Chess task."""
 
 from tasks.Chess.strategy.lineup import (
     DEFAULT_LINEUP_KEY as REGISTERED_DEFAULT_LINEUP_KEY,
@@ -8,12 +8,12 @@ from tasks.Chess.strategy.soul_catalog import SOUL_ENTRIES
 
 
 class ChessRuntimeSettings:
-    """Chess 运行时各 mixin 共用的调优值。"""
+    """Tuning values shared by the Chess runtime mixins."""
 
     RANK_PROTECTION_EXIT_COUNT = 2
 
     HAND_AREA = (179, 540, 957, 158)
-    # 只服务普通御魂与保护模板，不兼作式神兜底。
+    # Retained for ordinary soul and protection templates, not shikigami fallback.
     HAND_TEMPLATE_THRESHOLD = 0.75
     HAND_DEPLOY_TEMPLATE_THRESHOLD = 0.75
     HAND_DEPLOY_CONFIRM_FRAMES = 1
