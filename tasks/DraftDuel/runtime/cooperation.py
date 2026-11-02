@@ -52,9 +52,10 @@ class DraftDuelCooperationMixin:
         if len(picks) != 5 or any(normalize_name(n) != n for n in picks):
             self._log_sync_wait(f'协同脚本 {peer} 的五名式神名单不完整或包含未知名称')
             return False
-        if len(rounds) > 3 or any(r.get('name') not in picks or
-                                 r.get('round') != i + 1 or r.get('slot') not in range(1, 7)
-                                 for i, r in enumerate(rounds)):
+        if (len(rounds) > 3 or any(r.get('name') not in picks or
+                                 r.get('round') not in range(1, 4) or r.get('slot') not in range(1, 7)
+                                 for r in rounds) or
+                [r['round'] for r in rounds] != sorted(set(r['round'] for r in rounds))):
             return False
         self.draft_peer_picks = tuple(picks)
         same_game = data.get('small_game', 0) == getattr(self, 'draft_small_game', 0)
@@ -93,11 +94,11 @@ class DraftDuelCooperationMixin:
             self._log_sync_wait(f'等待协同脚本 {peer} 进入第{getattr(self, "draft_small_game", 0)}小局')
         else:
             if getattr(self, '_draft_sync_wait_reason', None):
-                logger.info(f'[协同对弈] 协同名单就绪: {peer}')
+                logger.info(f'DraftDuel cooperation roster ready: {peer}')
             self._draft_sync_wait_reason = None
         return same_game if require_small_game else True
 
     def _log_sync_wait(self, reason):
         if getattr(self, '_draft_sync_wait_reason', None) != reason:
-            logger.info(f'[协同对弈] 协同等待: {reason}')
+            logger.info(f'DraftDuel cooperation waiting: {reason}')
             self._draft_sync_wait_reason = reason

@@ -18,7 +18,7 @@ class DraftDuelSelectionMixin:
     def _log_selection_wait(self, reason):
         """等待原因变化时记录一次，避免静默等待和逐帧刷屏。"""
         if getattr(self, '_draft_selection_wait_reason', None) != reason:
-            logger.info(f'[协同对弈] 选人等待: {reason}')
+            logger.info(f'DraftDuel selection waiting: {reason}')
             self._draft_selection_wait_reason = reason
 
     def _normalize_selection_candidates(self, number, raw_names):
@@ -59,18 +59,18 @@ class DraftDuelSelectionMixin:
                         self.draft_selected.append(name)
                         self._draft_selection_pending = None
                         self._save_draft_checkpoint('rank')
-                        logger.info(f'[协同对弈] 第 {round_number} 选已在排名页确认: {name}')
-                logger.info('[协同对弈] 已进入选人后排名页')
+                        logger.info(f'DraftDuel pick {round_number} confirmed on rank page: {name}')
+                logger.info('DraftDuel entered post_draft_rank')
                 return True
             if time.monotonic() >= deadline:
-                logger.warning('[协同对弈] 选人 600 秒无进展')
+                logger.warning('DraftDuel selection made no progress for 600s')
                 return False
             if not self._is_draft_selection_page():
                 self._draft_candidate_round = None
                 self._log_selection_wait('未识别到选人阶段标志或备用选择按钮')
                 time.sleep(0.3)
                 continue
-            raw_number = self._ocr_text(self.O_SELECT_NUMBER)
+            raw_number = self.O_SELECT_NUMBER.ocr(self.device.image)
             number = self._parse_select_number(raw_number)
             if pending:
                 round_number, name, button = pending
@@ -80,7 +80,7 @@ class DraftDuelSelectionMixin:
                     if absent_frames >= 2:
                         confirmed.add(round_number)
                         self.draft_selected.append(name)
-                        logger.info(f'[协同对弈] 第 {round_number} 选已确认: {name}')
+                        logger.info(f'DraftDuel pick {round_number} confirmed: {name}')
                         pending = None
                         self._draft_selection_pending = None
                         self._save_draft_checkpoint('select')
@@ -109,7 +109,7 @@ class DraftDuelSelectionMixin:
                 self._log_selection_wait(f'第{number}名空位 select_none_{number} 未识别')
                 time.sleep(0.3)
                 continue
-            raw_names = [self._ocr_text(getattr(self, f'O_SHIKIGAMI_NAME_{i}')) for i in (1, 2, 3)]
+            raw_names = [getattr(self, f'O_SHIKIGAMI_NAME_{i}').ocr(self.device.image) for i in (1, 2, 3)]
             names, ready = self._normalize_selection_candidates(number, raw_names)
             if not ready or not any(names):
                 self._log_selection_wait(f'候选 OCR={raw_names!r}，归一化={names!r}，'
@@ -117,16 +117,16 @@ class DraftDuelSelectionMixin:
                 time.sleep(0.3)
                 continue
             if not all(names):
-                logger.info(f'[协同对弈] 剔除两次未识别候选: '
-                            f'OCR={raw_names!r}, 规范化={names!r}')
+                logger.info(f'DraftDuel exclude twice-unrecognized candidates: '
+                            f'OCR={raw_names!r}, normalized={names!r}')
             try:
                 pick = choose_pick([name for name in names if name], team=self.draft_selected)
             except ValueError as exc:
-                logger.warning(f'[协同对弈] 候选无法选择: {exc}')
+                logger.warning(f'DraftDuel candidates cannot be selected: {exc}')
                 time.sleep(0.3)
                 continue
             button = getattr(self, f'I_SELECT_{names.index(pick.name) + 1}')
-            logger.info(f'[协同对弈] 第 {number} 选: {names} -> {pick.name}, 得分={pick.score}')
+            logger.info(f'DraftDuel pick {number}: {names} -> {pick.name}, score={pick.score}')
             if self.appear_then_click(button, interval=1):
                 self._draft_selection_wait_reason = None
                 pending = (number, pick.name, button)

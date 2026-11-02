@@ -13,7 +13,8 @@ class DraftDuelAssets:
 
 
 	# Image Rule Assets
-	F_SHIKIGAMI_HEAD = RuleFrame(name='shikigami_head', roi_badge=(422, 14, 32, 84), roi_range=[(481, 35, 42, 44), (565, 34, 42, 44), (651, 33, 42, 44), (737, 33, 42, 44), (822, 33, 42, 44)], roi_back=(410, 5, 512, 103), threshold=0.8, method='Template matching', profile='High', badgefile=['./tasks/DraftDuel/draft/shikigami_head_badge_1.png'], range=[Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8)])
+	F_HAND_CARD = RuleFrame(name='hand_card', roi_badge=(37, 634, 67, 60), roi_range=[(283, 554, 56, 41), (397, 554, 56, 41), (511, 554, 56, 41), (625, 554, 56, 41), (739, 554, 56, 41)], roi_back=(17, 501, 832, 203), threshold=0.8, method='Template matching', profile='High', badgefile=['./tasks/DraftDuel/draft/hand_card_badge_1.png'], range=[Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8)])
+	F_SHIKIGAMI_HEAD = RuleFrame(name='shikigami_head', roi_badge=(422, 14, 32, 84), roi_range=[(478, 45, 35, 31), (563, 46, 35, 31), (646, 44, 35, 31), (733, 46, 35, 31), (820, 44, 35, 31)], roi_back=(410, 5, 512, 103), threshold=0.8, method='Template matching', profile='High', badgefile=['./tasks/DraftDuel/draft/shikigami_head_badge_1.png'], range=[Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8)])
 	F_FIGHT_SHIKIGAMI = RuleFrame(name='fight_shikigami', roi_badge=(559, 32, 33, 60), roi_range=[(86, 34, 67, 66), (158, 34, 67, 66), (229, 34, 67, 66), (302, 34, 67, 66), (374, 35, 67, 66), (445, 34, 67, 66)], roi_back=(73, 14, 536, 94), threshold=0.8, method='Template matching', profile='High', badgefile=['./tasks/DraftDuel/draft/fight_shikigami_badge_1.png'], range=[Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8), Image(method='Template matching', threshold=0.8)])
 	F_FIGHT_SHIKIGAMI_SET = RuleFrame(name='fight_shikigami_set', roi_badge=(28, 369, 54, 44), roi_range=[(183, 330, 67, 66), (340, 333, 67, 66), (514, 360, 67, 66), (690, 369, 67, 66), (858, 344, 67, 66), (1022, 319, 67, 66)], roi_back=(0, 220, 1147, 276), threshold=0.8, method='Template matching', profile='High', badgefile=['./tasks/DraftDuel/draft/fight_shikigami_set_badge_1.png'], range=[Click(), Click(), Click(), Click(), Click(), Click()])
 
@@ -74,16 +75,12 @@ class DraftDuelAssets:
 	#  
 	I_SELECT_ENSURE_READY = RuleImage(roi_front=(1095,546,146,78), roi_back=(1062,503,207,166), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_select_ensure_ready.png")
 	# 手牌搜索区域：仅使用back，无固定图片模板 
-	I_HAND_CARD_AREA = RuleImage(roi_front=(8,486,1021,223), roi_back=(8,486,1021,223), threshold=0.65, method="Template matching", profile="High", file="")
+	I_HAND_CARD_AREA = RuleImage(roi_front=(8,486,1021,223), roi_back=(8,486,1021,223), threshold=0.8, method="Template matching", profile="High", file="")
 	I_HAND_CARD_AREA.name = "HAND_CARD_AREA"
 	# 取消自动 
 	I_AUTO_RIGHT = RuleImage(roi_front=(1000,619,58,71), roi_back=(957,579,142,138), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_auto_right.png")
 	# 自动上阵 
 	I_AUTO_DOWN = RuleImage(roi_front=(999,619,58,71), roi_back=(956,574,142,138), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_auto_down.png")
-	# 大轮最终结算横幅（与大厅同屏，仅裁左侧稳定缎带底纹，避开可变的番数数字与×标记）
-	I_DRAFT_FINAL_BANNER = RuleImage(roi_front=(442,290,100,42), roi_back=(414,270,156,82), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_final_banner.png")
-	# 奖励展示页福袋本体（与大厅同屏，仅裁袋身中下部，避开上方会变化的奖励物品）
-	I_DRAFT_REWARD_POUCH = RuleImage(roi_front=(551,515,183,62), roi_back=(523,487,239,118), threshold=0.8, method="Template matching", profile="High", file="./tasks/DraftDuel/draft/draft_reward_pouch.png")
 
 
 	# Ocr Rule Assets

@@ -14,7 +14,7 @@ class DraftDuelCleanupMixin:
 
     def _leave_draft_team(self, reason: str):
         """明确选择离队，确认返回町中后完成任务。"""
-        logger.info(f'[协同对弈] {reason}，离队返回町中')
+        logger.info(f'DraftDuel {reason}，离队返回町中')
         self._finalize_round_stats(completed=False, reason=reason)
         deadline = time.monotonic() + 30
         while True:
@@ -42,7 +42,7 @@ class DraftDuelCleanupMixin:
 
     def _finish_wait_timeout(self, message: str, detail: str):
         """队长/队员等待超时统一退出大厅，并按任务完成收尾。"""
-        logger.warning(f'[协同对弈] {message}：{detail}，返回町中并结束任务')
+        logger.warning(f'DraftDuel {message}：{detail}，返回町中并结束任务')
         # 复用已注册的黄色返回按钮路线；结束后停在町中。
         self.goto_page(page_town)
         self._clear_draft_checkpoint()

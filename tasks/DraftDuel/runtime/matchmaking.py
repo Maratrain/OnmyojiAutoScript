@@ -7,13 +7,8 @@ from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 
 
 class DraftDuelMatchmakingMixin:
-    def _match_battle(self):
-        """采集头像后匹配；取消必须确认回到待匹配页面才能重开。
-
-        返回 True 表示已进入战斗，False 表示匹配失败；'lobby' 表示大轮
-        结束已回到组队大厅，本轮阵容被 _observe_duel_lobby 重置，需交回
-        大厅流程重新邀请队友与选人。
-        """
+    def _match_battle(self) -> bool | str:
+        """交换名单后匹配；取消必须确认回到待匹配页面才能重开。"""
         leader = self.config.draft_duel.draft_duel_config.match_mode != DraftMatchMode.MEMBER
         limit = self.config.draft_duel.draft_duel_config.match_wait_seconds
         state = getattr(self, '_draft_match_state', None) or {}
@@ -31,20 +26,32 @@ class DraftDuelMatchmakingMixin:
                                            click_wall=click_wall, cancelling=cancelling)
             self.device.stuck_record_clear()
             self.screenshot()
-            self._observe_duel_lobby()
-            if len(self.draft_selected) != 5:
-                # 大轮结束回到组队大厅，_observe_duel_lobby 已重置本轮阵容；
-                # 匹配阶段无法独立开启新一轮，交回大厅流程重新邀请与选人。
-                self._draft_match_state = None
-                return 'lobby'
             self._save_draft_checkpoint('rank')
             now = time.monotonic()
             if not leader and self.appear(self.I_LEADER_EXIT):
                 self._leave_draft_team('队长已离队')
                 return False
+            if self._dismiss_draft_lobby_overlay() is True:
+                time.sleep(0.3)
+                continue
+            self._observe_duel_lobby()
+            if self.appear(self.I_WAIT_FIGHT_LOBBY):
+                self._draft_match_state = None
+                self._save_draft_checkpoint('lobby')
+                logger.info('DraftDuel returned to team lobby during matching; resume next big round')
+                return 'lobby'
+            # 取消返回页时“匹配中”标志可能仍命中，开始按钮优先证明已回到待匹配页。
+            cancel_returned = leader and cancelling and self.appear(self.I_LOBBY_BATTLE)
+            if cancel_returned:
+                cancelling = False
+                active_since = active_wall = None
+                click_started = click_wall = None
+                last_battle_click = None
+                progress_deadline = now + 600
+                logger.info(f'DraftDuel match cancellation confirmed after attempt {attempts}/3')
             if self.appear(self.I_EXIT_CANCEL):
                 self.appear_then_click(self.I_EXIT_CANCEL, interval=1)
-            elif self.appear(self.I_FIGHT_WAIT):
+            elif not cancel_returned and self.appear(self.I_FIGHT_WAIT):
                 self._begin_small_game()
                 if active_since is None:
                     active_since = now
@@ -54,19 +61,13 @@ class DraftDuelMatchmakingMixin:
                     last_battle_click = None
                     if leader:
                         attempts += 1
-                        logger.info(f'[协同对弈] 第 {attempts}/3 次匹配, 超时={limit} 秒')
+                        logger.info(f'DraftDuel matching attempt {attempts}/3, timeout={limit}s')
                     progress_deadline = now + limit + 600
                 if leader and now - active_since >= limit:
                     cancelling = True
                     self.appear_then_click(self.I_FIGHT_CANCEL_WAIT_LEADER, interval=1)
-            elif self._is_draft_rank_page():
+            elif cancel_returned or self._is_draft_rank_page():
                 self._observe_victory_count()
-                if not self._capture_draft_heads():
-                    if now >= progress_deadline:
-                        logger.warning('[协同对弈] 600 秒内未能截取五个头像')
-                        return False
-                    time.sleep(0.3)
-                    continue
                 require_auto = getattr(self, 'draft_finished_small_games', 0) > 0
                 if require_auto:
                     # 每帧重新确认，点击后必须在后续截图看到 auto_right。
@@ -74,23 +75,24 @@ class DraftDuelMatchmakingMixin:
                         self.draft_finished_small_games if self.appear(self.I_AUTO_RIGHT) else None)
                     if self._draft_auto_ready_after is None:
                         self.appear_then_click(self.I_AUTO_DOWN, interval=1)
+                    else:
+                        self._release_deployment_templates()
                 if not self._sync_draft_state(require_auto=require_auto) or (
                         require_auto and self._draft_auto_ready_after is None):
                     if now >= progress_deadline:
-                        logger.warning('[协同对弈] 等待协同名单超时')
+                        logger.warning('DraftDuel waiting for peer roster timed out')
                         return False
                     time.sleep(0.3)
                     continue
-                if cancelling:
-                    # lobby_battle 再次可见才算取消完成，不以等待标志漏识别为依据。
-                    if self.appear(self.I_LOBBY_BATTLE):
-                        cancelling = False
-                        active_since = None
-                        active_wall = None
-                        click_started = None
-                        click_wall = None
-                        last_battle_click = None
-                        progress_deadline = now + 600
+                if (not getattr(self, 'draft_planned_lineup', ())
+                        and getattr(self, 'draft_small_game', 0) == 0):
+                    try:
+                        self.draft_planned_lineup = tuple(self._deployment_plan())
+                    except ValueError as exc:
+                        logger.warning(f'DraftDuel pre-match lineup unavailable: {exc}')
+                        return False
+                    logger.info(f'DraftDuel pre-match lineup: {self.draft_planned_lineup}')
+                    self._save_draft_checkpoint('rank')
                 if leader and active_since is None and not cancelling:
                     if attempts >= 3:
                         self._finish_match_timeout()
@@ -98,7 +100,7 @@ class DraftDuelMatchmakingMixin:
                         click_started = now
                         click_wall = time.time()
                     if now - click_started >= 30:
-                        logger.warning('[协同对弈] 战斗按钮重试 30 秒仍未进入匹配')
+                        logger.warning('DraftDuel battle button retried for 30s without entering matching')
                         return False
                     if last_battle_click is None or now - last_battle_click >= 3:
                         self.appear_then_click(self.I_LOBBY_BATTLE, interval=3)
@@ -115,9 +117,9 @@ class DraftDuelMatchmakingMixin:
                 self._draft_match_state = None
                 return True
             if click_started is not None and active_since is None and now - click_started >= 30:
-                logger.warning('[协同对弈] 战斗按钮重试 30 秒仍未进入匹配')
+                logger.warning('DraftDuel battle button retried for 30s without entering matching')
                 return False
             if now >= progress_deadline:
-                logger.warning('[协同对弈] 匹配页面 600 秒无进展')
+                logger.warning('DraftDuel matching page made no progress for 600s')
                 return False
             time.sleep(0.3)

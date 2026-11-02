@@ -39,7 +39,7 @@ class DraftDuelStatisticsMixin:
                 self.screenshot()
             if not self._is_draft_rank_page():
                 break
-            value = self._parse_victory_count(self._ocr_text(self.O_VICTORY_COUNT))
+            value = self._parse_victory_count(self.O_VICTORY_COUNT.ocr(self.device.image))
             if value is not None and value == candidate:
                 stable += 1
             else:
@@ -47,7 +47,7 @@ class DraftDuelStatisticsMixin:
             if stable >= 2:
                 self.draft_victory_count = value
                 self._victory_valid_after = finished
-                logger.info(f'[协同对弈] 胜场计数={value}, 已完成小局={finished}')
+                logger.info(f'DraftDuel victory_count={value}, finished_small_games={finished}')
                 pending = getattr(self, '_pending_battle_stats', None)
                 if pending:
                     before = pending['before']
@@ -55,11 +55,11 @@ class DraftDuelStatisticsMixin:
                         if before is not None else 'unknown'
                     battle_stats.resolve_result(pending['event_id'], result, value)
                     self._pending_battle_stats = None
-                    logger.info(f'[协同对弈] 已记录小局结果: {result}')
+                    logger.info(f'DraftDuel recorded small-game result: {result}')
                 self._victory_observed_after = finished
                 return
         self._victory_observed_after = finished
-        logger.warning('[协同对弈] 胜场计数不可读，保留上次有效值')
+        logger.warning('DraftDuel victory_count unreadable; retain last valid value')
 
     def _record_small_game_stats(self):
         if len(getattr(self, 'draft_selected', ())) != 5:
@@ -86,5 +86,5 @@ class DraftDuelStatisticsMixin:
                                   self.draft_victory_count, self.draft_selected,
                                   completed=completed, reason=reason)
         self._stats_round_finalized = True
-        logger.info(f'[协同对弈] 已记录大轮: 最终胜场={self.draft_victory_count}, '
-                    f'完成={completed}')
+        logger.info(f'DraftDuel round recorded: final_victory_count={self.draft_victory_count}, '
+                    f'completed={completed}')

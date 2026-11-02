@@ -28,6 +28,9 @@ class DraftDuelRoundStateMixin:
         """初始化内存容器；初始化本身不代表观察到新一轮。"""
         self.draft_heads = ()
         self.draft_named_heads = ()
+        self.draft_hand_templates = ()
+        self._draft_hand_capture_clock = None
+        self.draft_planned_lineup = ()
         self.draft_selected = []
         self.draft_fielded = ()
         self.draft_deployment_rounds = []
@@ -62,13 +65,13 @@ class DraftDuelRoundStateMixin:
                 self.draft_completed_rounds = getattr(self, 'draft_completed_rounds', 0) + 1
                 self._draft_round_had_battle = False
                 target = self.config.draft_duel.draft_duel_config.round_count
-                logger.info(f'[协同对弈] 已完成大轮数: {self.draft_completed_rounds}/{target}')
+                logger.info(f'DraftDuel completed big rounds: {self.draft_completed_rounds}/{target}')
                 if self.draft_completed_rounds >= target:
                     self._leave_draft_team(f'已完成{self.draft_completed_rounds}大轮协斗')
                     return
             self._initialize_duel_state()
             self.draft_big_round = getattr(self, 'draft_big_round', 0) + 1
-            logger.info(f'[协同对弈] 进入新大轮: {self.draft_big_round}')
+            logger.info(f'DraftDuel new big round: {self.draft_big_round}')
         if in_lobby:
             self._draft_wait_lobby_seen = True
         elif getattr(self, '_draft_wait_lobby_seen', False) and (
@@ -85,10 +88,12 @@ class DraftDuelRoundStateMixin:
             self._draft_end_recorded = False
             self.draft_small_game = getattr(self, 'draft_small_game', 0) + 1
             self._draft_matching_bout_active = True
-            self.draft_fielded = ()
-            self.draft_deployment_rounds = []
-            self.draft_peer_rounds = ()
+            # 首局确定的阵容会被后续自动上阵复用，保留实际名单用于胜负加权。
+            if self.draft_small_game == 1:
+                self.draft_fielded = ()
+                self.draft_deployment_rounds = []
+                self.draft_peer_rounds = ()
+                self._draft_field_weights = None
+                self.draft_unresolved_slots = []
             self._draft_deployment_state = None
-            self._draft_field_weights = None
-            self.draft_unresolved_slots = []
-            logger.info(f'[协同对弈] 当前大轮第 {self.draft_small_game} 小局')
+            logger.info(f'DraftDuel small game {self.draft_small_game} in current big round')
