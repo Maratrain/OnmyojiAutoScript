@@ -195,7 +195,7 @@
     "roiBack": "615,380,275,120",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "每周首次挑战确认弹窗-开始挑战"
+    "description": "每周首次挑战确认弹窗-开始挑战（梦墟秘境/兵藏秘境通用，雕花边框按钮）"
   },
   {
     "itemName": "check_hero2",
@@ -304,5 +304,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "真钱"
+  },
+  {
+    "itemName": "mxmj_reset_confirm",
+    "imageName": "as_mxmj_reset_confirm.png",
+    "roiFront": "664,408,182,61",
+    "roiBack": "649,393,212,91",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "梦墟秘境重置确认弹窗按钮（50层打过点挑战时弹出）"
   }
 ]

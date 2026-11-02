@@ -110,6 +110,8 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
                 continue
             if self.appear_then_click(self.I_BCMJ_RESET_CONFIRM, interval=1):  # 兵藏秘境确认重置
                 continue
+            if self.appear_then_click(self.I_MXMJ_RESET_CONFIRM, interval=1):  # 梦墟秘境确认重置（50层打过点挑战会弹）
+                continue
             if self.appear(self.I_REAL_MONEY, interval=1):  # 这里因为门票不够而不是其他异常所以success默认还是true
                 logger.warning('门票不足')
                 return False
