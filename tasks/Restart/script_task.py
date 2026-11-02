@@ -57,8 +57,11 @@ class ScriptTask(BaseTask):
     def app_restart(self):
         logger.hr('重启应用')
         if self.device.is_desktop:
-            # 客户端可能刚被自动拉起（停在登录页），先停再起会白关一次
-            self._desktop_start_and_login()
+            if self.config.script.desktop.restart_when_window_exists:
+                self._desktop_restart_and_login()
+            else:
+                # 客户端可能刚被自动拉起（停在登录页），先停再起会白关一次
+                self._desktop_start_and_login()
         else:
             self.device.app_stop()
             self.app_start()
@@ -106,6 +109,23 @@ class ScriptTask(BaseTask):
                     raise RequestHumanTakeover
         logger.critical(f'[重启] 桌面客户端连续 {DESKTOP_RESTART_ATTEMPTS} 轮启动失败，请检查客户端与机器状态')
         raise RequestHumanTakeover
+
+    def _desktop_restart_and_login(self) -> None:
+        """桌面模式：既有窗口就强杀重拉（真正的重启），不存在则只确保启动。
+
+        刚拉起的实例（网易 logo 先出、窗口标题后出，ensure_launched 在标题一出现就绑定）
+        不该再杀一次，否则会唤起两次客户端 —— 由 desktop_window_is_own_launch 区分。
+        """
+        if self.device.desktop_window_exists():
+            if self.device.desktop_window_is_own_launch():
+                logger.info('桌面客户端窗口存在，但这是本轮刚拉起的实例，跳过强制重启')
+            else:
+                logger.info('桌面客户端窗口存在，执行强制重启')
+                if not self.device.desktop_stop_client():
+                    logger.error('桌面客户端窗口存在但无法关闭，拒绝重建以免多开')
+                    raise RequestHumanTakeover(
+                        '桌面客户端窗口存在但无法关闭，请手动结束该进程后重试')
+        self._desktop_start_and_login()
 
     def delay_pending_tasks(self, reason: str) -> bool:
         """
