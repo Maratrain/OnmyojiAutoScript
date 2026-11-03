@@ -369,6 +369,12 @@ class ScriptRuntimeController:
 
             now = datetime.now()
             wake_time = next_run - startup_lead if startup_lead > timedelta(0) else next_run
+            # 拉起模拟器前硬校验睡眠窗：长等待期间不会重新调度，
+            # 只靠 get_next_task 的钳制拦不住已经排好的凌晨唤醒时刻
+            antiban_wake = self.script.anti_ban_guard.sleep_wake_at(
+                now, self.config.script.anti_ban)
+            if antiban_wake is not None:
+                wake_time = max(wake_time, antiban_wake)
             if wake_time > now:
                 logger.info(f'[脚本控制] 等待预热模拟器: {wake_time.strftime("%Y-%m-%d %H:%M:%S")}')
                 if not self.script.wait_until(wake_time):

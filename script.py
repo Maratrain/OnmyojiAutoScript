@@ -461,6 +461,12 @@ class Script:
             antiban_wake = self.anti_ban_guard.wake_time(now, self.config.script.anti_ban)
             if antiban_wake is not None:
                 task.next_run = max(task.next_run, antiban_wake)
+            # 排好的 next_run 落在睡眠窗内时同样推迟到窗口结束：
+            # 调度发生在窗口外时 wake_time 返回 None，会排出跨窗口的长等待
+            window_wake = self.anti_ban_guard.sleep_wake_at(
+                task.next_run, self.config.script.anti_ban)
+            if window_wake is not None:
+                task.next_run = max(task.next_run, window_wake)
             if wake_task and task.command != 'Restart':
                 # 协同唤醒优先：直接取被唤醒任务，跳过囤积延迟
                 task = next((t for t in self.config.pending_task if t.command == wake_task), task)
