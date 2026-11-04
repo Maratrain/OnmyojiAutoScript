@@ -111,18 +111,20 @@ class _InnerCooperationScan(WantedQuestsScriptTask):
         return types
 
     def read_cooperation_types(self):
-        """按 3 个协作槽位识别类型；模板未覆盖的类型（如现世系协作）记为「未识别协作」"""
+        """按 3 个协作槽位识别类型；卡片带「享」字标记的为现世协作，在类型前加现世前缀"""
         self.screenshot()
         types = []
         for index in range(1, 4):
             if not self.appear(self.__getattribute__(f'I_WQ_INVITE_{index}')):
                 break
+            # 现世卡（享字标记）的奖励图标与普通卡同款，须先判现世再判类型，避免误报成普通协作
+            is_real = self.appear(self.__getattribute__(f'I_WQ_COOPERATION_TYPE_REAL_{index}'))
             for asset_key, label in self._TYPE_LABELS:
                 if self.appear(self.__getattribute__(f'I_WQ_COOPERATION_TYPE_{asset_key}_{index}')):
-                    types.append(label)
+                    types.append(f'现世{label}' if is_real else label)
                     break
             else:
-                types.append('未识别协作')
+                types.append('现世协作' if is_real else '未识别协作')
         logger.info('[小号轮换] 协作任务数量: %d', len(types))
         return types
 
@@ -285,9 +287,10 @@ class ScriptTask(GameUi):
             label = f'{k}×{v}' if v > 1 else k
             if markdown:
                 # 企业微信 markdown 仅 info/comment/warning 三色：按用户约定只给勾协黄色、体协绿色，未识别灰色，其余类型不着色
-                if k == '勾协':
+                # 现世勾协/现世体协与排序逻辑一致按子串匹配，跟随同色
+                if '勾协' in k:
                     label = f'<font color="warning">{label}</font>'
-                elif k == '体协':
+                elif '体协' in k:
                     label = f'<font color="info">{label}</font>'
                 elif k == '未识别协作':
                     label = f'<font color="comment">{label}</font>'

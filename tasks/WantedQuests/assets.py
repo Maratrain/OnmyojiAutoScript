@@ -80,6 +80,12 @@ class WantedQuestsAssets:
 	I_WQ_COOPERATION_TYPE_CAT_FOOD_3 = RuleImage(roi_front=(694,524,180,90), roi_back=(694,524,180,90), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/wq_cooperation_type_cat_food.png")
 	# 从左到右第三个协作任务的类型 
 	I_WQ_COOPERATION_TYPE_SUSHI_3 = RuleImage(roi_front=(694,524,180,90), roi_back=(694,524,180,90), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/wq_cooperation_type_sushi.png")
+	# 从左到右第一个协作卡片为现世协作（享字标记）
+	I_WQ_COOPERATION_TYPE_REAL_1 = RuleImage(roi_front=(132,308,29,25), roi_back=(118,296,72,48), threshold=0.75, method="Template matching", file="./tasks/WantedQuests/invite/wq_cooperation_type_real.png")
+	# 从左到右第二个协作卡片为现世协作（享字标记）
+	I_WQ_COOPERATION_TYPE_REAL_2 = RuleImage(roi_front=(400,308,29,25), roi_back=(384,296,76,48), threshold=0.75, method="Template matching", file="./tasks/WantedQuests/invite/wq_cooperation_type_real.png")
+	# 从左到右第三个协作卡片为现世协作（享字标记）
+	I_WQ_COOPERATION_TYPE_REAL_3 = RuleImage(roi_front=(668,308,29,25), roi_back=(652,296,78,48), threshold=0.75, method="Template matching", file="./tasks/WantedQuests/invite/wq_cooperation_type_real.png")
 
 
 	# Ocr Rule Assets
