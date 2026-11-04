@@ -100,6 +100,7 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 if self.appear(jade_btn):
                     click_button = accept_btn
                 else:
+                    logger.info(f'[基础] 勾玉图标未识别(得分 {self._rule_match_score(jade_btn):.3f}), 按忽略处理')
                     click_button = ignore_btn
             case FriendInvitation.JADE_AND_FOOD:
                 # 如果是接受勾协和粮协
@@ -107,6 +108,8 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 if self.appear(jade_btn) or any(self.appear(b) for b in food_btns):
                     click_button = accept_btn
                 else:
+                    food_scores = ', '.join(f'{b.name} {self._rule_match_score(b):.3f}' for b in food_btns)
+                    logger.info(f'[基础] 勾玉/食料图标均未识别(勾玉 {self._rule_match_score(jade_btn):.3f}, {food_scores}), 按忽略处理')
                     click_button = ignore_btn
             case FriendInvitation.IGNORE:
                 # 如果是忽略
@@ -201,6 +204,19 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             frame_id=frame_id,
         )
         self.device.update_image_batch_cache(unique_targets, results, frame_id=frame_id)
+
+    def _rule_match_score(self, rule: RuleImage) -> float:
+        """取模板规则在当前帧的匹配得分, 仅用于判型诊断日志。"""
+        if not self.exist_image():
+            return 0.0
+        self.prepare_appear_cache([rule])
+        result = self.device.get_image_batch_cache(rule, frame_id=self.device.image_frame_id)
+        if not result:
+            return 0.0
+        try:
+            return float(result.get('score', 0.0))
+        except (TypeError, ValueError):
+            return 0.0
 
     def appear(self,
                target: RuleImage | RuleGif | RuleOcr,
