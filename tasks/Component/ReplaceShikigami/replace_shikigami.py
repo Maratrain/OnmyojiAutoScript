@@ -139,13 +139,15 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
         )
         return any(self.appear(tab) for tab in selected_tabs)
 
-    def set_shikigami(self, shikigami_order: int = 7, stop_image: RuleImage = None):
+    def set_shikigami(self, shikigami_order: int = 7, stop_image: RuleImage = None,
+                      max_confirm_attempts: int | None = None) -> bool:
         """
         要求在式神育成的界面
         选择式神 1-7
         :param stop_image:  结束的图片，如果不出现就结束
         :param shikigami_order:
-        :return:
+        :param max_confirm_attempts: 好友寄养确认次数上限，None 不限制（自家育成放入不限制）
+        :return: 放入完成返回 True，达到确认上限仍未完成返回 False
         """
         # 选择式神
         _click_match = {1: self.C_SHIKIGAMI_LEFT_1,
@@ -167,6 +169,8 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
         confirm_clicked = False    # 是否已点过确认按钮
         slot_clicks = 0            # 本轮坑位点击计数
         last_click_time = time.time()  # 最近一次坑位点击的时间
+        confirm_attempts = 0       # 确认按钮点击计数（好友寄养被占用时防无限连点）
+        confirm_wait_timer = Timer(2)  # 确认后留出服务端响应时间
         while 1:
             # ——1. 先做超时检查——
             if time.time() - start_time > TIMEOUT_SEC:
@@ -177,9 +181,22 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
             if click_interval_timer.reached_and_reset():
                 clicked = False
             self.screenshot()
+            if max_confirm_attempts is not None and confirm_attempts:
+                # 确认后留出服务端响应时间，避免把短暂动画当成再次选式神的机会。
+                if not confirm_wait_timer.reached():
+                    continue
+                # 只盯确认弹窗：本地「友」字空位灯笼放置成功也可能不消失，不能当未完成依据。
+                if confirm_attempts >= max_confirm_attempts and self.appear(self.I_U_CONFIRM_SMALL):
+                    logger.warning(
+                        f'[更换式神] 连续 {confirm_attempts} 次确认寄养仍未完成，'
+                        '目标结界可能已被其他玩家占用，停止重复选式神'
+                    )
+                    return False
             if self.appear_then_click(self.I_U_CONFIRM_SMALL, interval=0.5):
                 clicked = False  # 点击了确认, 恢复选式神的操作
                 confirm_clicked = True
+                confirm_attempts += 1
+                confirm_wait_timer.reset()
                 continue
             if not self.appear(stop_image):
                 break
@@ -217,6 +234,7 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                     f'寄养选式神点击 {MAX_SLOT_CLICKS} 次未出现确认按钮'
                 )
         logger.info('[更换式神] 选择式神: %d' % shikigami_order)
+        return True
 
     def detect_no_shikigami(self) -> bool:
         self.screenshot()
