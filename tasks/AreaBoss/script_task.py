@@ -4,7 +4,6 @@
 import time
 
 import random
-import re
 from datetime import datetime, time
 from module.atom.click import RuleClick
 from tasks.Component.GeneralBattle.general_battle import ExitMatcher, GeneralBattle
@@ -44,11 +43,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
 
         self.goto_page(page_area_boss)
 
-        # 已挑战鬼王数量
-        boss_fought = 0
-        if con.boss_reward:
-            if self.fight_reward_boss():  # 挑战成功则加一
-                boss_fought += 1
+        # 先打奖励鬼王，记下已击败的名字，后面普通鬼王遇到同名的直接跳过
+        reward_name = self.fight_reward_boss() if con.boss_reward else None
+        defeated = {reward_name} if reward_name else set()
+        boss_fought = len(defeated)
 
         self.open_filter()
         # 切换到对应集合(热门/收藏)
@@ -57,18 +55,16 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         else:
             self.switch_to_famous()
 
-        if con.boss_number - boss_fought == 3:
-            self.boss_fight(self.I_BATTLE_1)
-            self.boss_fight(self.I_BATTLE_2)
-            self.boss_fight(self.I_BATTLE_3)
-        elif con.boss_number - boss_fought == 2:
-            self.boss_fight(self.I_BATTLE_1)
-            self.boss_fight(self.I_BATTLE_2)
-        elif con.boss_number - boss_fought == 1:
-            self.boss_fight(self.I_BATTLE_1)
+        for battle in (self.I_BATTLE_1, self.I_BATTLE_2, self.I_BATTLE_3):
+            if boss_fought >= con.boss_number:
+                break
+            if self.boss_fight(battle, defeated=defeated if reward_name else None):
+                boss_fought += 1
+        if boss_fought < con.boss_number:
+            logger.warning(f'[地域鬼王] 本轮实际击败 {boss_fought}/{con.boss_number} 只')
         # 退出
         self.goto_page(page_main)
-        self.set_next_run(task='AreaBoss', success=True, finish=False)
+        self.set_next_run(task='AreaBoss', success=boss_fought == con.boss_number, finish=False)
 
         # 以抛出异常的形式结束
         raise TaskEnd
@@ -120,7 +116,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         self.wait_until_appear(self.I_AB_CLOSE_RED)
         self.ui_click(self.I_AB_CLOSE_RED, self.I_FILTER)
 
-    def boss_fight(self, battle: RuleImage, ultra: bool = False, fileter_open: bool = True) -> bool:
+    def boss_fight(self, battle: RuleImage, ultra: bool = False, fileter_open: bool = True,
+                   defeated: set[str] | None = None) -> bool:
         """
             完成挑战一个鬼王的全流程
             从打开筛选界面开始 到关闭鬼王详情界面结束
@@ -128,6 +125,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         @type battle:
         @param ultra: 是否需要切换到极地鬼
         @type ultra:
+        @param defeated: 本轮已击败的鬼王名字集合,传入则跳过同名鬼王
+        @type defeated:
         @return:    True        挑战成功
                     False       挑战失败
         @rtype:
@@ -143,6 +142,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         if self.is_group_ranked():
             self.ui_click_until_disappear(self.I_AB_CLOSE_RED, interval=3)
             return True
+
+        # 与奖励鬼王同名的直接跳过，避免重复挑战浪费次数
+        if defeated is not None:
+            name = self.read_boss_name()
+            if not name or name in defeated:
+                logger.info(f'[地域鬼王] 跳过鬼王: {name or "名字未识别"}')
+                self.ui_click_until_disappear(self.I_AB_CLOSE_RED, interval=1)
+                return False
 
         if ultra:
             if not self.get_difficulty():  # 在普界面
@@ -170,6 +177,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         if not self.start_fight():
             result = False
             logger.warning("[地域鬼王] 挑战鬼王失败")
+        elif defeated is not None:
+            defeated.add(name)
         self.wait_until_appear(self.I_AB_CLOSE_RED)
         self.ui_click_until_disappear(self.I_AB_CLOSE_RED, interval=1)
         return result
@@ -253,15 +262,19 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
                 break
             self.wait_until_appear(self.I_AB_JI_FLOOR_TEN, False, 1)
 
-    def fight_reward_boss(self):
+    def fight_reward_boss(self) -> str | None:
+        """
+            挑战奖励鬼王
+        @return: 挑战成功返回鬼王名字, 否则返回 None
+        """
         BOSS_REWARD_PHOTO1 = [self.C_AB_BOSS_REWARD_PHOTO_1, self.C_AB_BOSS_REWARD_PHOTO_2, self.C_AB_BOSS_REWARD_PHOTO_3]
         BOSS_REWARD_PHOTO2 = [self.C_AB_BOSS_REWARD_PHOTO_MINUS_2, self.C_AB_BOSS_REWARD_PHOTO_MINUS_1]
         need_open_filter, boss_name, photo = self.get_hot_in_reward()  # 获取挑战人数最多的Boss的名字
         if photo is None or boss_name == '声望不够':
-            return False
+            return None
         # 不需要打开筛选界面说明直接找到了目标boss, 直接挑战
         if not need_open_filter:
-            return self.boss_fight(photo, True, fileter_open=False)
+            return boss_name if self.boss_fight(photo, True, fileter_open=False) else None
         # 滑动到最顶层
         logger.info("滑动到顶部")
         for i in range(random.randint(1, 3)):
@@ -271,7 +284,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             self.open_filter()
             name = self.get_bossName(PHOTO)
             if self.check_common_chars(str(name), boss_name):
-                return self.boss_fight(PHOTO, True, fileter_open=False)
+                return boss_name if self.boss_fight(PHOTO, True, fileter_open=False) else None
             self.ui_click_until_disappear(self.I_AB_CLOSE_RED)
         # 倒数一和二
         for PHOTO in BOSS_REWARD_PHOTO2:
@@ -279,7 +292,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
             self.swipe(self.S_AB_FILTER_UP)
             name = self.get_bossName(PHOTO)
             if self.check_common_chars(str(name), boss_name):
-                return self.boss_fight(PHOTO, True, fileter_open=False)
+                return boss_name if self.boss_fight(PHOTO, True, fileter_open=False) else None
             self.ui_click_until_disappear(self.I_AB_CLOSE_RED)
         self.ui_click_until_disappear(self.I_AB_CLOSE_RED)
 
@@ -310,7 +323,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
                 name = '声望不够'
             else:
                 name = self.get_bossName(photo)
-                if num >= 20000 and not self.appear(self.I_AB_NUM_CHALLENGE_RAIL):
+                if not name:
+                    logger.warning("[地域鬼王] 奖励鬼王名字未识别，跳过该候选")
+                    num = 0
+                elif num >= 20000 and not self.appear(self.I_AB_NUM_CHALLENGE_RAIL):
                     logger.info("挑战人数已满足条件")
                     return True, num, name
             # 没找到满足的则关闭boss页面
@@ -363,9 +379,18 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AreaBossAssets):
         if not self.open_boss_detail(click_area, 3):
             logger.info("%s 不可挑战", str(click_area))
             return 0
-        ocrName = self.O_AB_BOSS_NAME.detect_and_ocr(self.device.image)
-        bossName = re.sub(r"[\'\[\]]", "", str([result.ocr_text for result in ocrName]))
-        return bossName
+        return self.read_boss_name()
+
+    def read_boss_name(self) -> str:
+        """识别当前鬼王详情界面的鬼王名字, 识别失败重截一次, 仍失败返回空串"""
+        for attempt in range(2):
+            if attempt:
+                self.screenshot()
+            rows = self.O_AB_BOSS_NAME.detect_and_ocr(self.device.image)
+            name = ''.join(''.join(row.ocr_text.split()) for row in rows)
+            if name:
+                return name
+        return ''
 
     def open_boss_detail(self, battle: RuleImage, try_num: int = 3) -> bool:
         """
