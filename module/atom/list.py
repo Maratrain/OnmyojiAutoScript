@@ -48,6 +48,11 @@ class RuleList:
     def name(self):
         return f'RuleList[{self.__hash__()}]'
 
+    @property
+    def is_fully_visible(self) -> bool:
+        """列表一次能显示全部目标项时，没有滚动余量。"""
+        return bool(self.array) and self.max_show >= len(self.array)
+
     def __hash__(self):
         return hash((self.folder, self.is_vertical, self.is_image, self.is_ocr, tuple(self.roi_back), tuple(self.size), tuple(self.array)))
 

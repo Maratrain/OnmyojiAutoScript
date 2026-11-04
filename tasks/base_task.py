@@ -681,11 +681,14 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         """
         swipe_down = False
         swipe_distance_ratio = None
-        result = None
         if not target:
             return False
-        appear = False
-        for _ in range(max_swipe):
+        # 图片列表如果一次就能显示全部项，滑动不会产生滚动，
+        # 应把时间留给页面渲染后重新识别。完全可见时最多重试 4 次，
+        # 避免调用方传很大的 max_swipe 时无意义地等待。
+        fully_visible = target.is_image and target.is_fully_visible
+        attempts = min(max_swipe, 4) if fully_visible else max_swipe
+        for _ in range(attempts):
             self.screenshot()
             if target.is_image:
                 result = target.image_appear(self.device.image, name=name, frame_id=self.device.image_frame_id)
@@ -694,18 +697,32 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                 result = target.ocr_appear(self.device.image, name=name)
                 swipe_down = result is not None and isinstance(result, int) and result > 0
                 swipe_distance_ratio = 1
+            else:
+                result = None
             # 结果是坐标证明找到了, 非坐标都是没找到
             if result is not None and isinstance(result, tuple):
-                appear = True
-                break
+                return result
+            if fully_visible:
+                sleep(random.uniform(0.8, 1.3))
+                continue
             if swipe_distance_ratio:
                 x1, y1, x2, y2 = target.swipe_pos(number=swipe_distance_ratio, after=swipe_down)
             else:
                 x1, y1, x2, y2 = target.swipe_pos(after=swipe_down)
             self.device.swipe(p1=(x1, y1), p2=(x2, y2))
             sleep(random.uniform(0.8, 1.3))  # 等待滑动完成, 待优化
-        if appear:
-            return result
+        # 最后一轮 sleep 后列表可能才渲染完成，补几次识别。
+        for _ in range(3):
+            sleep(0.4)
+            self.screenshot()
+            if target.is_image:
+                result = target.image_appear(self.device.image, name=name, frame_id=self.device.image_frame_id)
+            elif target.is_ocr:
+                result = target.ocr_appear(self.device.image, name=name)
+            else:
+                result = None
+            if result is not None and isinstance(result, tuple):
+                return result
         return False
 
     def list_appear_click(self, target: RuleList, interval: float = None, max_swipe: int = 10) -> bool:
