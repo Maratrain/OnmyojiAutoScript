@@ -124,6 +124,13 @@ class _InnerCooperationScan(WantedQuestsScriptTask):
                     types.append(f'现世{label}' if is_real else label)
                     break
             else:
+                scores = []
+                for key, _ in self._TYPE_LABELS:
+                    rule = self.__getattribute__(f'I_WQ_COOPERATION_TYPE_{key}_{index}')
+                    scores.append(f'{key} {self._rule_match_score(rule):.3f}')
+                real_rule = self.__getattribute__(f'I_WQ_COOPERATION_TYPE_REAL_{index}')
+                logger.info('[小号轮换] 槽位%d 类型未识别: 享字 %.3f, %s',
+                            index, self._rule_match_score(real_rule), '、'.join(scores))
                 types.append('现世协作' if is_real else '未识别协作')
         logger.info('[小号轮换] 协作任务数量: %d', len(types))
         return types
