@@ -68,10 +68,22 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             self.set_next_run(task='AbyssShadows', server=False, target=self.get_next_dt(datetime.now()))
             raise TaskEnd
 
-        # 进入狭间
-        self.goto_page(page_abyss)
+        # 寮活动监控接受邀请后会把游戏直接带进狭间, 就地继续, 避免退回阴阳寮再点神社重进
+        # 用地图页导航图 / 区域选择页神龙图标判定; I_CHECK_ABYSS 是通用徽章, 其它界面也会命中
+        self.screenshot()
+        already_in_abyss = (
+            self.appear(self.I_ABYSS_NAVIGATION)
+            or self.appear(self.I_ABYSS_DRAGON)
+            or self.appear(self.I_ABYSS_DRAGON_OVER)
+        )
+        if already_in_abyss:
+            logger.info("[狭间暗域] 已在狭间活动页面，就地继续，跳过入口导航")
+        else:
+            # 进入狭间
+            self.goto_page(page_abyss)
 
-        # 尝试开启狭间
+        # 尝试开启狭间: 主动开启是独立业务动作, 不随入口导航一起跳过
+        # start_abyss_shadows() 找不到 I_SELECT_DIFFICULTY 会直接返回, 已开启页面上是空操作
         if cfg.process_manage.try_start_abyss_shadows:
             self.start_abyss_shadows()
 
