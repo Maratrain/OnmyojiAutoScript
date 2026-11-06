@@ -7,5 +7,23 @@
     "method": "Default",
     "keyword": "",
     "description": "用户昵称"
+  },
+  {
+    "itemName": "claim_close_1",
+    "roiFront": "480,650,340,62",
+    "roiBack": "480,650,340,62",
+    "mode": "Full",
+    "method": "Default",
+    "keyword": "点击空白处关闭",
+    "description": "领取成功弹窗底部关闭提示"
+  },
+  {
+    "itemName": "claim_close_2",
+    "roiFront": "480,560,340,100",
+    "roiBack": "480,560,340,100",
+    "mode": "Full",
+    "method": "Default",
+    "keyword": "点击空白处关闭",
+    "description": "领取成功弹窗上移的关闭提示"
   }
 ]

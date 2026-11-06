@@ -1082,6 +1082,25 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
             if self.appear_then_click(self.I_ENTER_DAILY, interval=1):
                 continue
         self.appear_then_click(self.I_ONE_COMPLETE, interval=1)
+        # 一键完成后必弹「领取成功」结算弹窗：识别到弹窗就点提示处空白收起，
+        # 收起后再回庭院；弹窗延迟出现也持续等待，避免落到未知页面盲点空白
+        timer = Timer(3).start()
+        close_count = 0
+        while not timer.reached():
+            self.screenshot()
+            if self.appear(self.I_CHECK_CLAIM_REWARD):
+                if not (self.ocr_appear_click(self.O_CLAIM_CLOSE_1, interval=1)
+                        or self.ocr_appear_click(self.O_CLAIM_CLOSE_2, interval=1)):
+                    self.click(self.C_CLAIM_CLOSE)
+                close_count += 1
+                if close_count >= 3:
+                    logger.warning('[每日琐事] 领取成功弹窗关闭次数已达上限')
+                    break
+                sleep(0.5)
+                continue
+            if close_count and self.appear(self.I_CHECK_COURTYARD_AFFAIRS):
+                break
+            sleep(0.3)
         self.goto_page(page_main)
         self.config.daily_trifles.done_record.courtyard_affairs_dt = datetime.now()
 

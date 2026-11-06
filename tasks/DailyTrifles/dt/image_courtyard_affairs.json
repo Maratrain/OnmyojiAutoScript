@@ -43,5 +43,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "右上角检查是否在日常中"
+  },
+  {
+    "itemName": "check_claim_reward",
+    "imageName": "dt_check_claim_reward.png",
+    "roiFront": "77,478,153,239",
+    "roiBack": "37,438,233,282",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "庭院事务一键完成后领取成功结算弹窗的左下角小纸人"
   }
 ]

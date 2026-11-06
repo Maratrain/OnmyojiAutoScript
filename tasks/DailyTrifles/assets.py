@@ -15,6 +15,8 @@ class DailyTriflesAssets:
 	C_DT_GW_CLICK_INPUT = RuleClick(roi_front=(38,0,911,40), roi_back=(38,0,911,40), name="dt_gw_click_input")
 	# 点击昵称搜索区域 
 	C_DT_GW_INPUT_SEARCH = RuleClick(roi_front=(334,90,554,33), roi_back=(334,90,554,33), name="dt_gw_input_search")
+	# 庭院事务「领取成功」结算弹窗的面板外空白（底部提示处，实测可收起弹窗）
+	C_CLAIM_CLOSE = RuleClick(roi_front=(572,683,138,19), roi_back=(572,683,138,19), name="claim_close")
 
 
 	# Image Rule Assets
@@ -22,6 +24,8 @@ class DailyTriflesAssets:
 	I_ENTER_COURTYARD_AFFAIRS = RuleImage(roi_front=(990,372,25,30), roi_back=(696,349,343,231), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_enter_courtyard_affairs.png")
 	# 庭院事务页面标志 
 	I_CHECK_COURTYARD_AFFAIRS = RuleImage(roi_front=(254,40,196,57), roi_back=(134,0,415,180), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_check_courtyard_affairs.png")
+	# 庭院事务一键完成后「领取成功」结算弹窗：左下角小纸人（弹窗专属，面板不遮挡）
+	I_CHECK_CLAIM_REWARD = RuleImage(roi_front=(77,478,153,239), roi_back=(37,438,233,282), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_check_claim_reward.png")
 	# 一键完成标志 
 	I_ONE_COMPLETE = RuleImage(roi_front=(1114,589,93,93), roi_back=(1083,562,163,139), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_one_complete.png")
 	# 右上角进入日常 
@@ -128,6 +132,9 @@ class DailyTriflesAssets:
 	# Ocr Rule Assets
 	#  
 	O_LUCK_MSG = RuleOcr(roi=(15,27,68,61), area=(0,8,100,100), mode="Full", method="Default", keyword="吉闻", name="luck_msg")
+	# 领奖结算弹窗「点击空白处关闭」提示：底部带与上移带两种落点，Full 子串匹配兼容多种文案
+	O_CLAIM_CLOSE_1 = RuleOcr(roi=(480,650,340,62), area=(480,650,340,62), mode="Full", method="Default", keyword="点击空白处关闭", name="claim_close_1")
+	O_CLAIM_CLOSE_2 = RuleOcr(roi=(480,560,340,100), area=(480,560,340,100), mode="Full", method="Default", keyword="点击空白处关闭", name="claim_close_2")
 
 
 	# Image Rule Assets
