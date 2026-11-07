@@ -17,7 +17,8 @@ from module.logger import logger
 
 class RuleList:
 
-    def __init__(self, folder: str, direction: str, mode: str, roi_back: tuple, size: tuple, array: list[str]) -> None:
+    def __init__(self, folder: str, direction: str, mode: str, roi_back: tuple, size: tuple, array: list[str],
+                 scrollable: bool = False) -> None:
         """
         初始化
         :param folder:
@@ -26,11 +27,14 @@ class RuleList:
         :param roi_back:
         :param size:
         :param array:
+        :param scrollable: array 只登记要找的目标项时，列表实际还有其它项，
+                           需要滑动才能把目标滚进视野，此时不能按「完全可见」跳过滑动
         """
         self.folder = folder
         self.is_vertical = direction == "vertical"
         self.is_image = mode == "image"
         self.is_ocr = mode == "ocr"
+        self.scrollable = scrollable
         self.roi_back: list = list(roi_back)
         self.size: list = list(size)
         # 这个表示一个区域中一次所能显示的最大数量
@@ -50,8 +54,8 @@ class RuleList:
 
     @property
     def is_fully_visible(self) -> bool:
-        """列表一次能显示全部目标项时，没有滚动余量。"""
-        return bool(self.array) and self.max_show >= len(self.array)
+        """列表一次能显示全部目标项、且确实没有滚动余量。"""
+        return bool(self.array) and self.max_show >= len(self.array) and not self.scrollable
 
     def __hash__(self):
         return hash((self.folder, self.is_vertical, self.is_image, self.is_ocr, tuple(self.roi_back), tuple(self.size), tuple(self.array)))

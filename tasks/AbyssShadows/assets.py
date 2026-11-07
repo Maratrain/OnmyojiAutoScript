@@ -152,9 +152,10 @@ class AbyssShadowsAssets:
 
 
 	# List Rule Assets
-	# 神社进入狭间暗域列表 
+	# 神社进入狭间暗域列表: array 只登记要找的目标, 活动列表实际还有很多项,
+	# 狭间入口常被挤到需滑动才可见, 必须保留 list_find 的滑动查找
 	L_SHENSHE_TO_ABYSS = RuleList(folder="./tasks/AbyssShadows/res", direction="vertical", mode="image", roi_back=(125,66,1029.6,629), size=(132, 125), 
-					 array=["abyss_in_shenshe"])
+					 array=["abyss_in_shenshe"], scrollable=True)
 
 
 	# Swipe Rule Assets
