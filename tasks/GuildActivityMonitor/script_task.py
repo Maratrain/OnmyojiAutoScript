@@ -130,8 +130,9 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
     def _accept_guild_invite(self, keyword_map: dict):
         """处理庭院左侧邀请弹窗: OCR弹窗文本命中监控活动关键字则接受并拉起对应任务
 
-        命中后点击接受, 尽力返回庭院, 再走现有trigger机制拉起任务并结束监控;
-        未命中关键字的邀请不处理, 保持原状由游戏自行超时。
+        命中后点击接受, 游戏直接传送进活动场景, 不返回庭院; 等场景加载完并刷一帧
+        (服务端帧缓存 3 秒, 长等待后旧 frame_id 已失效), 再走现有 trigger 机制
+        拉起任务并结束监控; 未命中关键字的邀请不处理, 保持原状由游戏自行超时。
         """
         for keyword, task_name in keyword_map.items():
             if self.O_GUILD_INVITE_TEXT.ocr(self.device.image, keyword=keyword) != (0, 0, 0, 0):
@@ -141,12 +142,10 @@ class ScriptTask(GameUi, GuildActivityMonitorAssets):
                         break
                     self.appear_then_click(GeneralInviteAssets.I_I_ACCEPT, interval=0.8)
                     time.sleep(1.5)
-                # 点击接受后立即传送进场景, 留足加载时间再返回庭院
+                # 点击接受后游戏直接传送进活动场景, 留足加载时间; 不返回庭院,
+                # 服务端帧缓存只有 3 秒, 长等待后旧 frame_id 已失效, 刷一帧再拉任务
                 time.sleep(10)
-                try:
-                    self.goto_page(page_main)
-                except Exception as e:
-                    logger.warning(f"[寮活动-邀请] 接受后返回庭院失败，交由任务自行恢复: {e}")
+                self.screenshot()
                 self.trigger_activity_task(keyword, task_name)
                 return
         logger.info("[寮活动-邀请] 邀请弹窗未命中监控活动关键字，忽略")
