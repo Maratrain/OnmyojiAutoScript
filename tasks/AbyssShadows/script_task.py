@@ -796,6 +796,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         self.goto_page(page_shikigami_records)
 
         # 切换御魂
+        switch_failed = False
         try:
             l = preset_key.split(',')
             if len(l) != 2:
@@ -810,6 +811,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
             logger.info(f"成功在狭间中切换至 {enemy_type.name} 预设 {preset_str}")
         except Exception as e:
+            switch_failed = True
             logger.error(f"御魂切换失败: {e}")
             raise RequestHumanTakeover
         finally:
@@ -817,16 +819,27 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             # 庭院进入回庭院), 不能走全局导航(见 page.py 说明), 这里直接点返回箭头
             logger.info("[狭间暗域] 切换御魂完成，点击返回箭头回狭间地图")
             timer_back = Timer(15).start()
+            back_ok = False
             while not timer_back.reached():
                 self.screenshot()
                 if self.appear(self.I_ABYSS_NAVIGATION):
+                    back_ok = True
                     break
                 if self.appear_then_click(GlobalGameAssets.I_UI_BACK_YELLOW, interval=1):
                     continue
-            if self.appear(self.I_ABYSS_NAVIGATION):
+            if back_ok:
                 logger.info("[狭间暗域] 已返回狭间地图")
+            elif switch_failed:
+                # 切换已失败在途(RequestHumanTakeover), 不再做位置恢复
+                logger.warning("[狭间暗域] 返回狭间地图超时，切换已失败，跳过位置恢复")
             else:
-                logger.warning("[狭间暗域] 返回狭间地图超时，交由后续流程自行恢复位置")
+                # 返回箭头未生效(落点异常/弹窗遮挡), 从狭间入口重建位置,
+                # 避免后续 change_area 在非狭间界面上无限空转
+                logger.warning("[狭间暗域] 返回箭头未回到狭间地图，尝试从狭间入口重新进入")
+                self.goto_page(page_abyss)
+                self.start_abyss_shadows()
+                if not self.select_boss(current_area):
+                    logger.warning("[狭间暗域] 从狭间入口重建位置失败，交由后续流程处理")
 
     def check_available(self, item_code: Code):
         # 判断该怪物是否可用
