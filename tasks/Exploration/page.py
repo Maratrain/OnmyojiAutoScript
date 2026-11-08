@@ -17,8 +17,9 @@ page_exp_exit = Page(all_of(ExplorationAssets.I_E_CHECK_EXIT,
 page_exp_exit.connect(page_exp_entrance, ExplorationAssets.I_E_EXIT_CONFIRM, key="page_exp_exit->page_exp_entrance")
 
 # 探索副本主界面
+# 出战按钮一并计入判定: 未通关章节进章后自动走位即弹出出战界面, 地图本体可能一闪而过
 page_exp_main = Page(any_of(ExplorationAssets.I_E_SETTINGS_BUTTON, ExplorationAssets.I_E_AUTO_ROTATE_ON,
-                            ExplorationAssets.I_E_AUTO_ROTATE_OFF))
+                            ExplorationAssets.I_E_AUTO_ROTATE_OFF, ExplorationAssets.I_NORMAL_BATTLE_BUTTON))
 page_exp_main.connect(page_exp_exit, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_exp_main->page_exp_exit")
 page_exp_entrance.connect(page_exp_main, ExplorationAssets.I_E_EXPLORATION_CLICK, key="page_exp_entrance->page_exp_main")
 page_exp_exit.connect(page_exp_main, ExplorationAssets.I_E_EXIT_CANCEL, key="page_exp_exit->page_exp_main")
