@@ -768,13 +768,13 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         回第一章; 未重置成功再逐屏向上滑动兜底。
         """
         self.screenshot()
-        _, visible = self._scan_sidebar()
+        rows, visible = self._scan_sidebar()
         if ExplorationLevel.EXPLORATION_1.value in [lv.value for lv in visible]:
             return
-        if visible:
-            logger.info(f'[探索] 侧边栏归零: 进入 {visible[0].value} 再退出')
+        if rows:
+            logger.info(f'[探索] 侧边栏归零: 进入 {rows[0][0].value} 再退出')
             try:
-                self._sweep_enter_chapter(visible[0])
+                self._sweep_enter_chapter(rows[0][1])
             finally:
                 self._back_to_exploration()
         # 归零校验, 未重置则逐屏向上滑动兜底
