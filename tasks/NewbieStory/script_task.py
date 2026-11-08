@@ -196,6 +196,10 @@ class ScriptTask(GameUi, GeneralBattle, NewbieStoryAssets, ActivityShikigamiAsse
         for name, template_gray, mask in self._disk_templates:
             score, center_x, center_y, scale = self._match_disk_template(
                 search_gray, template_gray, mask)
+            # 黑屏/加载帧匹配不出有效缩放时返回 (0.0, None, None, None),
+            # 不能拿 None 缩放算半径, 也不能把 0 分当成命中
+            if scale is None or center_x is None or not np.isfinite(score):
+                continue
             if best is None or score > best[0]:
                 radius = int(round(template_gray.shape[0] / 2 * scale))
                 best = (score, center_x, center_y, radius, name)
