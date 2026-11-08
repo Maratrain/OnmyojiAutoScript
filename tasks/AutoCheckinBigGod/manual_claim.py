@@ -37,6 +37,9 @@ STABILIZE_MAX_SECONDS = 15
 BOTTOM_TOLERANCE = 10
 # 判断两个按钮 y 坐标是否为同一按钮的容差(px)
 SAME_BUTTON_TOLERANCE = 40
+# 点击「福利中心」入口后等待福利中心页面出现的时间：期间只观察、不重复点同一坐标，
+# 避免页面跳转/WebView 加载被连续点击打断（新版社区首页加载较慢）
+WELFARE_ENTER_WAIT_SECONDS = 10
 
 
 class ManualClaimMixin(PortraitUIMixin):
@@ -90,6 +93,7 @@ class ManualClaimMixin(PortraitUIMixin):
         seen_buttons = False     # 本次运行是否见到过领取按钮
         prev_ys = None           # 上滑前按钮 y 列表（用于到底判定）
         clicked_ys = []          # 本屏已点击过的按钮 y 列表（上滑时清空）
+        welfare_wait = None      # 点击福利入口后的跳转等待计时（期间不重复点入口）
         empty_timer = None       # 浮窗展开后一直无按钮的计时
         no_match_timer = None    # 见过按钮后持续无按钮的计时（防动画/丢帧误判完成）
         in_welfare = False       # 是否处于福利中心（检测刚进入，等浮窗自动弹出动画）
@@ -97,6 +101,11 @@ class ManualClaimMixin(PortraitUIMixin):
         claimed = False
         while 1:
             self._screenshot_safe()
+
+            # 总超时必须在所有 continue 之前检查：下面的弹窗、主界面、领取按钮等分支
+            # 都会直接 continue，放在循环底部时画面一直停在主界面就永远走不到，任务会卡死。
+            if timeout.reached():
+                break
 
             # 1. 启动时的重新登录弹窗（如果有的话）
             if self._appear_then_click(A.I_LOGIN_AGAIN, interval=2):
@@ -117,6 +126,7 @@ class ManualClaimMixin(PortraitUIMixin):
                     # 刚进入福利中心：浮窗会自动从下往上弹出，等它稳定再操作。
                     # 同时重置上一轮福利中心残留的状态
                     in_welfare = True
+                    welfare_wait = None
                     just_swiped = False
                     prev_ys = None
                     clicked_ys = []
@@ -236,16 +246,22 @@ class ManualClaimMixin(PortraitUIMixin):
             # 不在福利中心
             in_welfare = False
 
-            # 4. 在圈子页：进福利中心
-            if self.appear(A.I_CIRCLE_CHECK):
-                self._appear_then_click(A.I_WELFARE, interval=2)
+            # 4. 主界面：点「福利中心」入口（新旧版共用同一个入口）
+            # 新版社区首页已无「圈子」tab，I_CIRCLE_CHECK 实测 0.431（阈值 0.8）失效，
+            # 用 I_WELFARE 自身作新版判据：主界面 0.983、福利页 0.292，分离度 0.69。
+            # 旧版圈子页仍保留 I_CIRCLE_CHECK 判据，兼容未更新大神APP的环境。
+            on_main = self.appear(A.I_CIRCLE_CHECK) or self.appear(A.I_WELFARE)
+            if on_main:
+                # 点过入口后给页面跳转/WebView 加载留出时间，期间只观察不重复点，
+                # 否则每 2s 一次的连点会打断跳转，画面永远停在主界面。
+                if welfare_wait is None or welfare_wait.reached():
+                    if self._appear_then_click(A.I_WELFARE, interval=2):
+                        welfare_wait = Timer(WELFARE_ENTER_WAIT_SECONDS).start()
                 continue
-            # 5. 不在圈子：进圈子
+            # 5. 不在主界面也不在福利中心：旧版进圈子（新版不命中，无副作用）
             if self._appear_then_click(A.I_CIRCLE, interval=4):
                 continue
-            # 超时保护
-            if timeout.reached():
-                break
+            # 总超时已在每轮开头统一检查
 
         self._cleanup_portrait()
         if claimed:
