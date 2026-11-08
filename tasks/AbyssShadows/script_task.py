@@ -453,8 +453,17 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
             case AbyssShadowsDifficulty.EXTREME:
                 difficulty_btn = self.I_DIFFICULTY_EXTREME
         self.ui_click_until_disappear(difficulty_btn, interval=2)
-        # 开始
-        self.ui_click(self.I_BTN_START, stop=self.I_START_ENSURE, interval=2)
+        # 开始: 点击开启后弹「是否消耗寮勋章开启」确认弹窗
+        # 弹窗确定按钮有新旧两套 UI（I_ENSURE_BUTTON 新版 / I_START_ENSURE 旧版兜底），
+        # 只认旧版会对着弹窗底下的开启按钮反复点击直到点击上限报错
+        timer_ensure = Timer(15).start()
+        while not timer_ensure.reached():
+            self.screenshot()
+            if self.appear(self.I_ENSURE_BUTTON, interval=2) or self.appear(self.I_START_ENSURE, interval=2):
+                break
+            if self.appear_then_click(self.I_BTN_START, interval=2):
+                continue
+        self.ui_click_until_disappear(self.I_ENSURE_BUTTON, interval=2)
         self.ui_click_until_disappear(self.I_START_ENSURE, interval=2)
 
     def process(self):
