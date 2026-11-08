@@ -172,6 +172,7 @@ TASK_NAME_CN = {
     "Duel": "斗技",
     "ActivityShikigami": "当期爬塔",
     "MetaDemon": "超鬼王",
+    "MetaDemonTicket": "超鬼王门票",
     "MemoryScrolls": "绘卷",
     "DyeTrials": "灵染试炼",
     "Hyakkiyakou": "百鬼夜行",

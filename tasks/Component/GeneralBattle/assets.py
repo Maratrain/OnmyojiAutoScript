@@ -216,9 +216,14 @@ class GeneralBattleAssets:
 
 
 	# Swipe Rule Assets
-	# description 
+	# description
 	S_BATTLE_RANDOM_LEFT = RuleSwipe(roi_front=(122,155,480,426), roi_back=(667,147,461,427), mode="default", name="battle_random_left")
-	# description 
+	# description
 	S_BATTLE_RANDOM_RIGHT = RuleSwipe(roi_front=(719,138,417,392), roi_back=(237,163,387,394), mode="default", name="battle_random_right")
+
+
+	# Ocr Rule Assets
+	# 超鬼王门票
+	O_METADEMON_PASS = RuleOcr(roi=(1126,3,95,39), area=(1126,3,95,39), mode="DigitCounter", method="Default", keyword="", name="metademon_pass")
 
 

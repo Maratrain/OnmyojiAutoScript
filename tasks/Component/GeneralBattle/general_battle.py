@@ -1125,6 +1125,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             logger.info("[通用战斗] 预设未启用")
             return
 
+        self._last_quick_loadout = None
         logger.info("[通用战斗] 预设已启用")
         timeout_warning = "[通用战斗] 切换预设超时，使用当前队伍"
 

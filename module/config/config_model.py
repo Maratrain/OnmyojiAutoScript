@@ -58,6 +58,7 @@ from tasks.GuildActivityMonitor.config import GuildActivityMonitor
 from tasks.ActivityShikigami.config import ActivityShikigami
 from tasks.MartialTournament.config import MartialTournament
 from tasks.MetaDemon.config import MetaDemon
+from tasks.MetaDemonTicket.config import MetaDemonTicket
 from tasks.FrogBoss.config import FrogBoss
 from tasks.CubWar.config import CubWar
 from tasks.FrogChallenge.config import FrogChallenge
@@ -136,6 +137,7 @@ class ConfigModel(ConfigBase):
     activity_shikigami: ActivityShikigami = Field(default_factory=ActivityShikigami)
     martial_tournament: MartialTournament = Field(default_factory=MartialTournament)
     meta_demon: MetaDemon = Field(default_factory=MetaDemon)
+    meta_demon_ticket: MetaDemonTicket = Field(default_factory=MetaDemonTicket)
     frog_boss: FrogBoss = Field(default_factory=FrogBoss)
     cub_war: CubWar = Field(default_factory=CubWar)
     frog_challenge: FrogChallenge = Field(default_factory=FrogChallenge)
