@@ -19,6 +19,10 @@ from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.GlobalGame.assets import GlobalGameAssets
 from module.logger import logger
 
+# 邀请重试间隔（秒），协同对弈等任务共用
+FIRST_INVITE_RETRY_SECONDS = 20
+CONTINUE_INVITE_RETRY_SECONDS = 30
+
 
 class FriendList(str, Enum):
     RECENT_FRIEND = 'recent_friend'
