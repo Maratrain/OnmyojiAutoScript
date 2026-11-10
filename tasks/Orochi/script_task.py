@@ -116,10 +116,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         con_scrolls = self.config.orochi.scrolls
         if not con_scrolls.scrolls_enable:
             return
-        # 突破票数量显示在探索地图右上角，先导航过去识别
+        # 突破票数量显示在探索地图右上角，先导航过去识别（超鬼王期计数器位置偏移，用 META 区域）
         self.goto_page(page_exploration)
         self.screenshot()
-        cu, res, total = ExplorationAssets.O_REALM_RAID_NUMBER.ocr(self.device.image)
+        cu, res, total = ExplorationAssets.O_REALM_RAID_NUMBER_META.ocr(self.device.image)
         logger.attr('RealmRaidTicket', cu)
         if cu < con_scrolls.scrolls_threshold:
             logger.info('[御魂] 突破票未达绘卷模式阈值，按原计划调度御魂')
