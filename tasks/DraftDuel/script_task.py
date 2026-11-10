@@ -39,6 +39,8 @@ class ScriptTask(
     """大厅、选人、匹配、上阵、战斗与结算的阶段编排。"""
 
     MEMBER_START_TIMEOUT = 600
+    # 队员未入队时首次等待队长的上限，避免队长没开局时干等太久；总时长仍由外层 limit_time 控制。
+    MEMBER_FIRST_WAIT_TIMEOUT = 120
     SMALL_GAME_BATTLE_WINDOW = 300
 
     def __init__(self, config, device):

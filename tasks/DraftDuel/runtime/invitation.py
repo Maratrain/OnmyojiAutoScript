@@ -185,15 +185,15 @@ class DraftDuelInvitationMixin:
         ))
 
     def _wait_member_start(self) -> bool:
-        """在当前页面接收通用邀请，入队后最多等待队长开战 600 秒。"""
-        deadline = time.monotonic() + self.MEMBER_START_TIMEOUT
+        """在当前页面接收通用邀请；首次等待 120 秒，入队后最多等待队长开战 600 秒。"""
+        deadline = time.monotonic() + self.MEMBER_FIRST_WAIT_TIMEOUT
         waiting_seen = False
         while True:
             self.device.stuck_record_clear()
             self.screenshot()
             if self._dismiss_draft_lobby_overlay() is True:
                 if time.monotonic() >= deadline:
-                    self._finish_member_wait_timeout()
+                    self._finish_member_wait_timeout(joined=waiting_seen)
                 time.sleep(0.3)
                 continue
             if self._member_match_started():
@@ -205,7 +205,7 @@ class DraftDuelInvitationMixin:
                 deadline = now + self.MEMBER_START_TIMEOUT
                 logger.info('DraftDuel lobby_teammate_wait detected; wait for captain up to 600s')
             if now >= deadline:
-                self._finish_member_wait_timeout()
+                self._finish_member_wait_timeout(joined=waiting_seen)
             if self.appear_accept():
                 # 每次接受操作有界，截图轮询继续负责等人及处理总超时。
                 self.check_then_accept(

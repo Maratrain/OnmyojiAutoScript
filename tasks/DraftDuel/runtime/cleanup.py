@@ -33,8 +33,9 @@ class DraftDuelCleanupMixin:
         self.config.notifier.push(title='协同对弈', content=f'{reason}，已离队返回町中并结束任务。')
         raise TaskEnd(f'协同对弈{reason}，已离队返回町中')
 
-    def _finish_member_wait_timeout(self):
-        self._finish_wait_timeout('等待开始过长', '600秒内队长未开始')
+    def _finish_member_wait_timeout(self, joined: bool = False):
+        detail = '600秒内队长未开始' if joined else '120秒内未收到队长邀请'
+        self._finish_wait_timeout('等待开始过长', detail)
 
     def _finish_invite_wait_timeout(self):
         timeout = self.config.draft_duel.invite_config.wait_time_v.total_seconds()
