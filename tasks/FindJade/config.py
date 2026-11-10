@@ -17,7 +17,7 @@ class InviteHistoryItem(BaseModel):
 
 class InviteInfo(BaseModel):
     # 被邀请人员昵称
-    name: str = Field(default="", description='name_help')
+    name: str = Field(default="", title='被邀请人昵称', description='name_help')
     default_invite_type: CooperationSelectMaskDescription = Field(default=CooperationSelectMaskDescription.JadeAndFood,
                                                                   description='default_invite_type_help')
 
