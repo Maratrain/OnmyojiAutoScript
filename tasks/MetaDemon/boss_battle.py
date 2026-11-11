@@ -110,7 +110,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
         self.finish_task()
 
     def start_battle(self, within_limit=None):
-        logger.hr('Click fire, start battle')
+        logger.hr('点击挑战，开始战斗')
         last_challenge = time.monotonic()
         while within_limit is None or within_limit():
             self.screenshot()
@@ -150,7 +150,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
     def battle_wait(self, random_click_swipt_enable: bool) -> bool:
         self.device.stuck_record_add('BATTLE_STATUS_S')
         self.device.click_record_clear()
-        logger.info(f"Start battle process on {self.cur_boss_type.name if self.cur_boss_type else 'None'}")
+        logger.info(f"开始战斗进程: {self.cur_boss_type.name if self.cur_boss_type else '未知'}")
         win = False
         while True:
             self.screenshot()
@@ -167,13 +167,13 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                 self.click(ipages.random_click())
                 continue
             if self.appear(self.I_MD_SETTLING, interval=3.5):
-                logger.info('wait result')
+                logger.info('等待结算')
                 time.sleep(random.uniform(3, 5))
                 continue
         total_run_time = datetime.now() - self.start_time
-        logger.info(f'battle win: {win}')
-        logger.info(f'battle count: {self.total_count}/{self.limit_count}')
-        logger.info(f'time count: {total_run_time.total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
+        logger.info(f'战斗结果: {win}')
+        logger.info(f'战斗场次: {self.total_count}/{self.limit_count}')
+        logger.info(f'用时: {total_run_time.total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
         return win
 
     def update_global_state(self):
@@ -185,7 +185,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
         """检查并做战斗前的准备工作
         :return: True可以战斗, False不能战斗
         """
-        logger.hr('battle prepare', 2)
+        logger.hr('战斗准备', 2)
         if not self.check_fatigue():
             return False
         if self.cur_boss_type is None and self.appear(self.I_MD_FIRE):
@@ -213,7 +213,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
         """合成鬼王"""
         if self.State.synthesis_done:
             return
-        logger.hr('synthesis boss ticket')
+        logger.hr('合成鬼王')
         self.State.synthesis_done = True
         if len(self.conf.meta_demon_config.synthesis_list_v) <= 0:
             return
@@ -237,7 +237,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
         :param material_level: 配置要求消耗的材料星级，必须与标题 OCR 换算结果一致
         """
         if not self.ticket_matches_star(target_boss_ticket, material_level, synthesis=True):
-            logger.info(f'{target_boss_ticket} not recognized, skip synthesis')
+            logger.info(f'{target_boss_ticket} 未识别，跳过合成')
             return
         click_cnt, max_cnt = 0, random.randint(2, 3)
         verification_failures = 0
@@ -256,7 +256,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                 # 空位数量需去重统计，重叠匹配会把同一空位重复计入
                 empty_list = self.I_MD_SYNTHESIS_EMPTY.match_all_any(self.device.image, frame_id=self.device.image_frame_id)
                 if len(empty_list) < need_ticket:  # 空位数量小于需要的门票数量->门票不够则退出
-                    logger.info(f'{target_boss_ticket} ticket not enough, skip synthesis')
+                    logger.info(f'{target_boss_ticket} 门票不足，跳过合成')
                     break
             if not self.ticket_matches_star(target_boss_ticket, material_level, synthesis=True):
                 logger.info('合成材料未通过底部星级复核，跳过本星级')
@@ -281,10 +281,10 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                 if self.appear_then_click(self.I_MD_START_SYNTHESIS, interval=2.5):  # 点击开始合成
                     click_cnt += 1
                 continue
-        logger.info(f'{target_boss_ticket} synthesis done')
+        logger.info(f'{target_boss_ticket} 合成完成')
 
     def check_fatigue(self):
-        logger.hr('Check fatigue')
+        logger.hr('检查疲劳')
         current, remain, total = self.O_MD_FATIGUE.ocr_digit_counter(self.device.image)
         # 不喝茶且当前疲劳度已满
         if not self.conf.meta_demon_config.auto_tea and (current > total or remain < 0):
@@ -294,7 +294,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
 
     def check_and_switch_ticket(self, sequence=None):
         """切换鬼王门票并更新当前鬼王级别"""
-        logger.hr('Summon boss')
+        logger.hr('召唤鬼王')
         # Keep panel opening, selection and confirmation in one screenshot-driven
         # loop: a second entry click or a dropped click may close the panel.
         tickets = {
@@ -317,7 +317,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                     self.cur_boss_type = target_type
                     self._boss_generation = getattr(self, '_boss_generation', 0) + 1
                     self._current_boss_attempts = 0
-                    logger.info(f'Summon {target_type.name.lower()} boss confirmed')
+                    logger.info(f'鬼王召唤确认: {target_type.name.lower()}')
                 return True
             panel_open = self.appear(self.I_MD_GET_BOSS)
             if not panel_open:
@@ -325,7 +325,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                     continue
                 if self.appear(self.I_MD_TICKET_EMPTY):
                     self.State.done = True
-                    logger.info('Not have any boss ticket, exit')
+                    logger.info('没有可用鬼王门票，结束任务')
                     return False
                 if self.appear_then_click(self.I_MD_SWITCH_TICKET, interval=1.5):
                     # Let the opening animation finish before clicking its toggle again.
@@ -350,7 +350,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
                     settle_until = time.monotonic() + 1
                     continue
                 target_type = available[0]
-                logger.info(f'Summon {target_type.name.lower()} boss')
+                logger.info(f'召唤鬼王: {target_type.name.lower()}')
             target = tickets[target_type]
             # Both the target ticket and its selected marker must belong to this frame.
             if not self.ticket_matches_star(target, target_type):
@@ -385,7 +385,7 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
 
     def check_and_switch_powerful(self) -> bool:
         """检查并切换是否开启强力"""
-        logger.hr('process power fire')
+        logger.hr('处理强力开关')
         if not self.appear(self.I_MD_FIRE):
             self.goto_page(ipages.page_meta_demon_boss)
             self.screenshot()
