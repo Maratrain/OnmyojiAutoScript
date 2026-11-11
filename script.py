@@ -639,6 +639,19 @@ class Script:
             return self._handle_task_exception(e, command)
         return False
 
+    def ensure_cooperation_runtime(self):
+        """本地双实例协同：进程存活期间保持心跳，让对端能判断本实例是否在运行。"""
+        from module.cooperation import Cooperation
+
+        runtime = getattr(self, '_cooperation_runtime', None)
+        if runtime is None:
+            runtime = Cooperation(self.config_name)
+            runtime.start()
+            self._cooperation_runtime = runtime
+        # config 可能被重建（del_cached_property），每次循环重新挂载
+        self.config.cooperation_runtime = runtime
+        return runtime
+
     def loop(self):
         """
         Main loop of scheduler.
@@ -679,6 +692,8 @@ class Script:
 
             task = ""
             try:
+                # 保证协同心跳在跑，并记录当前任务名供对端判断
+                self.ensure_cooperation_runtime()
                 # Get task
                 self.config.reload()
                 self.config.update_scheduler()
@@ -727,11 +742,17 @@ class Script:
             logger.hr(task, level=0)
             self.config.model.running_task = task
             _task_start = datetime.now()
+            # 发布当前任务名供对端判断本实例是否在协同任务中
+            cooperation = self.__dict__.get('_cooperation')
+            if cooperation is not None:
+                cooperation.publish(task)
             RuleScatter.begin_task(task)
             try:
                 success = self.run(inflection.camelize(task))
             finally:
                 RuleScatter.end_task(task)
+                if cooperation is not None:
+                    cooperation.publish('')
             self.config.model.running_task = ''
             logger.info(f'[脚本] 调度: 任务 `{task}` 执行结束')
             if getattr(self.config, 'request_scheduler_stop', False):
