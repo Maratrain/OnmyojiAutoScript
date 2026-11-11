@@ -356,8 +356,11 @@ class ConfigModel(ConfigBase):
             # 将 groups的参数，同导出的json一起合并, 用于前端显示
             result = []
             for key, value in groups["properties"].items():
-                # deal with exclude 
+                # deal with exclude
                 if key in jsons and jsons[key] == 0xABCDEF:
+                    continue
+                # ui_hidden 声明式隐藏字段：本项目前端不支持该标记，后端直接剔除（如 SettingsLayoutConfig 的合并开关）
+                if 'ui_hidden' in value:
                     continue
 
                 item = {}
@@ -371,6 +374,22 @@ class ConfigModel(ConfigBase):
                 if '$ref' in value:  # list
                     enum_key = re.search(r"/([^/]+)$", value['$ref']).group(1)
                     item["enumEnum"] = definitions[enum_key]["enum"]
+                elif value.get('type') == 'array' and '$ref' in value.get('items', {}):
+                    # 列表枚举字段（如超鬼王运行模式）：按多选枚举下发
+                    enum_key = re.search(r"/([^/]+)$", value['items']['$ref']).group(1)
+                    item['type'] = 'multi_enum'
+                    item['enumEnum'] = definitions[enum_key]['enum']
+                # 唯一互斥组覆盖全部选项时本质是单选：按枚举下发，前端才会渲染成下拉框
+                exclusive = value.get('ui_exclusive_groups') or []
+                options = item.get('enumEnum') or []
+                if (item['type'] == 'multi_enum' and len(exclusive) == 1 and options
+                        and len(exclusive[0]) == len(options)
+                        and all(option in exclusive[0] for option in options)):
+                    current = [str(getattr(entry, 'value', entry)) for entry in (item['value'] or [])]
+                    defaults = [str(getattr(entry, 'value', entry)) for entry in (item['default'] or [])]
+                    item['type'] = 'enum'
+                    item['value'] = current[0] if current else (defaults[0] if defaults else options[0])
+                    item['default'] = defaults[0] if defaults else options[0]
                 # if 'allOf' in value:
                 #     enum_key = re.search(r"/([^/]+)$", value['allOf'][0]['$ref']).group(1)
                 #     item["enumEnum"] = definitions[enum_key]["enum"]
@@ -389,7 +408,11 @@ class ConfigModel(ConfigBase):
                 for group_name in groups.keys():
                     if group_name in key:
                         groups_value[key] = groups[group_name]
-            result[key] = merge_value(groups_value[key], value, schema["$defs"])
+            rows = merge_value(groups_value[key], value, schema["$defs"])
+            # ui_hidden 剔除后可能产生空组，不下发给前端，避免出现无内容的分组标题
+            if not rows:
+                continue
+            result[key] = rows
 
         # 棋局阵容下拉为动态选项（内置+自定义），出参时改写展示项
         if isinstance(task, Chess):
@@ -463,6 +486,12 @@ class ConfigModel(ConfigBase):
 
         # 设置参数
         try:
+            if getattr(task_object, 'settings_layout', None):
+                # 声明式布局任务的多选字段：列表、JSON 列表和旧文本统一验证后再保存，保持实际执行类型稳定
+                candidate = group_object.model_dump()
+                candidate[argument] = value
+                validated = type(group_object).model_validate(candidate)
+                value = getattr(validated, argument)
             setattr(group_object, argument, value)
             logger.info(f'[配置] 设置参数 {self.config_name}.{task}.{group}.{argument}.{value}')
             self.save()  # 我是没有想到什么方法可以使得属性改变自动保存的

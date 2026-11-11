@@ -100,11 +100,13 @@ class MetaDemonSwitchSoulConfig(ConfigBase):
     low_star_enable: bool = Field(default=False, title='按编号切换')
     low_star_group_team: str = Field(default='-1,-1', title='分组、队号', description='switch_group_team_help')
     low_star_by_name: bool = Field(default=False, title='按名称切换', description='enable_switch_by_name_help')
-    low_star_group_team_name: str = Field(default='', title='分组名、预设名')
+    low_star_group_team_name: str = Field(default='', title='分组名、预设名',
+        description='按名称切换时填写：分组名,预设名（如：默认分组,队伍1）')
     high_star_enable: bool = Field(default=False, title='按编号切换')
     high_star_group_team: str = Field(default='-1,-1', title='分组、队号', description='switch_group_team_help')
     high_star_by_name: bool = Field(default=False, title='按名称切换', description='enable_switch_by_name_help')
-    high_star_group_team_name: str = Field(default='', title='分组名、预设名')
+    high_star_group_team_name: str = Field(default='', title='分组名、预设名',
+        description='按名称切换时填写：分组名,预设名（如：默认分组,队伍1）；启用高星快速上阵时也作为默认上阵来源')
 
     def switch_for(self, category: str):
         from tasks.Component.SwitchSoul.switch_soul_config import SwitchSoulConfig
