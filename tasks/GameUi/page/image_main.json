@@ -163,21 +163,21 @@
   },
   {
     "itemName": "check_mall",
-    "imageName": "page_check_mall.png",
-    "roiFront": "231,455,131,78",
-    "roiBack": "201,432,185,121",
+    "imageName": "page_check_mall_daruma.png",
+    "roiFront": "831,150,41,33",
+    "roiBack": "771,76,185,121",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "商店页面标志"
+    "description": "商店页面标志（固定招福达摩，避开斜招牌上的活动装饰与对话气泡）"
   },
   {
     "itemName": "check_mall_purple",
-    "imageName": "page_check_mall_purple.png",
-    "roiFront": "231,455,131,78",
+    "imageName": "page_check_mall_purple_left.png",
+    "roiFront": "231,455,85,78",
     "roiBack": "201,432,185,121",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "商店页面标志（紫色招牌）"
+    "description": "商店页面标志（紫色招牌，斜招牌左段）"
   },
   {
     "itemName": "check_mall_recommend",

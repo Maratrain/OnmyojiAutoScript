@@ -25,7 +25,7 @@ from tasks.Component.Login.service import LoginService
 from tasks.DailyTrifles.assets import DailyTriflesAssets
 from tasks.GlobalGame.assets import GlobalGameAssets
 from tasks.GameUi.assets import GameUiAssets
-from tasks.GameUi.matcher import any_of, all_of
+from tasks.GameUi.matcher import any_of, all_of, not_
 from tasks.GameUi.page_definition import Page
 from tasks.KekkaiUtilize.assets import KekkaiUtilizeAssets
 from tasks.Restart.assets import RestartAssets
@@ -201,7 +201,21 @@ page_courtyard_affairs.add_leave_failure_hooks(GlobalGameAssets.I_UI_CANCEL_SAML
 page_claim_reward = Page(DailyTriflesAssets.I_CHECK_CLAIM_REWARD, category="global")
 page_claim_reward.connect(page_courtyard_affairs, DailyTriflesAssets.C_CLAIM_CLOSE, key="page_claim_reward->page_courtyard_affairs")
 
-page_mall = Page(any_of(GameUiAssets.I_CHECK_MALL, GameUiAssets.I_CHECK_MALL_PURPLE), category="global")
+# 商店街判据不再用斜招牌：限时活动小妖怪与路边对话气泡都会把它整块盖住，
+# 曾被遮住的帧里招牌得分只有 0.11~0.14，导航会反复点返回直到触发点击上限。
+# 主判据用场景里位置固定的招福达摩；再用底部店铺栏（固定 UI）兜底，
+# 排除热门推荐页与礼包屋，避免父子页互相抢判。
+page_mall = Page(
+    any_of(
+        GameUiAssets.I_CHECK_MALL,
+        all_of(
+            DailyTriflesAssets.I_ROOM_GIFT,
+            not_(GameUiAssets.I_CHECK_MALL_RECOMMEND),
+            not_(DailyTriflesAssets.I_GIFT_RECOMMEND),
+        ),
+    ),
+    category="global",
+)
 page_mall.add_enter_failure_hooks(conditional_action(condition=GameUiAssets.I_CHECK_MAIN,
                                                      action=RestartAssets.C_LOGIN_SCROLL_CLOSE_AREA))
 page_mall.add_enter_success_hooks(GameUiAssets.I_AD_CLOSE_RED, GlobalGameAssets.I_UI_BACK_RED, GlobalGameAssets.I_UI_CANCEL_SAMLL)

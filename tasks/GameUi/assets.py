@@ -170,10 +170,10 @@ class GameUiAssets:
 	I_CHECK_FRIENDS = RuleImage(roi_front=(74,628,58,66), roi_back=(74,628,58,66), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_friends.png")
 	# 花合战页面标志 
 	I_CHECK_DAILY = RuleImage(roi_front=(28,515,58,62), roi_back=(1,487,154,145), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_daily.png")
-	# 商店页面标志 
-	I_CHECK_MALL = RuleImage(roi_front=(231,455,131,78), roi_back=(201,432,185,121), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall.png")
-	# 商店页面标志（紫色招牌）
-	I_CHECK_MALL_PURPLE = RuleImage(roi_front=(231,455,131,78), roi_back=(201,432,185,121), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall_purple.png")
+	# 商店页面标志（固定招福达摩：斜招牌会被活动小妖怪、路边对话气泡整块盖住，不能再作页面判据）
+	I_CHECK_MALL = RuleImage(roi_front=(831,150,41,33), roi_back=(771,76,185,121), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall_daruma.png")
+	# 商店页面标志（紫色斜招牌，旧判据，保留兼容但不再参与 page_mall 判定）
+	I_CHECK_MALL_PURPLE = RuleImage(roi_front=(231,455,85,78), roi_back=(201,432,185,121), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall_purple_left.png")
 	# 商店推荐页面标志 
 	I_CHECK_MALL_RECOMMEND = RuleImage(roi_front=(930,12,42,37), roi_back=(905,0,100,100), threshold=0.8, method="Template matching", file="./tasks/GameUi/page/page_check_mall_recommend.png")
 	# 阴阳寮页面标志

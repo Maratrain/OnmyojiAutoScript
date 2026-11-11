@@ -973,7 +973,8 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         if self.check_store_all_done():
             logger.info('[每日琐事] 商店任务全部完成，跳过')
             return
-        self.goto_page(page_mall, confirm_wait=3)
+        # 停在热门推荐页即可（商店街也可接受），省掉「推荐页→商店街」这次多余的返回点击
+        self.goto_page(page_mall_recommend, confirm_wait=3, accepted_pages=(page_mall,))
         if self.config.daily_trifles.trifles_config.store_sign:
             self.run_store_sign()
         if self.config.daily_trifles.trifles_config.buy_sushi_count > 0:
