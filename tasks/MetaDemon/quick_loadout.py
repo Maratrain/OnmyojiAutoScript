@@ -84,20 +84,20 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 continue
             parts = re.split(r'[:：]', item, maxsplit=1)
             if len(parts) != 2 or not parts[0].strip():
-                raise ValueError(f'Invalid custom quick loadout item: {item}')
+                raise ValueError(f'自定义预设条目无效: {item}')
             boss_name, target_text = parts[0].strip(), parts[1].strip()
             try:
                 target = ast.literal_eval(target_text)
             except (SyntaxError, ValueError) as exc:
-                raise ValueError(f'Invalid custom quick loadout target: {item}') from exc
+                raise ValueError(f'自定义预设目标无效: {item}') from exc
             if not isinstance(target, (tuple, list)) or len(target) != 2:
-                raise ValueError(f'Custom quick loadout target must contain two values: {item}')
+                raise ValueError(f'自定义预设目标必须包含两个值: {item}')
             group, preset = target
             if not isinstance(group, str) or not isinstance(preset, str):
-                raise ValueError(f'Quick loadout only supports OCR names, not numbered positions: {item}')
+                raise ValueError(f'一键配置仅支持 OCR 名称，不支持数字序号: {item}')
             group, preset = group.strip(), preset.strip()
             if not group or not preset:
-                raise ValueError(f'Custom quick loadout target cannot be empty: {item}')
+                raise ValueError(f'自定义预设目标不能为空: {item}')
             presets[boss_name] = (group, preset)
         return presets
 
@@ -109,7 +109,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             value = str(name_ocr.ocr(self.device.image)).strip()
             if len(self._normalize_name(value)) > len(self._normalize_name(best)):
                 best = value
-            logger.info(f'Quick loadout stage OCR {attempt}/3: {value}')
+            logger.info(f'关卡名 OCR {attempt}/3: {value}')
             if best:
                 break
             sleep(0.3)
@@ -144,7 +144,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
         stage_name = self._read_quick_loadout_stage_name(name_ocr)
         normalized_stage = self._normalize_name(stage_name)
         if not normalized_stage:
-            logger.warning('Quick loadout stage name OCR is empty, use default preset')
+            logger.warning('关卡名 OCR 为空，使用默认预设')
             return config, None
 
         try:
@@ -155,14 +155,13 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
 
         best_name, best_target, best_score = self._match_custom_preset(stage_name, presets)
         if best_target is None:
-            logger.info(f'No custom quick loadout for stage {stage_name}, use default preset')
+            logger.info(f'关卡 {stage_name} 无自定义预设，使用默认预设')
             return config, normalized_stage
 
         group, preset = best_target
         updates = {'group_name': group, 'preset_name': preset}
         logger.info(
-            f'Custom quick loadout matched stage {stage_name} -> '
-            f'({group}, {preset}) [{best_score:.2f}]'
+            f'关卡 {stage_name} 命中自定义预设: ({group}, {preset}) [{best_score:.2f}]'
         )
         return config.model_copy(update=updates), self._normalize_name(best_name)
 
@@ -186,12 +185,12 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
 
     def _build_quick_loadout_layout(self, frame: RuleFrame) -> QuickLoadoutLayout:
         if len(frame.roi_ranges) not in (2, 3):
-            raise ValueError('Quick loadout frame requires range1=panel and range2=fight')
+            raise ValueError('一键配置 frame 需要第一段=面板 第二段=出战')
         panel = tuple(int(round(value)) for value in frame.matched_ranges[0])
         x, y, width, height = panel
         screen_h, screen_w = self.device.image.shape[:2]
         if x < 0 or y < 0 or x + width > screen_w or y + height > screen_h:
-            raise ValueError(f'Quick loadout panel is outside screen: {panel}')
+            raise ValueError(f'一键配置面板超出屏幕: {panel}')
         sx, sy = width / self.PANEL_REFERENCE_SIZE[0], height / self.PANEL_REFERENCE_SIZE[1]
 
         def roi(relative):
@@ -220,7 +219,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
 
     def _quick_loadout_fight(self, frame: RuleFrame, *, fight_file: str | None = None) -> RuleImage:
         if len(frame.roi_ranges) not in (2, 3):
-            raise ValueError('Quick loadout frame requires range1=panel and range2=fight')
+            raise ValueError('一键配置 frame 需要第一段=面板 第二段=出战')
         # range1 仅用于布局；不执行其中的操作，也不改写 frame 的检测范围。
         specs, targets = frame.range_targets(self.device.image.shape, allow_missing_image=True)
         if fight_file and specs[1]['type'] == 'image' and not isinstance(targets[1], RuleImage):
@@ -230,16 +229,16 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 threshold=specs[1]['threshold'], file=fight_file,
             )
         if specs[1]['type'] != 'image' or not isinstance(targets[1], RuleImage):
-            raise ValueError('Quick loadout frame range2 must include its fight image')
+            raise ValueError('一键配置 frame 第二段必须包含出战图像')
         if not Path(targets[1].file).is_file():
-            raise ValueError(f'Quick loadout frame range2 image does not exist: {targets[1].file}')
+            raise ValueError(f'一键配置 frame 第二段出战图像不存在: {targets[1].file}')
         return targets[1]
 
     def _quick_loadout_panel_visible(self, frame: RuleFrame) -> bool:
         return bool(self.appear(frame) and self.appear(self._quick_loadout_fight(frame)))
 
     def _open_quick_loadout(self, frame: RuleFrame) -> bool:
-        logger.info('Open quick loadout panel')
+        logger.info('打开一键配置面板')
         timer = Timer(self.PANEL_OPEN_TIMEOUT).start()
         entry_clicked = False
         fallback_timer = Timer(1)
@@ -251,8 +250,8 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 if entry_clicked and len(frame.roi_ranges) == 3 and fallback_timer.reached():
                     specs, targets = frame.range_targets(self.device.image.shape, allow_missing_image=True)
                     if specs[2]['type'] != 'click':
-                        raise ValueError('Quick loadout frame range3 must be a Click operation')
-                    logger.info('Quick loadout entry did not open panel, try range3')
+                        raise ValueError('一键配置 frame 第三段必须是点击操作')
+                    logger.info('一键配置入口未弹出面板，尝试第三段兜底点击')
                     self.click(targets[2], interval=1)
                     fallback_timer.reset()
                 elif not entry_clicked or len(frame.roi_ranges) == 2:
@@ -263,7 +262,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                     if self.click(entry, interval=1):
                         entry_clicked = True
                         fallback_timer.reset()
-        logger.warning('Cannot open quick loadout panel')
+        logger.warning('无法打开一键配置面板')
         return False
 
     def _dismiss_quick_loadout(self, frame: RuleFrame, dismiss: RuleClick | None = None) -> bool:
@@ -275,7 +274,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             if not self._quick_loadout_panel_visible(frame):
                 return True
             self.click(target, interval=1)
-        logger.warning('Cannot close quick loadout panel safely')
+        logger.warning('无法安全关闭一键配置面板')
         return False
 
     def _rewind_list(self, ocr: RuleOcr, swipe: RuleSwipe, max_swipes: int) -> None:
@@ -294,6 +293,8 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 stable_count = 0
             previous = current
             self.swipe(swipe)
+            # 滑动计入全局点击保护，滑后清掉自己的记录，避免连续滑动触发点击上限
+            self.device.click_record_remove(swipe.name)
             sleep(0.45)
 
     def _find_name_y(self, ocr: RuleOcr, target: str, results=None) -> tuple[int | None, float]:
@@ -313,6 +314,16 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
                 best_y = self._result_center_y(result, ocr.roi[1])
         return best_y, best_score
 
+    def _confirm_name_y(self, ocr: RuleOcr, target: str, y: int, tolerance: int = 6) -> int | None:
+        """点击前用新的一帧确认目标仍在原位置，避免列表滚动导致坐标过期。"""
+        self.screenshot()
+        results = ocr.detect_and_ocr(self.device.image, logDisplay=False)
+        y2, _ = self._find_name_y(ocr, target, results)
+        if y2 is None or abs(y2 - y) > tolerance:
+            logger.info(f'一键配置点击前目标位置变化: {target} y={y} -> {y2}，重试')
+            return None
+        return y2
+
     def _select_group(self, layout: QuickLoadoutLayout, config: QuickLoadoutConfig) -> bool:
         self._rewind_list(layout.group_ocr, layout.group_swipe_to_top, self.MAX_GROUP_SWIPES)
         previous = None
@@ -323,17 +334,22 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             current = tuple(result.ocr_text for result in results)
             y, score = self._find_name_y(layout.group_ocr, config.group_name, results)
             if y is not None and score >= 0.55:
-                logger.info(f'Quick loadout group OCR matched {config.group_name} [{score:.2f}]')
-                self.device.click(layout.group_click_x, y, control_name='QUICK_LOADOUT_GROUP_OCR')
-                sleep(0.6)
-                return True
+                logger.info(f'分组 OCR 命中 {config.group_name} [{score:.2f}]')
+                confirmed_y = self._confirm_name_y(layout.group_ocr, config.group_name, y)
+                if confirmed_y is not None:
+                    self.device.click(layout.group_click_x, confirmed_y, control_name='QUICK_LOADOUT_GROUP_OCR')
+                    sleep(0.6)
+                    return True
+                # 列表仍在滚动，坐标已过期；重新截图再找，不做多余滑动
+                continue
             stable_count = stable_count + 1 if current and current == previous else 0
             if stable_count >= 2:
                 break
             previous = current
             self.swipe(layout.group_swipe_down)
+            self.device.click_record_remove(layout.group_swipe_down.name)
             sleep(0.6)
-        logger.warning(f'Quick loadout group not found: {config.group_name}')
+        logger.warning(f'未找到分组: {config.group_name}, 可见分组: {list(previous or ())}')
         return False
 
     def _select_preset_row(self, layout: QuickLoadoutLayout, config: QuickLoadoutConfig) -> int | None:
@@ -348,15 +364,20 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             current = tuple(result.ocr_text for result in results)
             y, score = self._find_name_y(layout.preset_ocr, config.preset_name, results)
             if y is not None and score >= 0.55:
-                logger.info(f'Quick loadout preset matched {target_label} [{score:.2f}]')
-                return y
+                logger.info(f'预设命中 {target_label} [{score:.2f}]')
+                confirmed_y = self._confirm_name_y(layout.preset_ocr, config.preset_name, y)
+                if confirmed_y is not None:
+                    return confirmed_y
+                # 列表仍在滚动，坐标已过期；重新截图再找，不做多余滑动
+                continue
             stable_count = stable_count + 1 if current and current == previous else 0
             if stable_count >= 2:
                 break
             previous = current
             self.swipe(layout.preset_swipe_down)
+            self.device.click_record_remove(layout.preset_swipe_down.name)
             sleep(0.6)
-        logger.warning(f'Quick loadout preset not found: {target_label}')
+        logger.warning(f'未找到预设: {target_label}, 可见预设: {list(previous or ())}')
         return None
 
     def _equip_quick_loadout_souls(self, layout: QuickLoadoutLayout, row_y: int) -> None:
@@ -367,10 +388,10 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             if not self.appear(self.I_SOU_SWITCH_SURE):
                 sleep(0.15)
                 continue
-            logger.info('Confirm quick loadout soul equipment')
+            logger.info('确认装配预设御魂')
             self.ui_click_until_disappear(self.I_SOU_SWITCH_SURE, interval=0.6)
             return
-        logger.info('Quick loadout soul confirmation did not appear; preset may already be equipped')
+        logger.info('预设御魂确认弹窗未出现，可能已装配')
 
     def _deploy_quick_loadout(self, layout: QuickLoadoutLayout, frame: RuleFrame, row_y: int, dismiss: RuleClick | None = None) -> bool:
         self.device.click(layout.preset_select_x, row_y, control_name='QUICK_LOADOUT_PRESET')
@@ -383,10 +404,10 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
         while not timer.reached():
             self.screenshot()
             if not self._quick_loadout_panel_visible(frame):
-                logger.info('Quick loadout deployed')
+                logger.info('一键配置上阵完成')
                 return True
             sleep(0.2)
-        logger.warning('Quick loadout deploy did not close panel')
+        logger.warning('一键配置上阵后面板未关闭')
         self._dismiss_quick_loadout(frame, dismiss=dismiss)
         return False
 
@@ -404,22 +425,22 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             return True
         if isinstance(config, NamedQuickLoadoutConfig) and config.custom_preset_enable:
             if name_ocr is None:
-                logger.warning('Named quick loadout enabled without a stage-name OCR rule')
+                logger.warning('启用关卡名预设但未提供关卡名 OCR 规则')
             else:
                 config, _ = self._resolve_named_quick_loadout(config, name_ocr)
         config.validate_target()
         target = (frame.name, config.group_name.strip(), config.preset_name.strip(), skip_equip_soul)
         if getattr(self, '_last_quick_loadout', None) == target:
-            logger.info(f'Quick loadout unchanged, keep current lineup: {target[1:3]}')
+            logger.info(f'一键配置未变化，沿用当前阵容: {target[1:3]}')
             return True
         # A failed attempt may have changed souls or selected another preset.
         self._last_quick_loadout = None
-        logger.hr('Quick loadout', 2)
+        logger.hr('一键配置', 2)
         if not self._open_quick_loadout(frame):
             return False
         try:
             layout = self._build_quick_loadout_layout(frame)
-            logger.info(f'Quick loadout panel: {layout.panel}')
+            logger.info(f'一键配置面板: {layout.panel}')
             if not self._select_group(layout, config):
                 self._dismiss_quick_loadout(frame, dismiss=dismiss)
                 return False
