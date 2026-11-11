@@ -139,7 +139,8 @@ class GhostOffering:
 
     def selected_count(self):
         t = self.task
-        return len(t.I_MD_FRIEND_SELECTED.match_all(t.device.image, frame_id=t.device.image_frame_id))
+        # 勾选标记计数需去重，重叠匹配会把同一勾选重复计入
+        return len(t.I_MD_FRIEND_SELECTED.match_all_any(t.device.image, frame_id=t.device.image_frame_id))
 
     def list_to_top(self):
         t = self.task
