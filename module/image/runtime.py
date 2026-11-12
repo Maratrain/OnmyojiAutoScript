@@ -158,6 +158,7 @@ class ImageRuntime:
             "frame_misses": 0,
             "frame_evictions": 0,
             "frame_replacements": 0,
+            "frame_fallbacks": 0,
             "template_hits": 0,
             "template_misses": 0,
             "template_evictions": 0,
@@ -570,11 +571,18 @@ class ImageRuntime:
         """
         统一解析一次匹配请求使用的输入图像。
 
-        `frame_id` 与 `image_bytes` 二选一：优先复用已注册截图，只有在没有 `frame_id`
-        时才会反序列化请求中直接上传的图像数据。
+        优先复用已注册截图；若帧已过期被清理而请求同时带了图像数据（客户端在帧临近
+        TTL 时会主动附上），则回退使用该图像，避免长等待后陈旧 frame_id 中断任务。
         """
         if frame_id:
-            return self._get_frame_entry(frame_id).image
+            try:
+                return self._get_frame_entry(frame_id).image
+            except KeyError:
+                if image_bytes is None:
+                    raise
+                with self._lock:
+                    self._cache_stats["frame_fallbacks"] += 1
+                logger.warning(f'[图像服务] 截图帧已过期，改用请求内图像数据: {frame_id}')
         if image_bytes is None:
             raise ValueError("Either frame_id or image_bytes must be provided")
         image = pickle.loads(image_bytes)

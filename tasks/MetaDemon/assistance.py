@@ -504,7 +504,8 @@ class GhostAssistant:
                 time.sleep(0.5)
 
     def run(self):
-        self.task.goto_page(pages.page_meta_demon_boss)
+        # 等待对端进入任务最长 30 秒，期间画面可能已变化，不能复用等待前的截图。
+        self.task.goto_page(pages.page_meta_demon_boss, skip_first_screenshot=False)
         waiting_logged = False
         while self.within_limit():
             if not self.link.peer_in_task():
@@ -524,7 +525,8 @@ class GhostAssistant:
 
 
 def run_offering(task, link):
-    task.goto_page(pages.page_meta_demon_boss)
+    # 同协助端：协同等待结束后必须重新截图再判断页面。
+    task.goto_page(pages.page_meta_demon_boss, skip_first_screenshot=False)
     offering = GhostOffering(task, link)
     success = True
     while offering.within_limit():

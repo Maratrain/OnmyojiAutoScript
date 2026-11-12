@@ -23,6 +23,14 @@ _IMAGE_SERVER_PROCESS: Optional[multiprocessing.Process] = None
 _IMAGE_CLIENT_CACHE: dict[str, "ImageClient"] = {}
 # 脚本进程级识别参数。由 Script 启动时设置，运行中不随配置热更新。
 _IMAGE_FRAME_CACHE_EXPIRE_SECONDS: float | None = None
+# 进程内最近一次注册的截图帧信息，用于判断 frame_id 是否临近服务端缓存期限。
+_LAST_REGISTERED_FRAME: dict[str, Any] = {
+    "frame_id": None,
+    "registered_at": 0.0,
+    "expire_seconds": 10.0,
+}
+# 帧龄达到该比例的 TTL 后，匹配请求随附图像数据，供服务端在帧已淘汰时兜底。
+_FRAME_PAYLOAD_SAFETY_RATIO = 0.6
 
 
 def set_image_low_spec_mode(enabled: bool) -> None:
@@ -262,11 +270,17 @@ class ImageClient:
             config_name: 当前脚本配置名；服务端用它删除同配置旧截图帧。
         """
         payload = pickle.dumps(image, protocol=4)
-        return self.client.register_frame(
+        info = self.client.register_frame(
             payload,
             config_name,
             _IMAGE_FRAME_CACHE_EXPIRE_SECONDS,
         )
+        _LAST_REGISTERED_FRAME.update(
+            frame_id=info.get("frame_id"),
+            registered_at=time.time(),
+            expire_seconds=float(info.get("expire_seconds") or 10.0),
+        )
+        return info
 
     def get_frame_info(self, frame_id: str) -> dict[str, Any]:
         """
@@ -292,12 +306,21 @@ class ImageClient:
         """
         统一处理“直接上传图片”与“复用已注册 frame_id”两种调用方式。
 
-        当提供 `frame_id` 时，本次请求不再重复上传整张图片；只有在没有 `frame_id`
-        且显式传入 `image` 时，才会序列化图片数据。
+        帧仍在缓存期限内时不重复上传整张图片。若该 frame_id 不是本进程最近注册的帧，
+        或帧龄已接近服务端 TTL（长等待后截图帧会被清理），则随请求附上图像数据，
+        由服务端在 frame_id 失效时直接改用这张图完成匹配。
         """
-        if frame_id is not None or image is None:
+        if image is None:
             return None
-        return pickle.dumps(image, protocol=4)
+        if frame_id is None:
+            return pickle.dumps(image, protocol=4)
+        state = _LAST_REGISTERED_FRAME
+        if frame_id != state["frame_id"]:
+            return pickle.dumps(image, protocol=4)
+        expire_seconds = max(0.1, float(state["expire_seconds"]))
+        if time.time() - state["registered_at"] >= expire_seconds * _FRAME_PAYLOAD_SAFETY_RATIO:
+            return pickle.dumps(image, protocol=4)
+        return None
 
     def match_rule(
         self,

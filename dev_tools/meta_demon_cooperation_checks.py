@@ -1,5 +1,7 @@
-"""超鬼王协同心跳等待与任务收尾截图的离线校验。"""
+"""超鬼王协同心跳、任务收尾截图与截图帧缓存兜底的离线校验。"""
+from datetime import datetime, timedelta
 import json
+import pickle
 import tempfile
 import time
 import unittest
@@ -7,10 +9,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
+import numpy as np
+
 from module.cooperation import Cooperation, prepare_task_cooperation
 from module.exception import TaskEnd
+from module.image import rpc as image_rpc
+from module.image.rpc import ImageClient
+from module.image.runtime import ImageRuntime, ImageServerSettings
 from tasks.MetaDemon.boss_battle import BossBattle
 from tasks.MetaDemon.config import AssistanceRole, MetaDemonMode
+import tasks.MetaDemon.assistance as assistance
 import tasks.MetaDemon.page as ipages
 
 
@@ -157,6 +165,133 @@ class FinishTaskChecks(unittest.TestCase):
         with self.assertRaises(TaskEnd):
             owner.finish_task()
         owner.goto_page.assert_called_once_with(ipages.page_main, skip_first_screenshot=False)
+
+
+class AssistanceEntryScreenshotChecks(unittest.TestCase):
+    """协同等待最长 30 秒，进入鬼王页前必须重新截图。"""
+
+    @staticmethod
+    def fake_task():
+        swipe = SimpleNamespace(roi_front=(100, 100, 100, 100), roi_back=(100, 500, 100, 100))
+        task = Mock()
+        task.S_MD_SWIPE_UP = swipe
+        task.start_time = datetime.now()
+        task.limit_time = timedelta(seconds=60)
+        task.total_count = 0
+        task.limit_count = 10
+        task.State.done = True
+        return task
+
+    def test_assistant_entry_refreshes_screenshot(self):
+        task = self.fake_task()
+        link = Mock()
+        link.peer_in_task.return_value = False
+        assistance.GhostAssistant(task, link).run()
+        task.goto_page.assert_called_once_with(
+            assistance.pages.page_meta_demon_boss, skip_first_screenshot=False)
+
+    def test_offering_entry_refreshes_screenshot(self):
+        task = self.fake_task()
+        assistance.run_offering(task, Mock())
+        task.goto_page.assert_called_once_with(
+            assistance.pages.page_meta_demon_boss, skip_first_screenshot=False)
+
+
+class ImageFramePayloadChecks(unittest.TestCase):
+    """帧临近 TTL 时客户端必须随请求附上图像数据。"""
+
+    def setUp(self):
+        self.image = np.full((4, 4, 3), 5, dtype=np.uint8)
+        original = dict(image_rpc._LAST_REGISTERED_FRAME)
+        self.addCleanup(image_rpc._LAST_REGISTERED_FRAME.update, original)
+
+    def test_fresh_frame_skips_payload(self):
+        image_rpc._LAST_REGISTERED_FRAME.update(
+            frame_id='fresh', registered_at=time.time(), expire_seconds=10.0)
+        self.assertIsNone(ImageClient._encode_image_payload(self.image, 'fresh'))
+
+    def test_stale_frame_attaches_payload(self):
+        image_rpc._LAST_REGISTERED_FRAME.update(
+            frame_id='stale', registered_at=time.time() - 30, expire_seconds=10.0)
+        payload = ImageClient._encode_image_payload(self.image, 'stale')
+        self.assertIsNotNone(payload)
+        np.testing.assert_array_equal(pickle.loads(payload), self.image)
+
+    def test_unknown_frame_and_no_frame_attach_payload(self):
+        image_rpc._LAST_REGISTERED_FRAME.update(
+            frame_id='current', registered_at=time.time(), expire_seconds=10.0)
+        for frame_id in ('other', None):
+            with self.subTest(frame_id=frame_id):
+                payload = ImageClient._encode_image_payload(self.image, frame_id)
+                self.assertIsNotNone(payload)
+                np.testing.assert_array_equal(pickle.loads(payload), self.image)
+        self.assertIsNone(ImageClient._encode_image_payload(None, 'current'))
+
+    def test_register_frame_records_id_and_server_ttl(self):
+        client = object.__new__(ImageClient)
+        client.client = Mock()
+        client.client.register_frame.return_value = {'frame_id': 'abc', 'expire_seconds': 7.0}
+        self.assertEqual(client.register_frame(self.image, 'demo')['frame_id'], 'abc')
+        self.assertEqual(image_rpc._LAST_REGISTERED_FRAME['frame_id'], 'abc')
+        self.assertEqual(image_rpc._LAST_REGISTERED_FRAME['expire_seconds'], 7.0)
+
+
+class ImageFrameFallbackChecks(unittest.TestCase):
+    """服务端帧被清理后，带图像数据的请求应回退成功而非抛 KeyError。"""
+
+    def setUp(self):
+        self.runtime = ImageRuntime(ImageServerSettings(
+            frame_cache_expire_seconds=10.0, cleanup_interval_seconds=3600))
+        self.addCleanup(self.runtime.shutdown)
+
+    def register(self, image):
+        return self.runtime.register_frame(pickle.dumps(image), 'demo')['frame_id']
+
+    def expire(self, frame_id):
+        with self.runtime._lock:
+            self.runtime._frames[frame_id].last_access_at -= 60
+
+    def test_expired_frame_falls_back_to_payload(self):
+        frame_id = self.register(np.zeros((4, 4, 3), dtype=np.uint8))
+        self.expire(frame_id)
+        expected = np.full((4, 4, 3), 7, dtype=np.uint8)
+        np.testing.assert_array_equal(
+            self.runtime._resolve_image(frame_id, pickle.dumps(expected)), expected)
+        self.assertEqual(self.runtime._cache_stats['frame_fallbacks'], 1)
+
+    def test_expired_frame_without_payload_still_raises(self):
+        frame_id = self.register(np.zeros((4, 4, 3), dtype=np.uint8))
+        self.expire(frame_id)
+        with self.assertRaises(KeyError):
+            self.runtime._resolve_image(frame_id, None)
+        self.assertEqual(self.runtime._cache_stats['frame_fallbacks'], 0)
+
+    def test_live_frame_prefers_cached_image(self):
+        cached = np.full((4, 4, 3), 3, dtype=np.uint8)
+        frame_id = self.register(cached)
+        uploaded = np.full((4, 4, 3), 9, dtype=np.uint8)
+        np.testing.assert_array_equal(
+            self.runtime._resolve_image(frame_id, pickle.dumps(uploaded)), cached)
+        self.assertEqual(self.runtime._cache_stats['frame_fallbacks'], 0)
+
+    def test_client_payload_survives_server_frame_eviction(self):
+        image = np.full((4, 4, 3), 6, dtype=np.uint8)
+        client = object.__new__(ImageClient)
+        client.client = Mock()
+        client.client.register_frame.side_effect = (
+            lambda payload, name, ttl: self.runtime.register_frame(payload, name))
+        client.register_frame(image, 'demo')
+        frame_id = image_rpc._LAST_REGISTERED_FRAME['frame_id']
+        original = dict(image_rpc._LAST_REGISTERED_FRAME)
+        self.addCleanup(image_rpc._LAST_REGISTERED_FRAME.update, original)
+
+        # 模拟协同等待 30 秒：客户端判定帧已临近 TTL，服务端也已清理该帧。
+        image_rpc._LAST_REGISTERED_FRAME['registered_at'] -= 30
+        payload = ImageClient._encode_image_payload(image, frame_id)
+        self.assertIsNotNone(payload)
+        self.expire(frame_id)
+        np.testing.assert_array_equal(self.runtime._resolve_image(frame_id, payload), image)
+        self.assertEqual(self.runtime._cache_stats['frame_fallbacks'], 1)
 
 
 if __name__ == '__main__':
