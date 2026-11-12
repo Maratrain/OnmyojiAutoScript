@@ -40,6 +40,17 @@ def metademon_tickets_full(task) -> bool:
         # 门票数量不可能超过上限，越界一定是识别错误；此时不能按“已满”结束任务。
         logger.warning(f'超鬼王门票 OCR 计数越界({current}/{total})，按识别错误忽略本次读数')
         return False
+    max_seen = getattr(task, '_ticket_max_seen', 0)
+    if current < max_seen:
+        # 进度单调不减，读数低于历史最大值必是丢位误读（如 50/50 丢首位读成 0/50）。
+        # 历史最大为 total-1 时读到 0：49 误读只会丢成 9，0 只能来自 50，按满票处理。
+        if max_seen == total - 1 and current == 0:
+            logger.warning(f'超鬼王门票读数 {current}/{total} 低于历史最大 {max_seen}/{total}，判定已刷满')
+            return True
+        logger.warning(f'超鬼王门票读数 {current}/{total} 低于历史最大 {max_seen}/{total}，按丢位误读忽略')
+        return False
+    if current > max_seen:
+        task._ticket_max_seen = current
     logger.info(f'超鬼王门票: {current}/{total}')
     return current >= total
 
@@ -196,6 +207,7 @@ def run_ticket_farming(owner, mode) -> bool:
     runner._battle_cooperation_prepared = True
     runner._ticket_farming_complete = False
     runner._ticket_full = local_full
+    runner._ticket_max_seen = 0
     runner.install_ticket_reward_hook()
     buff_opened = False
     cooperation_started = False
