@@ -24,6 +24,13 @@ def instance_name(value):
     return value
 
 
+def meta_demon_assist_enabled(config):
+    """协同是否生效以当前选择的模式为准，不沿用历史配对。"""
+    from tasks.MetaDemon.config import MetaDemonMode
+    item = getattr(config.model, 'meta_demon', None)
+    return bool(item and MetaDemonMode.BOSS_ASSIST in item.meta_demon_config.mode)
+
+
 class Cooperation:
     def __init__(self, name, root=None):
         self.name = instance_name(name)
@@ -292,6 +299,10 @@ class Cooperation:
     def wake_next(self, config):
         """Only called at a scheduler boundary, so an active task is never interrupted."""
         for task, source in self.requested():
+            if task == 'MetaDemon' and not meta_demon_assist_enabled(config):
+                logger.info('[协同] 当前未启用鬼王协助，忽略超鬼王协同请求')
+                self.ack(task)
+                continue
             if ((task == 'MetaDemon' and self.runner_task(source) != task)
                     or (task == 'MetaDemonTicket' and not self.matches_meta_demon_tickets(source))):
                 self.ack(task)
@@ -404,6 +415,8 @@ def prepare_task_cooperation(config, task):
     item = getattr(config.model, convert_to_underscore(task))
     if task == 'DraftDuel' and (item.draft_duel_config.match_mode == '单人'
                                 or not item.invite_config.cooperation_script):
+        return
+    if task == 'MetaDemon' and not meta_demon_assist_enabled(config):
         return
     settings_group = 'assistance_config' if task == 'MetaDemon' else 'invite_config'
     runtime = getattr(config, 'cooperation_runtime', None)

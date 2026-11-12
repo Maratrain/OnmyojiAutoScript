@@ -1,12 +1,13 @@
 """超鬼王协同心跳等待与任务收尾截图的离线校验。"""
 import json
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
-from module.cooperation import Cooperation
+from module.cooperation import Cooperation, prepare_task_cooperation
 from module.exception import TaskEnd
 from tasks.MetaDemon.boss_battle import BossBattle
 from tasks.MetaDemon.config import AssistanceRole, MetaDemonMode
@@ -97,6 +98,56 @@ class CooperationHeartbeatChecks(unittest.TestCase):
                 patch('module.cooperation.time.sleep', side_effect=advance_time) as sleep:
             self.assertTrue(a.prepare(config, 'MetaDemon', 'assist', defer=False))
         self.assertEqual(sleep.call_args_list, [call(5)] * 6)
+
+
+class MetaDemonModeGateChecks(unittest.TestCase):
+    """改成鬼王战斗后，不得再被历史协同配对拉进校验。"""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        write_config(self.root, 'offer', role=AssistanceRole.OFFERING, peer='assist')
+        write_config(self.root, 'assist', role=AssistanceRole.ASSIST, peer='offer')
+
+    def config(self, mode, *, reload=None, task_call=None):
+        model = SimpleNamespace(meta_demon=SimpleNamespace(
+            meta_demon_config=SimpleNamespace(mode=[mode]),
+            assistance_config=SimpleNamespace(cooperation_script='assist'),
+            scheduler=SimpleNamespace(enable=True),
+        ))
+        config = SimpleNamespace(model=model, config_name='offer',
+                                 cooperation_runtime=Mock(peers={}),
+                                 reload=reload or Mock(), task_call=task_call or Mock())
+        return config
+
+    def test_battle_mode_skips_stale_cooperation_peer(self):
+        config = self.config(MetaDemonMode.BOSS_BATTLE)
+        prepare_task_cooperation(config, 'MetaDemon')
+        config.cooperation_runtime.prepare.assert_not_called()
+
+    def test_assist_mode_still_prepares_peer(self):
+        config = self.config(MetaDemonMode.BOSS_ASSIST)
+        prepare_task_cooperation(config, 'MetaDemon')
+        config.cooperation_runtime.prepare.assert_called_once_with(config, 'MetaDemon', 'assist')
+
+    def test_wake_next_ignores_request_in_battle_mode(self):
+        own, peer = Cooperation('offer', root=self.root), Cooperation('assist', root=self.root)
+        peer.publish('MetaDemon')
+        with own.connect() as db:
+            db.execute('INSERT OR REPLACE INTO wakes VALUES (?, ?, ?, ?)',
+                       ('offer', 'MetaDemon', 'assist', time.time()))
+        self.assertIsNone(own.wake_next(self.config(MetaDemonMode.BOSS_BATTLE)))
+        self.assertEqual(own.requested(), [])
+
+    def test_wake_next_accepts_request_in_assist_mode(self):
+        own, peer = Cooperation('offer', root=self.root), Cooperation('assist', root=self.root)
+        peer.publish('MetaDemon')
+        with own.connect() as db:
+            db.execute('INSERT OR REPLACE INTO wakes VALUES (?, ?, ?, ?)',
+                       ('offer', 'MetaDemon', 'assist', time.time()))
+        self.assertEqual(own.wake_next(self.config(MetaDemonMode.BOSS_ASSIST)), 'MetaDemon')
+        self.assertEqual(own.requested(), [])
 
 
 class FinishTaskChecks(unittest.TestCase):
