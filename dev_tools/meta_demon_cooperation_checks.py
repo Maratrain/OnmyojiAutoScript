@@ -108,6 +108,41 @@ class CooperationHeartbeatChecks(unittest.TestCase):
         self.assertEqual(sleep.call_args_list, [call(5)] * 6)
 
 
+class SingleCooperationRuntimeChecks(unittest.TestCase):
+    """调度循环只能有一个协同实例，否则心跳会把已发布的任务名清空。"""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+
+    def test_second_runtime_clears_published_task(self):
+        published = Cooperation('offer', root=self.root)
+        heartbeat = Cooperation('offer', root=self.root)
+        published.publish('MetaDemon')
+        heartbeat.publish('')
+        self.assertEqual(published.runner_task('offer'), '')
+
+    def test_ensure_reuses_published_runtime(self):
+        from script import Script
+
+        owner = object.__new__(Script)
+        owner.config_name = 'offer'
+        owner.config = SimpleNamespace()
+        runtime = Cooperation('offer', root=self.root)
+        runtime.start()
+        self.addCleanup(runtime.close)
+        owner._cooperation = runtime
+
+        self.assertIs(owner.ensure_cooperation_runtime(), runtime)
+        self.assertIs(owner.config.cooperation_runtime, runtime)
+        self.assertFalse(hasattr(owner, '_cooperation_runtime'))
+
+        runtime.publish('MetaDemon')
+        runtime.publish()  # 心跳沿用同一实例的 active_task
+        self.assertEqual(runtime.runner_task('offer'), 'MetaDemon')
+
+
 class MetaDemonModeGateChecks(unittest.TestCase):
     """改成鬼王战斗后，不得再被历史协同配对拉进校验。"""
 
