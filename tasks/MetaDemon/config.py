@@ -247,7 +247,7 @@ class MetaDemonAssistanceConfig(ConfigBase):
     offering_order: OfferingOrder = Field(default=OfferingOrder.ASCENDING, title='上供召唤顺序',
         description='顺序为低星优先（四星→五星→六星）；倒序为高星优先（六星→五星→四星）。仅召唤所选星级范围内的鬼王。')
     friend_names: str = Field(default='', title='分享好友名字',
-        description='填写游戏内好友完整名字；多个名字用分号或换行分隔，按名称精确匹配，不使用近似名字。')
+        description='填写游戏内好友完整名字，多个用分号或换行分隔；容忍 OCR 形近字误判，出现相近名字时拒绝选择以防误邀请。')
     poll_interval: int = Field(default=5, ge=2, le=60, title='协助轮询间隔（秒）',
         description='上供按此间隔检查是否已击杀，协助按此间隔重新寻找好友分享。')
 

@@ -1,5 +1,6 @@
 """Share bosses chosen by the offering side and challenge bosses shared by friends."""
 from base64 import b64decode, b64encode
+import difflib
 import re
 import time
 from datetime import datetime
@@ -144,6 +145,29 @@ class GhostOffering:
     def normalize_name(name):
         return re.sub(r'\s+', '', str(name))
 
+    # 与 GeneralInvite 一致：OCR 形近字（如「迴」被读成「迫/逼」）按相似度兜底，
+    # 只在等长且唯一命中时接受，避免误邀请名字相近的好友。
+    FUZZY_MATCH_MIN_RATIO = 0.75
+
+    @staticmethod
+    def name_similarity(name, ocr_name):
+        if len(name) != len(ocr_name):
+            return 0.0
+        return difflib.SequenceMatcher(None, name, ocr_name).ratio()
+
+    def name_candidates(self, name, rows):
+        if name in rows:
+            return [name]
+        return [key for key in rows
+                if self.name_similarity(name, key) >= self.FUZZY_MATCH_MIN_RATIO]
+
+    def resolve_name(self, name, rows):
+        """返回 (识别文本, 行区域)；无唯一命中时返回 None。"""
+        candidates = self.name_candidates(name, rows)
+        if len(candidates) != 1 or len(rows[candidates[0]]) != 1:
+            return None
+        return candidates[0], rows[candidates[0]][0]
+
     def friend_rows(self):
         t = self.task
         x, y, _, _ = t.O_MD_FRIENDS.roi
@@ -192,7 +216,7 @@ class GhostOffering:
             t.appear_then_click(t.I_MD_INVITE, interval=1.5)
         return False
 
-    def select_friend(self, name, area):
+    def select_friend(self, name, area, ocr_name=None):
         t = self.task
         before = self.selected_count()
         rule = RuleClick(roi_front=area, roi_back=area, name='metademon_offering_friend')
@@ -205,7 +229,10 @@ class GhostOffering:
                 return False
             selected = self.selected_count()
             if selected == before + 1:
-                logger.info(f'鬼王上供已选好友: {name}')
+                if ocr_name and ocr_name != name:
+                    logger.info(f'鬼王上供已选好友: {name}（识别为 {ocr_name}）')
+                else:
+                    logger.info(f'鬼王上供已选好友: {name}')
                 return True
             # 面板滑入动画或点击穿透会吞掉第一次点击，没选中就重试；
             # 已有选中时不再补点，避免把刚选上的好友又点掉。
@@ -227,10 +254,11 @@ class GhostOffering:
             return False
         rows = self.friend_rows()
         # All recipients are already visible. Avoid moving away from their rows.
-        if wanted.keys() <= rows.keys():
+        if all(self.resolve_name(name, rows) is not None for name in wanted):
             for name in wanted:
                 rows = self.friend_rows()
-                if len(rows.get(name, ())) != 1 or not self.select_friend(name, rows[name][0]):
+                hit = self.resolve_name(name, rows)
+                if hit is None or not self.select_friend(wanted[name], hit[1], hit[0]):
                     return False
             return True
         if not self.list_to_top():
@@ -248,8 +276,11 @@ class GhostOffering:
                 logger.warning('分享列表存在已有选择或已关闭，请清空好友选择后重试')
                 return False
             rows = self.friend_rows()
-            if any(len(rows.get(name, [])) > 1 for name in wanted):
-                logger.warning('好友名字有多个相同识别结果，无法唯一选择')
+            ambiguous = [name for name in wanted
+                         if len(rows.get(name, [])) > 1
+                         or len(self.name_candidates(name, rows)) > 1]
+            if ambiguous:
+                logger.warning('好友名字有多个相近识别结果，无法唯一选择')
                 return False
             available.update(rows)
             signature = tuple(rows)
@@ -261,7 +292,7 @@ class GhostOffering:
         else:
             logger.warning('好友列表扫描超过限制，停止分享')
             return False
-        missing = wanted.keys() - available
+        missing = {name for name in wanted if not self.name_candidates(name, available)}
         if missing:
             logger.warning('未找到指定好友: ' + '; '.join(wanted[name] for name in missing))
             return False
@@ -279,9 +310,10 @@ class GhostOffering:
                 # Selection can reorder rows; resolve each subsequent name on
                 # the latest screenshot instead of reusing an earlier box.
                 rows = self.friend_rows()
-                if name not in rows:
+                hit = self.resolve_name(name, rows)
+                if hit is None:
                     continue
-                if len(rows[name]) != 1 or not self.select_friend(remaining[name], rows[name][0]):
+                if not self.select_friend(remaining[name], hit[1], hit[0]):
                     return False
                 del remaining[name]
             if not remaining:
