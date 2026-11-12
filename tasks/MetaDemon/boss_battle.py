@@ -452,5 +452,6 @@ class BossBattle(GeneralBattle, SwitchSoul, QuickLoadout, GameUi, MetaDemonAsset
         return True
 
     def finish_task(self):
-        self.goto_page(ipages.page_main)
+        # 收尾时不能复用上一帧截图，否则导航会按过期画面判断当前页面。
+        self.goto_page(ipages.page_main, skip_first_screenshot=False)
         raise TaskEnd
