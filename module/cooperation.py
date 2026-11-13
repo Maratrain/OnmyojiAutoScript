@@ -241,9 +241,13 @@ class Cooperation:
             if not item.get('scheduler', {}).get('enable', False):
                 raise ScriptError(f'协同任务未启用：{name}/{task}')
         if task == 'MetaDemon':
-            from tasks.MetaDemon.config import AssistanceRole, MetaDemonMode
+            from tasks.MetaDemon.config import AssistanceRole, MetaDemonMode, OfferingMode
             pair = ((own, peer), (other, self.name))
             settings = [item.get('assistance_config', {}) for item, _ in pair]
+            if any(setting.get('role') == AssistanceRole.OFFERING
+                   and setting.get('offering_mode', OfferingMode.COOPERATIVE) != OfferingMode.COOPERATIVE
+                   for setting in settings):
+                raise ScriptError('上供端已选择不协同，无法匹配鬼王协助脚本')
             targets = [setting.get('cooperation_script', '').strip() for setting in settings]
             if ({setting.get('role') for setting in settings} != {AssistanceRole.OFFERING, AssistanceRole.ASSIST}
                     or not all(MetaDemonMode.BOSS_ASSIST in item.get('meta_demon_config', {}).get('mode', [])
@@ -416,7 +420,8 @@ def prepare_task_cooperation(config, task):
     if task == 'DraftDuel' and (item.draft_duel_config.match_mode == '单人'
                                 or not item.invite_config.cooperation_script):
         return
-    if task == 'MetaDemon' and not meta_demon_assist_enabled(config):
+    if task == 'MetaDemon' and (not meta_demon_assist_enabled(config)
+                                or not item.assistance_config.requires_cooperation):
         return
     settings_group = 'assistance_config' if task == 'MetaDemon' else 'invite_config'
     runtime = getattr(config, 'cooperation_runtime', None)
