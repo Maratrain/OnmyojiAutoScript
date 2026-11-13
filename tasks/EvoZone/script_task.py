@@ -134,7 +134,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         logger.info('[觉醒副本] 创建队伍')
         while 1:
             self.screenshot()
-            if self.appear(self.I_CHECK_TEAM):
+            # 组队页头像标志缺失时，用「创建房间」按钮兜底判定进页
+            if self.appear(self.I_CHECK_TEAM) or self.appear(self.I_CREATE_ROOM):
                 break
             if self.appear_then_click(self.I_FORM_TEAM, interval=1):
                 continue
