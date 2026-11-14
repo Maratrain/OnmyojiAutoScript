@@ -10,6 +10,7 @@ from module.atom.image import RuleImage
 from module.atom.click import RuleClick
 from module.atom.ocr import RuleOcr
 from module.base.timer import Timer
+from module.image.recipes import match_highlight_rule
 
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.Component.GeneralRoom.general_room import GeneralRoom
@@ -77,6 +78,19 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         roi_front=(36, 294, 30, 38), roi_back=(15, 260, 200, 110),
         threshold=0.8, method='Masked template matching',
         file='./tasks/Exploration/res/explore_hard_locked.png')
+    # 大世界右侧「主线/玩法」标签选中态: 只裁文字本体, 选中态是亮白描金字、
+    # 未选中态是暗灰字。普通模板匹配两态得分都在 0.96 以上分不开, 必须走
+    # match_highlight_rule 的亮度窗口; 玩法标签亮即表示当前没有章节列表。
+    I_E_PLAY_TAB_SELECTED = RuleImage(
+        roi_front=(1188, 172, 55, 26), roi_back=(1172, 158, 100, 52),
+        threshold=0.8, method='Template matching',
+        file='./tasks/Exploration/res/res_e_play_tab_selected.png')
+    I_E_MAIN_TAB_SELECTED = RuleImage(
+        roi_front=(1083, 172, 50, 26), roi_back=(1067, 158, 100, 52),
+        threshold=0.8, method='Template matching',
+        file='./tasks/Exploration/res/res_e_main_tab_selected.png')
+    # 切回主线标签(标签块 1055~1160 x 170~204, 取中心区域)
+    C_E_MAIN_TAB = RuleClick((1070, 170, 80, 32), (1070, 170, 80, 32), 'click_main_tab')
     # 探索页顶部体力数(与一键起号 O_CURRENT_SUSHI_LOW 同源识别带)
     O_E_SUSHI_NUMBER = RuleOcr(
         roi=(881, 0, 181, 53), area=(881, 0, 181, 53),
@@ -145,13 +159,44 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         self.set_next_run(task='Exploration', success=True, finish=False)
         raise TaskEnd
 
+    def ensure_main_tab(self) -> bool:
+        """右侧停留在「玩法」标签时切回「主线」, 返回是否执行了切换(要求已截图)。
+
+        探索页右侧是同一面板的两个标签, 只有主线态显示章节列表, 且游戏会记住
+        上次停留的标签。停在玩法态时章节 OCR 读到「活动」「御魂」等玩法文案,
+        全部转换章节失败, open_expect_level 空转 25 次抛 GameStuckError;
+        主线成就清扫的侧边栏扫描同样扫不到章节。选中态亮字与未选中态暗字
+        用亮度窗口模板匹配区分, 两个标签同时亮属异常态, 不点击。
+        """
+        image = self.device.image
+        frame_id = self.device.image_frame_id
+        play_front = list(self.I_E_PLAY_TAB_SELECTED.roi_front)
+        main_front = list(self.I_E_MAIN_TAB_SELECTED.roi_front)
+        play_selected = match_highlight_rule(self.I_E_PLAY_TAB_SELECTED, image, frame_id=frame_id)
+        main_selected = match_highlight_rule(self.I_E_MAIN_TAB_SELECTED, image, frame_id=frame_id)
+        # 亮度窗口接口命中时会改写 roi_front, 这里只做检测, 还原避免污染资产
+        self.I_E_PLAY_TAB_SELECTED.roi_front = play_front
+        self.I_E_MAIN_TAB_SELECTED.roi_front = main_front
+        if not play_selected or main_selected:
+            return False
+        logger.info('[探索] 右侧停留在玩法标签, 切换回主线以显示章节列表')
+        self.click(self.C_E_MAIN_TAB, interval=1)
+        self.device.click_record_clear()
+        time.sleep(0.5)
+        return True
+
     # 打开指定的章节：
     def open_expect_level(self):
         swipeCount = 0
+        main_tab_fallback_done = False
         config_exploration_level = self._config.exploration_config.exploration_level
         while True:
             # 判断有无目标章节
             self.screenshot()
+            # 停留在玩法标签时没有章节列表, 切回主线后重新取帧再读章节
+            if self.ensure_main_tab():
+                swipeCount = 0
+                self.screenshot()
             # 获取当前章节名
             results = self.O_E_EXPLORATION_LEVEL_NUMBER.detect_and_ocr(self.device.image)
             text1 = [result.ocr_text for result in results]
@@ -189,6 +234,15 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
                         f"[探索] 目标章节 {config_exploration_level} 未解锁; "
                         f"已运行一次新手剧情但仍未解锁下一章"
                     )
+            # 章节列表连续读不出来: 标签模板漏检时兜底再切一次主线, 避免空转到底
+            if not exp_level_enum_list and swipeCount >= 3 and not main_tab_fallback_done:
+                main_tab_fallback_done = True
+                logger.warning('[探索] 未识别到任何章节, 尝试点击主线标签')
+                self.click(self.C_E_MAIN_TAB, interval=1)
+                self.device.click_record_clear()
+                swipeCount = 0
+                time.sleep(0.5)
+                continue
             swipeCount += 1
             debug_info = f"[探索] 已滑动 {swipeCount} 次，当前章节: {text1}"
             logger.info(debug_info)
@@ -884,6 +938,11 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         """主线章节成就清扫入口: 逐章清扫带成就宝箱的章节困难 boss"""
         logger.hr('主线章节成就清扫', 2)
         self.goto_page(pages.page_exploration)
+        # 清扫全程依赖右侧章节列表, 先确保停在主线标签
+        for _ in range(3):
+            self.screenshot()
+            if not self.ensure_main_tab():
+                break
         while self._sweep_ensure_sidebar_open():
             self.screenshot()
         self._sweep_scroll_sidebar_top()
@@ -904,6 +963,9 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         try:
             while True:
                 self.screenshot()
+                # 进出章节/领取成就后标签可能被重置, 每轮先确认回主线
+                if self.ensure_main_tab():
+                    self.screenshot()
                 if self._sweep_ensure_sidebar_open():
                     continue
                 sushi = self._sushi_number()
