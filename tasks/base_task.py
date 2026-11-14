@@ -74,8 +74,9 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             reject_btn = self.I_NG_REJECT
             ignore_btn = self.I_NG_IGNORE
             # 新版弹窗判型: 勾玉/食料图标落槽随奖励组合变化, 搜索区覆盖整条奖励带
+            # 食材图标有猫粮/狗粮多种本体, 单张带底扁图识别不到, 并查旧版同一套本体模板
             jade_btn = self.I_NG_JADE
-            food_btns = [self.I_NG_FOOD]
+            food_btns = [self.I_NG_FOOD, self.I_G_CAT_FOOD, self.I_G_DOG_FOOD]
         elif self.appear(self.I_G_ACCEPT):
             accept_btn = self.I_G_ACCEPT
             reject_btn = self.I_G_REJECT
