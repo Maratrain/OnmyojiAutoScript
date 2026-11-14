@@ -30,11 +30,20 @@ def find_activity_entry(task):
         time.sleep(0.5)
     return False
 
+
+def goto_meta_demon_boss(task):
+    """活动主界面两态标志任一命中时点击进入挑战页。"""
+    for rule in (MetaDemonAssets.I_MD_CHECK_MAIN_PAGE, MetaDemonAssets.I_MD_CHECK_MAIN_PAGE_LIGHT):
+        if task.appear_then_click(rule):
+            return True
+    return False
+
+
 page_act_list_meta_demon = Page(MetaDemonAssets.I_CHECK_ACT_LIST_METADEMON_ACT)
 page_act_list.connect(page_act_list_meta_demon, MetaDemonAssets.L_GOTO_METADEMON_LIST, key="page_act_list->page_act_list_meta_demon")
 page_act_list_meta_demon.connect(page_main, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_act_list_meta_demon->page_main")
 
-page_meta_demon = Page(MetaDemonAssets.I_MD_CHECK_MAIN_PAGE)
+page_meta_demon = Page(any_of(MetaDemonAssets.I_MD_CHECK_MAIN_PAGE, MetaDemonAssets.I_MD_CHECK_MAIN_PAGE_LIGHT))
 page_meta_demon.add_enter_success_hooks(MetaDemonAssets.I_MD_GET_YESTERDAY_REWARD, MetaDemonAssets.I_MD_CLOSE_POPUP)
 page_meta_demon.add_enter_failure_hooks(
     find_activity_entry,
@@ -48,7 +57,7 @@ page_act_list_meta_demon.connect(page_meta_demon, GameUiAssets.I_ACT_LIST_GOTO_A
 page_meta_demon_boss = Page(MetaDemonAssets.I_CHECK_BOSS_PAGE)
 page_meta_demon_boss.add_enter_success_hooks(MetaDemonAssets.I_MD_CLOSE_POPUP)
 page_meta_demon_boss.connect(page_meta_demon, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_meta_demon_boss->page_meta_demon")
-page_meta_demon.connect(page_meta_demon_boss, MetaDemonAssets.I_MD_CHECK_MAIN_PAGE, key="page_meta_demon->page_meta_demon_boss")
+page_meta_demon.connect(page_meta_demon_boss, goto_meta_demon_boss, key="page_meta_demon->page_meta_demon_boss")
 
 page_reward.connect(page_meta_demon_boss, random_click(), key="page_reward->page_meta_demon_boss")
 page_battle_result.connect(page_meta_demon_boss, random_click(), key="page_battle_result->page_meta_demon_boss")

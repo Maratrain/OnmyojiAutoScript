@@ -347,5 +347,15 @@
     "threshold": 0.8,
     "profile": "High",
     "description": "租借队伍出战确认"
+  },
+  {
+    "itemName": "md_check_main_page_light",
+    "imageName": "md_md_check_main_page_light.png",
+    "roiFront": "907,60,76,208",
+    "roiBack": "869,14,171,288",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "超鬼王主界面（黑字亮底态）"
   }
 ]
