@@ -110,6 +110,8 @@ class MetaDemonAssets:
 	I_SHARE_DEMON = RuleImage(roi_front=(47,137,80,82), roi_back=(47,137,80,82), threshold=0.8, method="Template matching", file="./tasks/MetaDemon/md/md_share_demon.png")
 	# 协助鬼王头像（roi_back 为好友分享列表中搜索截图的区域）
 	I_FIGHT_SHARE_DEMON = RuleImage(roi_front=(49,376,80,82), roi_back=(30,361,298,276), threshold=0.8, method="Template matching", file="./tasks/MetaDemon/md/md_fight_share_demon.png")
+	# 租借队伍出战确认
+	I_MD_RENTAL_CONFIRM = RuleImage(roi_front=(665,436,175,58), roi_back=(640,410,220,110), threshold=0.8, method="Template matching", file="./tasks/MetaDemon/md/md_md_rental_confirm.png")
 
 
 	# Ocr Rule Assets

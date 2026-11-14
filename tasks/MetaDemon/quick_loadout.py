@@ -24,6 +24,7 @@ from tasks.Component.QuickLoadout.config import (
 )
 from tasks.Component.SwitchSoul.assets import SwitchSoulAssets
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
+from tasks.MetaDemon.assets import MetaDemonAssets
 from tasks.base_task import BaseTask
 
 
@@ -71,6 +72,20 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
     MAX_GROUP_SWIPES = 10
     MAX_PRESET_SWIPES = 15
     STAGE_NAME_MATCH_THRESHOLD = 0.75
+
+    # 官方「队伍租借」分组固定为三个阵容：第N日+群体/单体/普攻+通用阵容。
+    # 该面板行右只有阵容详情按钮、没有「应用御魂」，底部仅有「出战」；
+    # 首次出战还会弹「是否使用租借队伍进行挑战？」确认框。
+    RENTAL_GROUP_NAME = '队伍租借'
+    RENTAL_PRESET_PATTERN = re.compile(r'第\d+日(?:群体|单体|普攻)通用阵容')
+    RENTAL_CONFIRM_CLICKS = 2
+
+    @classmethod
+    def _is_rental_loadout(cls, config: QuickLoadoutConfig) -> bool:
+        """按固定分组名与阵容名格式判定官方租借队伍。"""
+        return (cls._normalize_name(config.group_name) == cls.RENTAL_GROUP_NAME
+                and cls.RENTAL_PRESET_PATTERN.fullmatch(
+                    cls._normalize_name(config.preset_name)) is not None)
 
     @staticmethod
     def _parse_custom_presets(
@@ -393,17 +408,30 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             return
         logger.info('预设御魂确认弹窗未出现，可能已装配')
 
-    def _deploy_quick_loadout(self, layout: QuickLoadoutLayout, frame: RuleFrame, row_y: int, dismiss: RuleClick | None = None) -> bool:
+    def _deploy_quick_loadout(self, layout: QuickLoadoutLayout, frame: RuleFrame, row_y: int,
+                              dismiss: RuleClick | None = None, *, rental: bool = False) -> bool:
         self.device.click(layout.preset_select_x, row_y, control_name='QUICK_LOADOUT_PRESET')
         sleep(0.4)
         self.screenshot()
         if not self._quick_loadout_panel_visible(frame):
+            logger.warning('选中预设后一键配置面板不可见，上阵中止')
             return False
         self.click(self._quick_loadout_fight(frame))
+        # 官方租借队伍首次出战会弹使用确认框，点「确认」后面板才会关闭。
+        confirm = MetaDemonAssets.I_MD_RENTAL_CONFIRM if rental else None
+        confirm_clicks = 0
         timer = Timer(self.PANEL_CLOSE_TIMEOUT).start()
         while not timer.reached():
             self.screenshot()
-            if not self._quick_loadout_panel_visible(frame):
+            confirm_visible = confirm is not None and self.appear(confirm)
+            panel_visible = self._quick_loadout_panel_visible(frame)
+            if confirm_visible and confirm_clicks < self.RENTAL_CONFIRM_CLICKS:
+                logger.info('确认使用租借队伍进行挑战')
+                self.click(confirm)
+                confirm_clicks += 1
+                sleep(0.3)
+                continue
+            if not panel_visible and not confirm_visible:
                 logger.info('一键配置上阵完成')
                 return True
             sleep(0.2)
@@ -420,7 +448,7 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
         dismiss: RuleClick | None = None,
         skip_equip_soul: bool = False,
     ) -> bool:
-        """将目标预设上阵，默认先装配御魂。"""
+        """将目标预设上阵，默认先装配御魂；官方租借阵容跳过装配并确认出战弹窗。"""
         if not config.enable:
             return True
         if isinstance(config, NamedQuickLoadoutConfig) and config.custom_preset_enable:
@@ -429,7 +457,10 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             else:
                 config, _ = self._resolve_named_quick_loadout(config, name_ocr)
         config.validate_target()
-        target = (frame.name, config.group_name.strip(), config.preset_name.strip(), skip_equip_soul)
+        rental = self._is_rental_loadout(config)
+        # 官方租借阵容没有「应用御魂」按钮，按普通预设位置点击会打开阵容详情并破坏面板。
+        skip_soul = skip_equip_soul or rental
+        target = (frame.name, config.group_name.strip(), config.preset_name.strip(), skip_soul, rental)
         if getattr(self, '_last_quick_loadout', None) == target:
             logger.info(f'一键配置未变化，沿用当前阵容: {target[1:3]}')
             return True
@@ -448,9 +479,14 @@ class QuickLoadout(BaseTask, SwitchSoulAssets):
             if row_y is None:
                 self._dismiss_quick_loadout(frame, dismiss=dismiss)
                 return False
-            if not skip_equip_soul:
+            if skip_soul:
+                if rental:
+                    logger.info(f'官方租借阵容 {config.preset_name} 无应用御魂按钮，跳过装配')
+                else:
+                    logger.info('配置为不装配御魂，跳过装配')
+            else:
                 self._equip_quick_loadout_souls(layout, row_y)
-            deployed = self._deploy_quick_loadout(layout, frame, row_y, dismiss=dismiss)
+            deployed = self._deploy_quick_loadout(layout, frame, row_y, dismiss=dismiss, rental=rental)
             if deployed:
                 self._last_quick_loadout = target
             return deployed

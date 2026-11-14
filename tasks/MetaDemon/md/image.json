@@ -337,5 +337,15 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "礼包/商店窗口的亮叉"
+  },
+  {
+    "itemName": "md_rental_confirm",
+    "imageName": "md_md_rental_confirm.png",
+    "roiFront": "665,436,175,58",
+    "roiBack": "640,410,220,110",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "profile": "High",
+    "description": "租借队伍出战确认"
   }
 ]
