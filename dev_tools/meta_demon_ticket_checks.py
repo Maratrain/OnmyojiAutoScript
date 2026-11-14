@@ -7,13 +7,18 @@ from tasks.MetaDemonTicket.config import (
     ExplorationTarget, MetaDemonTicket, TicketMode, split_legacy_meta_demon,
 )
 from tasks.MetaDemonTicket.ticket_farming import (
-    TicketPartnerFinished, TicketsFull, metademon_tickets_full, run_ticket_farming,
-    ticket_farming_config, tickets_full_before_farming,
+    AwakeTicketTask, TicketPartnerFinished, TicketRewardMixin, TicketsFull,
+    metademon_tickets_full, run_ticket_farming, ticket_farming_config,
+    tickets_full_before_farming,
 )
 from tasks.Exploration.config import AutoRotate, UpType, UserStatus as ExplorationUserStatus
 from tasks.EvoZone.config import KirinType, Layer
 from tasks.MetaDemon.assets import MetaDemonAssets
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
+from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
+from tasks.Component.GeneralBattle.general_battle import BattleAction
+from tasks.GameUi.page import page_battle, page_battle_prepare, page_battle_result, page_reward
+from module.exception import GamePageUnknownError
 
 
 class TicketConfigChecks(unittest.TestCase):
@@ -181,6 +186,168 @@ class TicketFarmingChecks(unittest.TestCase):
                      patch('tasks.MetaDemonTicket.ticket_farming.AwakeTicketTask', return_value=runner):
                     self.assertFalse(run_ticket_farming(owner, TicketMode.AWAKE))
                 getattr(runner, method).assert_called_once()
+
+
+class _ScreenshotBase:
+    """只提供截图计数，避免拉起真实设备。"""
+
+    def __init__(self):
+        self.shots = 0
+
+    def screenshot(self):
+        self.shots += 1
+        return self.shots
+
+
+class _TicketRunner(TicketRewardMixin, _ScreenshotBase):
+    pass
+
+
+class TicketRewardExitChecks(unittest.TestCase):
+    def runner(self, complete=True, outside_battle=True, peer=''):
+        runner = _TicketRunner()
+        runner.reward_visible = False
+        runner._ticket_farming_complete = complete
+        runner._battle_context = None if outside_battle else object()
+        runner._ticket_peer = peer
+        runner._ticket_full = False
+        runner._ticket_phase_started = 0
+        runtime = Mock()
+        runtime.peer_task_completion.return_value = None
+        runner.config = SimpleNamespace(cooperation_runtime=runtime)
+        runner.match_page_once = Mock(side_effect=lambda page: runner.reward_visible)
+        runner.appear_then_click = Mock(return_value=False)
+        runner.click = Mock()
+        runner.check_ticket_reward = Mock()
+        return runner
+
+    def test_complete_runner_closes_orphan_reward(self):
+        runner = self.runner(complete=True)
+        runner.reward_visible = True
+
+        def click(*args, **kwargs):
+            if runner.click.call_count == 2:
+                runner.reward_visible = False
+
+        runner.click.side_effect = click
+        self.assertEqual(runner.screenshot(), 3)
+        self.assertEqual(runner.click.call_count, 2)
+        runner.check_ticket_reward.assert_not_called()
+
+    def test_active_farming_leaves_reward_handling_to_battle_loop(self):
+        runner = self.runner(complete=False, outside_battle=False, peer='peer')
+        runner.reward_visible = True
+        self.assertEqual(runner.screenshot(), 1)
+        runner.click.assert_not_called()
+        runner.match_page_once.assert_not_called()
+        runner.config.cooperation_runtime.peer_task_completion.assert_not_called()
+
+    def test_outer_wait_closes_orphan_reward_after_reading_tickets(self):
+        runner = self.runner(complete=False, peer='peer')
+        runner.reward_visible = True
+        order = []
+        runner.check_ticket_reward.side_effect = lambda: order.append('read_tickets')
+
+        def click(*args, **kwargs):
+            order.append('click')
+            if runner.click.call_count == 2:
+                runner.reward_visible = False
+
+        runner.click.side_effect = click
+        self.assertEqual(runner.screenshot(), 3)
+        self.assertEqual(order, ['read_tickets', 'click', 'read_tickets', 'click'])
+        self.assertEqual(runner.config.cooperation_runtime.peer_task_completion.call_count, 3)
+
+    def test_orphan_reward_stops_at_full_tickets_before_clicking(self):
+        runner = self.runner(complete=False)
+        runner.reward_visible = True
+        runner.check_ticket_reward.side_effect = TicketsFull
+        with self.assertRaises(TicketsFull):
+            runner.screenshot()
+        runner.click.assert_not_called()
+
+    def test_partner_finished_is_polled_while_closing_reward(self):
+        runner = self.runner(complete=False, peer='peer')
+        runner.reward_visible = True
+        runner.config.cooperation_runtime.peer_task_completion.side_effect = [None, 'ticket_finished']
+        with self.assertRaises(TicketPartnerFinished):
+            runner.screenshot()
+        runner.click.assert_called_once()
+
+    def test_stuck_reward_exit_has_a_bounded_retry(self):
+        runner = self.runner(complete=True)
+        runner.reward_visible = True
+        with patch('tasks.MetaDemonTicket.ticket_farming.time.monotonic', side_effect=[0, 31]):
+            with self.assertRaises(GamePageUnknownError):
+                runner.screenshot()
+        runner.click.assert_not_called()
+
+    def test_awake_exit_marker_waits_for_settlement(self):
+        runner = object.__new__(AwakeTicketTask)
+        runner._evaluate_exit_matcher = Mock(return_value=True)
+        for last_page in (None, page_battle_prepare, page_battle):
+            with self.subTest(last_page=last_page):
+                context = SimpleNamespace(last_page=last_page, reward_no_battle_ts=None, is_win=False)
+                self.assertEqual(
+                    runner._handle_missing_battle_page(context, GeneralBattleConfig(), object()),
+                    BattleAction.CONTINUE)
+        runner._evaluate_exit_matcher.assert_not_called()
+
+    def test_awake_exit_marker_preserves_settled_win_and_loss(self):
+        runner = object.__new__(AwakeTicketTask)
+        runner._evaluate_exit_matcher = Mock(return_value=True)
+        for last_page in (page_battle_result, page_reward):
+            for is_win, expected in ((True, BattleAction.EXIT_WIN), (False, BattleAction.EXIT_LOSE)):
+                with self.subTest(last_page=last_page, is_win=is_win):
+                    context = SimpleNamespace(last_page=last_page, reward_no_battle_ts=None, is_win=is_win)
+                    self.assertEqual(
+                        runner._handle_missing_battle_page(context, GeneralBattleConfig(), object()),
+                        expected)
+
+    def test_final_reward_cleanup_runs_before_return_navigation_for_every_role(self):
+        for role, method in (('leader', 'run_leader'), ('member', 'run_member'), ('alone', 'run_alone')):
+            with self.subTest(role=role):
+                settings = MetaDemonTicket(general_config={'user_status': role})
+                owner = SimpleNamespace(
+                    config=SimpleNamespace(meta_demon_ticket=settings, cooperation_runtime=None),
+                    device=SimpleNamespace())
+                runner = Mock()
+                runner._config = ticket_farming_config(settings, TicketMode.AWAKE)
+                getattr(runner, method).side_effect = TicketsFull
+                order = []
+
+                def screenshot():
+                    self.assertTrue(runner._ticket_farming_complete)
+                    order.append('reward_cleanup')
+
+                runner.screenshot.side_effect = screenshot
+                runner.goto_page.side_effect = lambda *args, **kwargs: order.append('return_main')
+                with patch('tasks.MetaDemonTicket.ticket_farming.tickets_full_before_farming', return_value=False), \
+                        patch('tasks.MetaDemonTicket.ticket_farming.AwakeTicketTask', return_value=runner):
+                    self.assertTrue(run_ticket_farming(owner, TicketMode.AWAKE))
+                self.assertEqual(order, ['reward_cleanup'] + (['return_main'] if role != 'alone' else []))
+
+    def test_awake_short_battle_can_go_directly_to_reward(self):
+        runner = object.__new__(AwakeTicketTask)
+        runner.config = SimpleNamespace(
+            meta_demon_ticket=MetaDemonTicket(general_config={'user_status': 'alone'}))
+        runner.device = Mock()
+        runner.current_count = 0
+        runner._custom_pages_registered = True
+        runner._battle_shared_state = {}
+        runner.screenshot = Mock()
+        runner.appear = Mock(return_value=False)
+        runner.appear_then_click = Mock(return_value=False)
+        runner.click = Mock()
+        runner.check_ticket_reward = Mock()
+        runner._evaluate_exit_matcher = Mock(return_value=True)
+        with patch('tasks.Component.GeneralBattle.general_battle.GameUi.detect_page_in',
+                   side_effect=[None, page_reward, None]):
+            self.assertTrue(runner.run_general_battle(exit_matcher=object()))
+        self.assertEqual(runner.screenshot.call_count, 3)
+        runner.check_ticket_reward.assert_called_once()
+        runner._evaluate_exit_matcher.assert_called_once()
+        self.assertIsNone(runner._battle_context)
 
 
 if __name__ == '__main__':

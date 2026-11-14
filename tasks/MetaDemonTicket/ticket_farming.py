@@ -1,7 +1,9 @@
 """超鬼王门票刷取，复用觉醒和探索的战斗流程。"""
 from datetime import datetime
+import time
 from cached_property import cached_property
 
+from module.exception import GamePageUnknownError
 from module.logger import logger
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from tasks.EvoZone.config import EvoZone, EvoZoneConfig, UserStatus as AwakeUserStatus
@@ -11,7 +13,7 @@ from tasks.Exploration.config import (
     UpType, UserStatus as ExplorationUserStatus,
 )
 from tasks.Exploration.script_task import ScriptTask as ExplorationTask
-from tasks.GameUi.default_pages import page_reward
+from tasks.GameUi.default_pages import page_reward, handle_battle_reward_page
 import tasks.GameUi.page as pages
 from tasks.MetaDemonTicket.config import TicketMode, ExplorationTarget
 from tasks.MetaDemon.assets import MetaDemonAssets
@@ -57,16 +59,28 @@ def metademon_tickets_full(task) -> bool:
 
 class TicketRewardMixin:
     def screenshot(self):
-        result = super().screenshot()
-        peer = getattr(self, '_ticket_peer', '')
-        if peer and not self._ticket_farming_complete and self._battle_context is None:
-            status = self.config.cooperation_runtime.peer_task_completion(
-                'MetaDemonTicket', peer, self._ticket_phase_started)
-            if status == 'tickets_full' and self._ticket_full:
-                raise TicketsFull
-            if status == 'ticket_finished':
-                raise TicketPartnerFinished
-        return result
+        deadline = time.monotonic() + 30
+        while True:
+            result = super().screenshot()
+            complete = getattr(self, '_ticket_farming_complete', False)
+            outside_battle = getattr(self, '_battle_context', None) is None
+            peer = getattr(self, '_ticket_peer', '')
+            if peer and not complete and outside_battle:
+                status = self.config.cooperation_runtime.peer_task_completion(
+                    'MetaDemonTicket', peer, self._ticket_phase_started)
+                if status == 'tickets_full' and self._ticket_full:
+                    raise TicketsFull
+                if status == 'ticket_finished':
+                    raise TicketPartnerFinished
+            # 刷票结束或外层等待副本/房间时也接管遗留奖励页，先读门票再点击继续。
+            if (complete or outside_battle) and self.match_page_once(page_reward):
+                if not complete:
+                    self.check_ticket_reward()
+                if time.monotonic() >= deadline:
+                    raise GamePageUnknownError('刷票奖励页面持续未关闭')
+                handle_battle_reward_page(self)
+                continue
+            return result
 
     def check_ticket_reward(self):
         if getattr(self, '_ticket_farming_complete', False) or getattr(self, '_ticket_full', False):
@@ -93,6 +107,12 @@ class TicketRewardMixin:
 
 
 class AwakeTicketTask(TicketRewardMixin, AwakeTask):
+    def _handle_missing_battle_page(self, context, config, exit_matcher):
+        """结算后再检查退出标志，兼容进场抖动和直接进入奖励页的短战斗。"""
+        if not self._in_settlement_stage(context, None):
+            exit_matcher = None
+        return super()._handle_missing_battle_page(context, config, exit_matcher)
+
     @cached_property
     def _config(self):
         return ticket_farming_config(self.config.meta_demon_ticket, TicketMode.AWAKE)
@@ -259,6 +279,8 @@ def run_ticket_farming(owner, mode) -> bool:
         runner._ticket_farming_complete = True
         if cooperation_started:
             runtime.notify_task_completion('MetaDemonTicket', peer, 'tickets_full' if result else 'ticket_finished')
+        # 退出前主动收掉满票时遗留的奖励页，避免任务停在奖励页上结束。
+        runner.screenshot()
         if cooperation_started or (not peer and role != ExplorationUserStatus.ALONE) or buff_opened:
             runner.goto_page(pages.page_main)
         if buff_opened:
