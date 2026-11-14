@@ -9,6 +9,15 @@
     "description": "礼包屋"
   },
   {
+    "itemName": "room_gift_selected",
+    "imageName": "store_room_gift_selected.png",
+    "roiFront": "1128,635,40,60",
+    "roiBack": "1100,610,180,110",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "礼包屋底部店铺栏选中态发光带"
+  },
+  {
     "itemName": "gift_recommend",
     "imageName": "store_gift_recommend.png",
     "roiFront": "1183,454,53,64",
@@ -16,6 +25,15 @@
     "method": "Template matching",
     "threshold": 0.7,
     "description": "description"
+  },
+  {
+    "itemName": "gift_daily_selected",
+    "imageName": "store_gift_daily_selected.png",
+    "roiFront": "1160,188,80,84",
+    "roiBack": "1148,70,132,560",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "日常页签选中态"
   },
   {
     "itemName": "gift_sign",

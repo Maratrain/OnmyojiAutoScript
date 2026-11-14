@@ -140,8 +140,12 @@ class DailyTriflesAssets:
 	# Image Rule Assets
 	# 礼包屋 
 	I_ROOM_GIFT = RuleImage(roi_front=(1138,658,52,40), roi_back=(1119,621,103,94), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/store/store_room_gift.png")
+	# 底部店铺栏「礼包屋」选中态发光带：位置固定，不随右侧活动/新手页签数量变化
+	I_ROOM_GIFT_SELECTED = RuleImage(roi_front=(1128,635,40,60), roi_back=(1100,610,180,110), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/store/store_room_gift_selected.png")
 	# description 
 	I_GIFT_RECOMMEND = RuleImage(roi_front=(1183,454,53,64), roi_back=(1162,77,97,545), threshold=0.7, method="Template matching", file="./tasks/DailyTrifles/store/store_gift_recommend.png")
+	# 日常页签选中态（发光灯笼），用于确认已切到日常页
+	I_GIFT_DAILY_SELECTED = RuleImage(roi_front=(1160,188,80,84), roi_back=(1148,70,132,560), threshold=0.85, method="Template matching", file="./tasks/DailyTrifles/store/store_gift_daily_selected.png")
 	# 免费一抽领黑蛋 
 	I_GIFT_SIGN = RuleImage(roi_front=(186,191,115,83), roi_back=(130,129,891,473), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/store/store_gift_sign.png")
 	# 体力 

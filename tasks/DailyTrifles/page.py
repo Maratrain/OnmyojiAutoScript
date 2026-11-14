@@ -1,10 +1,12 @@
 from tasks.DailyTrifles.assets import DailyTriflesAssets
 from tasks.GameUi.default_pages import page_friends, page_guild
-from tasks.GameUi.page import Page, page_mall, page_mall_recommend
+from tasks.GameUi.page import Page, any_of, page_mall, page_mall_recommend
 from tasks.GlobalGame.assets import GlobalGameAssets
 
-# 商店礼包屋页面
-page_store_gift_room = Page(DailyTriflesAssets.I_GIFT_RECOMMEND)
+# 商店礼包屋页面：主判据用底部店铺栏「礼包屋」选中态，位置固定、不受右侧活动/新手页签挤压影响；
+# 旧「日常」页签判据保留作兜底
+page_store_gift_room = Page(any_of(DailyTriflesAssets.I_ROOM_GIFT_SELECTED,
+                                   DailyTriflesAssets.I_GIFT_RECOMMEND))
 page_store_gift_room.connect(page_mall, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_store_gift_room->page_mall")
 page_mall.connect(page_store_gift_room, DailyTriflesAssets.I_ROOM_GIFT, key="page_mall->page_store_gift_room")
 # 热门推荐页与商店街共用底部店铺栏，可直接进礼包屋，无需先返回商店街

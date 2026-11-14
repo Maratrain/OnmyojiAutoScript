@@ -211,7 +211,8 @@ page_mall = Page(
         all_of(
             DailyTriflesAssets.I_ROOM_GIFT,
             not_(GameUiAssets.I_CHECK_MALL_RECOMMEND),
-            not_(DailyTriflesAssets.I_GIFT_RECOMMEND),
+            not_(any_of(DailyTriflesAssets.I_GIFT_RECOMMEND,
+                        DailyTriflesAssets.I_ROOM_GIFT_SELECTED)),
         ),
     ),
     category="global",
