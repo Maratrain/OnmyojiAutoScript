@@ -125,6 +125,12 @@ class GhostOffering:
     INVITE_RETRY_SECONDS = 20
     # 好友行点击被吞（面板滑入动画）时的补点间隔
     CLICK_RETRY_SECONDS = 1.2
+    # 分享面板滑入时首帧 OCR 常为空或残缺，等待列表稳定的采样窗口
+    PANEL_SETTLE_SECONDS = 3
+    # 好友列表回顶 / 逐页扫描的固定滑动次数；到头后继续滑动不会改变列表
+    LIST_SWIPE_TIMES = 12
+    # 好友分享瞬时失败的重试次数，超过才结束本轮上供
+    SHARE_RETRY_LIMIT = 3
 
     def __init__(self, task, link=None):
         self.task = task
@@ -135,6 +141,7 @@ class GhostOffering:
         self.settled = False
         self.empty_frames = 0
         self.unknown_reported = False
+        self.share_failures = 0
 
     def within_limit(self):
         t = self.task
@@ -190,21 +197,22 @@ class GhostOffering:
         swipe = t.S_MD_SWIPE_FRIEND_UP
         reverse = RuleSwipe(roi_front=swipe.roi_back, roi_back=swipe.roi_front,
                             mode='default', name='metademon_friend_list_to_top')
-        previous = None
-        stable = 0
-        for _ in range(20):
+        # 好友名（尤其形近字）逐帧识别结果都在漂移，不能用 OCR 文本严格相等判断到顶，
+        # 改为固定次数反向滑动；面板标志也允许单帧漏识别。
+        missing_frames = 0
+        for _ in range(self.LIST_SWIPE_TIMES):
             if not self.within_limit():
                 return False
             t.screenshot()
             if not t.appear(t.I_MD_INVITE_FRIENDS):
-                return False
-            signature = tuple(self.friend_rows())
-            stable = stable + 1 if signature == previous else 0
-            if stable >= 2:
-                return True
-            previous = signature
+                missing_frames += 1
+                if missing_frames >= 2:
+                    return False
+                time.sleep(0.2)
+                continue
+            missing_frames = 0
             t.swipe(reverse, interval=1.2)
-        return False
+        return True
 
     def open_share_panel(self):
         t = self.task
@@ -243,16 +251,38 @@ class GhostOffering:
         logger.warning(f'好友 {name} 点击后未确认选中（点击 {attempts} 次），停止本次分享')
         return False
 
+    def settle_friend_rows(self, wanted):
+        """面板滑入时首帧 OCR 常为空或残缺，多采几帧，优先取能唯一命中目标好友的一帧。"""
+        t = self.task
+        deadline = time.monotonic() + self.PANEL_SETTLE_SECONDS
+        best = {}
+        missing_frames = 0
+        while self.within_limit() and time.monotonic() < deadline:
+            t.screenshot()
+            if not t.appear(t.I_MD_INVITE_FRIENDS) or self.selected_count():
+                missing_frames += 1
+                if missing_frames >= 2:
+                    return None
+                time.sleep(0.2)
+                continue
+            missing_frames = 0
+            rows = self.friend_rows()
+            if all(self.resolve_name(name, rows) is not None for name in wanted):
+                return rows
+            if len(rows) > len(best):
+                best = rows
+            time.sleep(0.2)
+        return best
+
     def select_friends(self):
         t = self.task
         wanted = {self.normalize_name(name): name for name in self.settings.friends}
         if not wanted:
             return False
-        t.screenshot()
-        if not t.appear(t.I_MD_INVITE_FRIENDS) or self.selected_count():
+        rows = self.settle_friend_rows(wanted)
+        if rows is None:
             logger.warning('分享列表存在已有选择或已关闭，请清空好友选择后重试')
             return False
-        rows = self.friend_rows()
         # All recipients are already visible. Avoid moving away from their rows.
         if all(self.resolve_name(name, rows) is not None for name in wanted):
             for name in wanted:
@@ -261,20 +291,26 @@ class GhostOffering:
                 if hit is None or not self.select_friend(wanted[name], hit[1], hit[0]):
                     return False
             return True
+        logger.info('目标好友未在首屏唯一命中，改为滚动扫描好友列表')
         if not self.list_to_top():
             return False
         # Inspect the whole list before selecting, so stale selections cannot
         # silently include an unconfigured recipient on an off-screen row.
-        previous = None
-        stable = 0
+        # 同样不能用 OCR 文本严格相等判断扫描到头，改为固定次数滑动后汇总出现过的名字。
         available = set()
-        for _ in range(30):
+        missing_frames = 0
+        for _ in range(self.LIST_SWIPE_TIMES):
             if not self.within_limit():
                 return False
             t.screenshot()
             if not t.appear(t.I_MD_INVITE_FRIENDS) or self.selected_count():
-                logger.warning('分享列表存在已有选择或已关闭，请清空好友选择后重试')
-                return False
+                missing_frames += 1
+                if missing_frames >= 2:
+                    logger.warning('分享列表存在已有选择或已关闭，请清空好友选择后重试')
+                    return False
+                time.sleep(0.2)
+                continue
+            missing_frames = 0
             rows = self.friend_rows()
             ambiguous = [name for name in wanted
                          if len(rows.get(name, [])) > 1
@@ -283,15 +319,7 @@ class GhostOffering:
                 logger.warning('好友名字有多个相近识别结果，无法唯一选择')
                 return False
             available.update(rows)
-            signature = tuple(rows)
-            stable = stable + 1 if signature == previous else 0
-            if stable >= 2:
-                break
-            previous = signature
             t.swipe(t.S_MD_SWIPE_FRIEND_UP, interval=1.2)
-        else:
-            logger.warning('好友列表扫描超过限制，停止分享')
-            return False
         missing = {name for name in wanted if not self.name_candidates(name, available)}
         if missing:
             logger.warning('未找到指定好友: ' + '; '.join(wanted[name] for name in missing))
@@ -430,9 +458,19 @@ class GhostOffering:
                     logger.warning(f'已有鬼王星级未确认或不满足上供要求，不分享、不挑战；等待其消失后仅召唤{self.settings.offering_star.value}')
                     self.unknown_reported = True
             elif self.shared_generation != t._boss_generation:
-                if not self.share():
-                    return False
-                self.shared_generation = t._boss_generation
+                if self.share():
+                    self.shared_generation = t._boss_generation
+                    self.share_failures = 0
+                else:
+                    self.share_failures += 1
+                    if self.share_failures >= self.SHARE_RETRY_LIMIT:
+                        logger.warning('好友分享连续失败，结束本次运行')
+                        return False
+                    logger.warning(f'好友分享失败，准备第 {self.share_failures + 1} 次重试')
+                    # 失败时分享面板可能仍开着或残留勾选，关掉后下一轮重新打开
+                    t.screenshot()
+                    t.appear_then_click(t.I_MD_CLOSE_POPUP, interval=0.8)
+                    return True
             self.waiting = True
             return True
         if not t.appear(t.I_MD_SUMMON_BOSS):
@@ -451,6 +489,7 @@ class GhostOffering:
             self.waiting = False
             self.settled = False
             self.shared_generation = None
+            self.share_failures = 0
             t.cur_boss_type = None
             self.unknown_reported = False
             if not self.within_limit():
@@ -603,7 +642,9 @@ def run_offering(task, link=None):
             logger.warning('鬼王上供流程未完成，结束本次运行')
             break
         remaining = max(0, (task.limit_time - (datetime.now() - task.start_time)).total_seconds())
-        interval = 0.5 if link is not None and offering.waiting and not offering.settled else offering.settings.poll_interval
+        fast_poll = (link is not None and offering.waiting and not offering.settled
+                     and not offering.share_failures)
+        interval = 0.5 if fast_poll else offering.settings.poll_interval
         time.sleep(min(interval, remaining))
     return success
 
