@@ -3,7 +3,8 @@
 import random
 from datetime import datetime, time as dt_time, timedelta
 
-from module.exception import TaskEnd, RequestHumanTakeover
+from module.exception import (TaskEnd, RequestHumanTakeover,
+                              GameStuckError, GameTooManyClickError)
 from module.logger import logger
 
 from module.base.timer import Timer
@@ -143,6 +144,8 @@ class ScriptTask(GameUi):
         settings = conf.alt_accounts_config
         had_error = False
         scan_results = []
+        # 首个待上抛的子任务异常：轮换收尾后交给调度层保存错误现场并推送通知
+        pending_error = None
         for accountInfo in conf.alt_account_list:
             if not accountInfo.is_valid():
                 logger.warning('[小号轮换] 存在未填写角色名的小号条目，跳过')
@@ -162,9 +165,16 @@ class ScriptTask(GameUi):
             except RequestHumanTakeover:
                 raise
             except Exception as e:
-                logger.error('[小号轮换] 切换到 %s-%s 异常: %s',
-                             accountInfo.character, accountInfo.svr, e)
+                logger.error_context(
+                    title='小号轮换切换账号失败',
+                    reason=f'切换到 {accountInfo.character}-{accountInfo.svr} 时抛出异常，具体原因见下方堆栈。',
+                    impact='该小号本轮跳过，今日完成时间不写入，下一轮会重试。',
+                    action='检查下方堆栈与错误现场，确认登录或选区流程是否失效。',
+                    exc=e,
+                )
                 suc = False
+                if pending_error is None:
+                    pending_error = e
             if not suc:
                 logger.warning('[小号轮换] 切换到 %s-%s 失败，跳过该小号',
                                accountInfo.character, accountInfo.svr)
@@ -177,9 +187,11 @@ class ScriptTask(GameUi):
                 except RequestHumanTakeover:
                     raise
                 except Exception as e:
-                    logger.error('[小号轮换] %s 协作扫描执行异常: %s', accountInfo.character, e)
+                    self._report_subtask_error('协作扫描', accountInfo.character, e)
                     types = None
                     had_error = True
+                    if pending_error is None:
+                        pending_error = e
                 if types is None:
                     logger.warning('[小号轮换] %s 协作扫描未完成，下轮重试', accountInfo.character)
                 else:
@@ -195,10 +207,14 @@ class ScriptTask(GameUi):
                     raise
                 except TaskEnd:
                     logger.info('[小号轮换] %s 每日琐事任务结束', accountInfo.character)
+                    conf.update_account_complete_time(accountInfo)
                 except Exception as e:
-                    logger.error('[小号轮换] %s 每日琐事执行异常: %s', accountInfo.character, e)
+                    self._report_subtask_error('每日琐事', accountInfo.character, e)
                     had_error = True
-                conf.update_account_complete_time(accountInfo)
+                    if pending_error is None:
+                        pending_error = e
+                else:
+                    conf.update_account_complete_time(accountInfo)
             if weekly_due:
                 try:
                     self._run_weekly_trifles()
@@ -207,10 +223,14 @@ class ScriptTask(GameUi):
                     raise
                 except TaskEnd:
                     logger.info('[小号轮换] %s 每周琐事任务结束', accountInfo.character)
+                    conf.update_account_complete_time(accountInfo, kind='weekly')
                 except Exception as e:
-                    logger.error('[小号轮换] %s 每周琐事执行异常: %s', accountInfo.character, e)
+                    self._report_subtask_error('每周琐事', accountInfo.character, e)
                     had_error = True
-                conf.update_account_complete_time(accountInfo, kind='weekly')
+                    if pending_error is None:
+                        pending_error = e
+                else:
+                    conf.update_account_complete_time(accountInfo, kind='weekly')
             if area_due:
                 try:
                     self._run_area_boss()
@@ -219,10 +239,14 @@ class ScriptTask(GameUi):
                     raise
                 except TaskEnd:
                     logger.info('[小号轮换] %s 地域鬼王任务结束', accountInfo.character)
+                    conf.update_account_complete_time(accountInfo, kind='area_boss')
                 except Exception as e:
-                    logger.error('[小号轮换] %s 地域鬼王执行异常: %s', accountInfo.character, e)
+                    self._report_subtask_error('地域鬼王', accountInfo.character, e)
                     had_error = True
-                conf.update_account_complete_time(accountInfo, kind='area_boss')
+                    if pending_error is None:
+                        pending_error = e
+                else:
+                    conf.update_account_complete_time(accountInfo, kind='area_boss')
             if consignment_due:
                 try:
                     _InnerConsignment(config=self.config, device=self.device).run_consignment()
@@ -231,10 +255,14 @@ class ScriptTask(GameUi):
                     raise
                 except TaskEnd:
                     logger.info('[小号轮换] %s 寄售屋任务结束', accountInfo.character)
+                    conf.update_account_complete_time(accountInfo, kind='consignment')
                 except Exception as e:
-                    logger.error('[小号轮换] %s 寄售屋执行异常: %s', accountInfo.character, e)
+                    self._report_subtask_error('寄售屋', accountInfo.character, e)
                     had_error = True
-                conf.update_account_complete_time(accountInfo, kind='consignment')
+                    if pending_error is None:
+                        pending_error = e
+                else:
+                    conf.update_account_complete_time(accountInfo, kind='consignment')
             self.config.save()
         if scan_results:
             self._push_cooperation_report(scan_results)
@@ -250,7 +278,27 @@ class ScriptTask(GameUi):
             if not suc:
                 logger.warning('[小号轮换] 切回角色 %s 失败', settings.login_back_character)
         self._set_next_run(success=not had_error)
+        if pending_error is not None:
+            # 轮换（含切回主力角色）已跑完，把首个异常交给调度层保存错误现场并推送通知。
+            # 未知异常统一包成 GameStuckError，避免走「未知异常」分支直接退出脚本。
+            self.config.save()
+            if isinstance(pending_error, (GameStuckError, GameTooManyClickError)):
+                raise pending_error
+            raise GameStuckError(
+                f'小号轮换子任务异常（{type(pending_error).__name__}）: {pending_error}'
+            ) from pending_error
         raise TaskEnd('AltAccounts')
+
+    @staticmethod
+    def _report_subtask_error(label: str, character: str, e: Exception) -> None:
+        """子任务异常统一输出中文错误上下文；完成时间由调用方只在成功时写入。"""
+        logger.error_context(
+            title=f'小号轮换{label}失败',
+            reason=f'{character} 执行{label}时抛出异常，具体原因见下方堆栈。',
+            impact=f'{character} 本轮{label}未完成，今日完成时间不写入，下一轮会重试。',
+            action='检查下方堆栈与错误现场，确认该流程的识别或点击是否失效。',
+            exc=e,
+        )
 
     def _set_next_run(self, success: bool):
         """定时模式按 1~2 个每日固定时间点取最近的一个；关闭时保持默认成功/失败间隔调度。
