@@ -10,10 +10,11 @@
 → 关闭弹窗与面板 → 镜头还原。
 
 要点：
-- 曜日牌是挂在庭院场景里的物体，屏幕位置随皮肤与镜头变化：默认庭院为左侧石碑
-  （无需动镜头）；部分皮肤（如盈空月）默认镜头下不可见，需向左平移镜头。牌上
-  文字首字随星期变化（日曜/月曜/…），模板只取稳定不变的「曜」字，且不同皮肤
-  美术不同（石碑/挂轴各一个模板）。
+- 曜日牌是挂在庭院场景里的物体，屏幕位置随皮肤与镜头变化。庭院皮肤是变体：
+  笔墨山河为左侧石像（默认镜头可见）、挂轴样式皮肤需向左平移镜头、初语谧景
+  石像在默认镜头下位于屏幕左缘外，必须左移镜头才完整可见。牌上文字首字随
+  星期变化（日曜/月曜/…），各变体模板都只取稳定不变的「曜」字；三个变体模板
+  并列匹配取最高分，换皮肤时自动落到对应模板（2026-11-15 初语谧景实机确认）。
 - 「福利中心」弹窗条目右侧状态：金色「领奖」=可领取；「已达成」红章=已到账；
   红字「进行中」=未完成。
 - 位置会变的目标（曜日牌/横幅/领奖按钮）用 match_all_any 匹配后点击命中位置，
@@ -123,7 +124,8 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
 
     def _game_open_schedule_panel(self):
         """查找庭院曜日牌并点击打开日程面板。返回 (是否成功, 镜头平移次数)。"""
-        boards = (self.I_GAME_BOARD_STELE, self.I_GAME_BOARD_SCROLL)
+        # 庭院皮肤变体的曜日牌并列匹配：笔墨山河石像 / 挂轴 / 初语谧景石像
+        boards = (self.I_GAME_BOARD_STELE, self.I_GAME_BOARD_SCROLL, self.I_GAME_BOARD_CHUYU)
         for attempt in range(PAN_MAX + 1):
             self.screenshot()
             match = self._game_match_any(boards)

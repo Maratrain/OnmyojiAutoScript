@@ -32,25 +32,27 @@ class AutoCheckinBigGodAssets:
 
 	# ----------------------- 游戏内领取（大神福利中心，横屏 1280x720） -----------------------
 	# 注：本段为手工维护（与 res/image.json 同步），勿全量重跑 assets_extract.py 覆盖
-	# 庭院曜日牌「曜」字（石碑样式，默认庭院可见）；牌上首字随星期变化，只裁稳定部分
+	# 庭院曜日牌「曜」字（石像样式，默认庭院可见）；牌上首字随星期变化，只裁稳定部分
 	I_GAME_BOARD_STELE = RuleImage(roi_front=(30,403,29,24), roi_back=(0,0,1280,720), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_stele.png")
 	# 庭院曜日牌「曜」字（挂轴样式，部分皮肤需左移镜头才可见）
 	I_GAME_BOARD_SCROLL = RuleImage(roi_front=(566,469,25,23), roi_back=(0,0,1280,720), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_scroll.png")
-	# 日程面板左上角「日程」标签（确认面板已打开）
-	I_GAME_RICHENG_TAG = RuleImage(roi_front=(174,124,43,70), roi_back=(140,90,120,140), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_richeng_tag.png")
-	# 日程面板右侧「通知」灯笼（切到通知页）
+	# 庭院曜日牌「曜」字（初语谧景石像，默认镜头下石像在屏幕左缘外，需左移镜头）
+	I_GAME_BOARD_CHUYU = RuleImage(roi_front=(110,427,28,28), roi_back=(0,0,1280,720), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_chuyu.png")
+	# 日程面板左上角「日程」标签（确认面板已打开）；模板只裁「日程」两字本体
+	I_GAME_RICHENG_TAG = RuleImage(roi_front=(178,126,34,56), roi_back=(140,90,120,140), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_richeng_tag.png")
+	# 日程面板右侧「通知」灯笼（切到通知页）；模板只裁「通知」两字本体，roi_front 保留灯笼中心供 appear_then_click
 	I_GAME_NOTICE_LANTERN = RuleImage(roi_front=(1090,486,43,70), roi_back=(1055,440,110,190), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_notice_lantern.png")
 	# 通知页「大神福利中心」横幅文字
 	I_GAME_DS_BANNER = RuleImage(roi_front=(660,310,185,42), roi_back=(220,130,840,470), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_ds_banner.png")
-	# 「福利中心」弹窗标题（确认弹窗已打开）
-	I_GAME_WELFARE_TITLE = RuleImage(roi_front=(485,100,270,48), roi_back=(440,75,360,110), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_welfare_title.png")
+	# 「福利中心」弹窗标题（确认弹窗已打开）；模板只裁「福利中心」四字本体
+	I_GAME_WELFARE_TITLE = RuleImage(roi_front=(482,95,278,60), roi_back=(440,75,360,110), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_welfare_title.png")
 	# 「领奖」金色按钮（可领取状态），点击后到账并弹出获得奖励
 	I_GAME_CLAIM_BTN = RuleImage(roi_front=(650,210,88,44), roi_back=(240,175,535,460), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_claim_btn.png")
-	# 「已达成」红章（该条目奖励已到账）
-	I_GAME_CLAIM_DONE = RuleImage(roi_front=(652,325,84,44), roi_back=(240,175,535,460), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_claim_done.png")
-	# 「福利中心」弹窗右上角关闭X
+	# 「已达成」红章（该条目奖励已到账）；模板只裁完整印章本体
+	I_GAME_CLAIM_DONE = RuleImage(roi_front=(640,298,122,76), roi_back=(240,175,535,460), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_claim_done.png")
+	# 「福利中心」弹窗右上角关闭X；模板只裁白色 X 本体，roi_front 保留按钮中心供 appear_then_click
 	I_GAME_POPUP_CLOSE = RuleImage(roi_front=(1050,180,45,45), roi_back=(1020,150,110,110), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_popup_close.png")
-	# 日程面板右上角关闭X
+	# 日程面板右上角关闭X；模板只裁白色 X 本体，roi_front 保留按钮中心供 appear_then_click
 	I_GAME_PANEL_CLOSE = RuleImage(roi_front=(1120,50,50,60), roi_back=(1090,30,90,110), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_panel_close.png")
 
 

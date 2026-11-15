@@ -87,7 +87,7 @@
     "roiBack": "0,0,1280,720",
     "method": "Template matching",
     "threshold": 0.75,
-    "description": "游戏内领取:庭院曜日牌「曜」字(石碑样式,默认庭院可见);牌上首字随星期变化,只裁稳定部分"
+    "description": "游戏内领取:庭院曜日牌「曜」字(石像样式,默认庭院可见);牌上首字随星期变化,只裁稳定部分"
   },
   {
     "itemName": "game_board_scroll",
@@ -99,13 +99,22 @@
     "description": "游戏内领取:庭院曜日牌「曜」字(挂轴样式,部分皮肤需左移镜头才可见)"
   },
   {
+    "itemName": "game_board_chuyu",
+    "imageName": "game_board_chuyu.png",
+    "roiFront": "110,427,28,28",
+    "roiBack": "0,0,1280,720",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "游戏内领取:庭院曜日牌「曜」字(初语谧景石像,默认镜头下石像在屏幕左缘外,需左移镜头)"
+  },
+  {
     "itemName": "game_richeng_tag",
     "imageName": "game_richeng_tag.png",
-    "roiFront": "174,124,43,70",
+    "roiFront": "178,126,34,56",
     "roiBack": "140,90,120,140",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "游戏内领取:日程面板左上角「日程」标签(确认面板已打开)"
+    "description": "游戏内领取:日程面板左上角「日程」标签(确认面板已打开);模板只裁「日程」两字本体"
   },
   {
     "itemName": "game_notice_lantern",
@@ -114,7 +123,7 @@
     "roiBack": "1055,440,110,190",
     "method": "Template matching",
     "threshold": 0.75,
-    "description": "游戏内领取:日程面板右侧「通知」灯笼(切到通知页)"
+    "description": "游戏内领取:日程面板右侧「通知」灯笼(切到通知页);模板只裁「通知」两字本体,roiFront 保留灯笼中心供 appear_then_click"
   },
   {
     "itemName": "game_ds_banner",
@@ -128,11 +137,11 @@
   {
     "itemName": "game_welfare_title",
     "imageName": "game_welfare_title.png",
-    "roiFront": "485,100,270,48",
+    "roiFront": "482,95,278,60",
     "roiBack": "440,75,360,110",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "游戏内领取:「福利中心」弹窗标题(确认弹窗已打开)"
+    "description": "游戏内领取:「福利中心」弹窗标题(确认弹窗已打开);模板只裁「福利中心」四字本体"
   },
   {
     "itemName": "game_claim_btn",
@@ -146,11 +155,11 @@
   {
     "itemName": "game_claim_done",
     "imageName": "game_claim_done.png",
-    "roiFront": "652,325,84,44",
+    "roiFront": "640,298,122,76",
     "roiBack": "240,175,535,460",
     "method": "Template matching",
     "threshold": 0.75,
-    "description": "游戏内领取:「已达成」红章(该条目奖励已到账)"
+    "description": "游戏内领取:「已达成」红章(该条目奖励已到账);模板只裁完整印章本体"
   },
   {
     "itemName": "game_popup_close",
@@ -159,7 +168,7 @@
     "roiBack": "1020,150,110,110",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "游戏内领取:「福利中心」弹窗右上角关闭X"
+    "description": "游戏内领取:「福利中心」弹窗右上角关闭X;模板只裁白色 X 本体,roiFront 保留按钮中心供 appear_then_click"
   },
   {
     "itemName": "game_panel_close",
@@ -168,6 +177,6 @@
     "roiBack": "1090,30,90,110",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "游戏内领取:日程面板右上角关闭X"
+    "description": "游戏内领取:日程面板右上角关闭X;模板只裁白色 X 本体,roiFront 保留按钮中心供 appear_then_click"
   }
 ]
