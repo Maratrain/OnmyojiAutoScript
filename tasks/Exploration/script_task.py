@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 from module.logger import logger
+from module.exception import RequestHumanTakeover
 from tasks.Exploration.base import BaseExploration
 from tasks.Exploration.config import AutoRotate, UserStatus, ExplorationLevel
 import tasks.Exploration.page as pages
@@ -106,6 +107,18 @@ class ScriptTask(BaseExploration):
         self.collect_treasure_box()
         self.fire_monster_type = ''  # 入口处重置怪物类型
         self.need_exit = False
+        # 探索固定打困难: 游戏会记住上次选中的难度, 进章节地图前在详情页按
+        # 左侧选中态校正一次; 已是困难不重复点击。困难按等级逐章解锁,
+        # 锁定或切换失败直接报人工处理, 不静默退回普通难度。
+        if self._current_difficulty() != 'hard':
+            if self.appear(self.I_E_HARD_LOCKED):
+                raise RequestHumanTakeover(
+                    f"[探索] {self._config.exploration_config.exploration_level.value} "
+                    f"困难未解锁(等级不足), 无法按困难难度探索")
+            if not self._switch_to_hard():
+                raise RequestHumanTakeover(
+                    f"[探索] {self._config.exploration_config.exploration_level.value} "
+                    f"未能选中困难难度, 请确认该章困难已解锁")
         match self.user_status:
             case UserStatus.LEADER:
                 if self.check_and_invite(self._config.invite_config.default_invite):

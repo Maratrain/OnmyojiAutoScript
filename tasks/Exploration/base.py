@@ -72,6 +72,18 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         roi_front=(28, 313, 108, 44), roi_back=(15, 260, 200, 110),
         threshold=0.8, method='Template matching',
         file='./tasks/Exploration/res/explore_to_hard.png')
+    # 详情页左侧「普通/困难」选中态(红底亮字): 两态文字形状相同, 普通模板匹配
+    # 选中与未选中都在 0.95 以上分不开, 必须走 match_highlight_rule 亮度窗口;
+    # 只裁文字本体, 红条底板不整块裁入。离线 11/9/8/26 章详情页正样本全命中、
+    # 140 张历史帧零误命中。
+    I_E_NORMAL_SELECTED = RuleImage(
+        roi_front=(73, 229, 58, 30), roi_back=(15, 220, 170, 45),
+        threshold=0.8, method='Template matching',
+        file='./tasks/Exploration/res/explore_normal_selected.png')
+    I_E_HARD_SELECTED = RuleImage(
+        roi_front=(73, 317, 58, 30), roi_back=(15, 308, 170, 45),
+        threshold=0.8, method='Template matching',
+        file='./tasks/Exploration/res/explore_hard_selected.png')
     # 详情页困难选项上的挂锁(困难按账号等级逐章解锁, 挂锁=等级不足锁定态;
     # 锁体掩码排除每章不同的画卷背景, 离线实测锁定帧 1.0/未锁定帧零命中)
     I_E_HARD_LOCKED = RuleImage(
@@ -657,15 +669,38 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             return True
         return False
 
+    def _current_difficulty(self) -> Optional[str]:
+        """详情页左侧选中态判定当前难度, 返回 'normal'/'hard'/None(判据失效)。
+
+        两个选中态互斥: 同时亮或同时暗都视为判据失效, 交回右下按钮文字判据兜底。
+        """
+        image = self.device.image
+        frame_id = self.device.image_frame_id
+        normal_front = list(self.I_E_NORMAL_SELECTED.roi_front)
+        hard_front = list(self.I_E_HARD_SELECTED.roi_front)
+        normal = match_highlight_rule(self.I_E_NORMAL_SELECTED, image, frame_id=frame_id)
+        hard = match_highlight_rule(self.I_E_HARD_SELECTED, image, frame_id=frame_id)
+        # 亮度窗口接口命中会改写 roi_front, 这里只做检测, 还原避免污染资产
+        self.I_E_NORMAL_SELECTED.roi_front = normal_front
+        self.I_E_HARD_SELECTED.roi_front = hard_front
+        if normal == hard:
+            return None
+        return 'normal' if normal else 'hard'
+
     def _switch_to_hard(self) -> bool:
-        """详情页选中困难难度, 组队按钮出现即选中完成(困难态右下为组队+探索双按钮)"""
+        """详情页选中困难难度: 左侧困难选项行亮起即完成, 右下组队按钮作兜底"""
         for _ in range(6):
             self.screenshot()
-            if self.appear(self.I_E_HARD_MODE):
+            state = self._current_difficulty()
+            if state == 'hard':
                 return True
-            if self.appear(self.I_E_TO_HARD):
-                self.click(self.I_E_TO_HARD, interval=1)
-                continue
+            # 左侧判据失效(动画帧等)时, 仍可用右下按钮文字确认难度
+            if state is None and self.appear(self.I_E_HARD_MODE):
+                return True
+            if state == 'normal' or self.appear(self.I_E_NORMAL_MODE):
+                if self.appear(self.I_E_TO_HARD):
+                    self.click(self.I_E_TO_HARD, interval=1)
+                    continue
             time.sleep(0.5)
         logger.warning('[探索] 未能选中困难难度')
         return False
