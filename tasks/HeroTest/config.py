@@ -31,7 +31,7 @@ class HeroTestConfig(BaseModel):
                     "藤原道长矩阵博士攻略:https://www.bilibili.com/opus/1162129635334422531",
     )
     skill_mode: SkillMode = Field(default=SkillMode.PVE, description="技能本技能偏向\n藤原道长使用攻略高配阵容,"
-                                                                     "自己配置好技能和祝福,PVP:姝酱破阵+神鸟(泛音>凝啸>韵驰>叩弦>霆斥),PVE:矩阵博士高配")
+                                                                     "自己配置好技能和祝福,PVP:兼容阵容助手高配和姝酱高配（破阵+神鸟）,PVE:矩阵博士高配")
     # 限制时间
     limit_time: Time = Field(default=Time(minute=30), description="limit_time_help")
     # 限制次数
