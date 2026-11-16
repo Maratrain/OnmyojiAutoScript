@@ -36,8 +36,8 @@ class AutoCheckinBigGodAssets:
 	I_GAME_BOARD_STELE = RuleImage(roi_front=(30,403,29,24), roi_back=(0,0,1280,720), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_stele.png")
 	# 庭院曜日牌「曜」字（挂轴样式，部分皮肤需左移镜头才可见）
 	I_GAME_BOARD_SCROLL = RuleImage(roi_front=(566,469,25,23), roi_back=(0,0,1280,720), threshold=0.75, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_scroll.png")
-	# 庭院曜日牌「曜」字（初语谧景石像，默认镜头下石像在屏幕左缘外，需左移镜头）
-	I_GAME_BOARD_CHUYU = RuleImage(roi_front=(110,427,28,28), roi_back=(0,0,1280,720), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_chuyu.png")
+	# 庭院曜日牌「曜」字（初语谧景地藏石像红木牌，默认镜头下位于屏幕左缘外，需左移镜头才可见）；只裁稳定的「曜」字，首字随星期变化
+	I_GAME_BOARD_CHUYU = RuleImage(roi_front=(207,428,25,25), roi_back=(0,0,1280,720), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_board_chuyu.png")
 	# 日程面板左上角「日程」标签（确认面板已打开）；模板只裁「日程」两字本体
 	I_GAME_RICHENG_TAG = RuleImage(roi_front=(178,126,34,56), roi_back=(140,90,120,140), threshold=0.8, method="Template matching", file="./tasks/AutoCheckinBigGod/res/game_richeng_tag.png")
 	# 日程面板右侧「通知」灯笼（切到通知页）；模板只裁「通知」两字本体，roi_front 保留灯笼中心供 appear_then_click

@@ -101,11 +101,11 @@
   {
     "itemName": "game_board_chuyu",
     "imageName": "game_board_chuyu.png",
-    "roiFront": "110,427,28,28",
+    "roiFront": "207,428,25,25",
     "roiBack": "0,0,1280,720",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "游戏内领取:庭院曜日牌「曜」字(初语谧景石像,默认镜头下石像在屏幕左缘外,需左移镜头)"
+    "description": "游戏内领取:庭院曜日牌「曜」字(初语谧景地藏石像红木牌,默认镜头下位于屏幕左缘外,需左移镜头才可见);只裁稳定部分,牌上首字随星期变化"
   },
   {
     "itemName": "game_richeng_tag",
