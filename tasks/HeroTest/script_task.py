@@ -143,12 +143,16 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             self.I_HERO2_SKILL6,  # 速度祝福
         ]
         pvp_skill = [
-            self.I_HERO2_SKILL7,  # 遏云祝福
-            self.I_HERO2_SKILL8,  # 音迹祝福
-            self.I_HERO2_SKILL9,  # 泛音祝福
-            self.I_HERO2_SKILL10,  # 凝啸祝福
-            self.I_HERO2_SKILL11,  # 逐空祝福
-            self.I_HERO2_SKILL12,  # 伤害加成
+            self.I_HERO2_SKILL9,  # 泛音祝福（姝酱阵容优先①）
+            self.I_HERO2_SKILL10,  # 凝啸祝福（姝酱阵容优先②）
+            self.I_HERO2_SKILL13,  # 韵驰祝福（姝酱阵容优先③）
+            self.I_HERO2_SKILL14,  # 叩弦祝福（姝酱阵容优先④）
+            self.I_HERO2_SKILL15,  # 霆斥祝福（姝酱阵容优先⑤）
+            self.I_HERO2_SKILL7,  # 遏云祝福（原阵容助手优先①）
+            self.I_HERO2_SKILL8,  # 音迹祝福（原阵容助手优先②）
+            self.I_HERO2_SKILL11,  # 逐空祝福（原阵容替补/姝酱霆斥替补）
+            self.I_HERO2_SKILL16,  # 速度提升（属性卡兜底，藤原配速需求）
+            self.I_HERO2_SKILL12,  # 伤害加成（属性卡兜底）
         ]
         target_skill_dict: dict[SkillMode, list] = {
             SkillMode.PVE: pve_skill,

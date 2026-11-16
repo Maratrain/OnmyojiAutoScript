@@ -111,8 +111,16 @@ class HeroTestAssets:
 	I_HERO2_SKILL10 = RuleImage(roi_front=(1127,356,59,40), roi_back=(53,345,1169,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill10.png")
 	# 逐空 
 	I_HERO2_SKILL11 = RuleImage(roi_front=(521,357,60,39), roi_back=(48,342,1172,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill11.png")
-	# 伤害加成 
+	# 伤害加成
 	I_HERO2_SKILL12 = RuleImage(roi_front=(1034,354,122,41), roi_back=(53,341,1172,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill12.png")
+	# 韵驰（谙律精通·韵驰）
+	I_HERO2_SKILL13 = RuleImage(roi_front=(231,357,48,37), roi_back=(50,342,1174,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill13.png")
+	# 叩弦（破阵奏曲·叩弦）
+	I_HERO2_SKILL14 = RuleImage(roi_front=(1127,357,58,37), roi_back=(50,342,1174,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill14.png")
+	# 霆斥（神乌惊弦·霆斥）
+	I_HERO2_SKILL15 = RuleImage(roi_front=(219,357,57,37), roi_back=(50,342,1174,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill15.png")
+	# 速度提升（属性卡）
+	I_HERO2_SKILL16 = RuleImage(roi_front=(1035,357,117,37), roi_back=(50,342,1174,74), threshold=0.8, method="Template matching", file="./tasks/HeroTest/as/as_hero2_skill16.png")
 
 
 	# Ocr Rule Assets
