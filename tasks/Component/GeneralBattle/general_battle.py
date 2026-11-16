@@ -684,14 +684,14 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
     @cached_property
     def _exclude_button_stage_1(self) -> list[str]:
         """结算页需要排除的控件区域资产名(含玩家名片, 防止拟人点击误开个人主页)。"""
-        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
+        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_MENU_LEFT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
                 'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD',
                 'C_END_3', 'C_END_LOSE_BUTTONS']
 
     @cached_property
     def _exclude_button_stage_2(self) -> list[str]:
         """奖励页需要排除的控件区域资产名(额外排除首行奖励物品)。"""
-        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
+        return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_MENU_LEFT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
                 'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS',
                 'C_END_1_1', 'C_END_1_2', 'C_END_1_3', 'C_END_1_4', 'C_END_1_5', 'C_END_1_6']
 

@@ -72,6 +72,8 @@ class GeneralBattleAssets:
 	C_REWARD_3 = RuleClick(roi_front=(1092,156,168,437), roi_back=(1092,156,168,437), name="reward_3")
 	# 右上角的聊天信息
 	C_END_MESSAGE_RIGHT_TOP = RuleClick(roi_front=(848,0,399,46), roi_back=(849,0,397,45), name="end_message_right_top")
+	# 左上角组队功能图标条(返回/好友/聊天/升级/菜单, 组队战斗结算奖励页同样保留), 误点好友会打开好友界面挡住结算流程
+	C_END_MENU_LEFT_TOP = RuleClick(roi_front=(8,2,342,62), roi_back=(8,2,342,62), name="end_menu_left_top")
 	# 左下角经验/金币加成按钮(含底部阴影), 拟人随机点击误触会展开加成详情
 	C_END_BUFF_AREA_1 = RuleClick(roi_front=(148,625,310,90), roi_back=(148,625,310,90), name="end_buff_area_1")
 	# description
