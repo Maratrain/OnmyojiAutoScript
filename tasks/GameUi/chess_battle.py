@@ -42,6 +42,17 @@ class ChessBattleNavigationMixin:
             self.screenshot()
         raise GameStuckError('[棋局] 六道选择: 选定场地后选择界面仍未消失')
 
+    def _close_unknown_chess_result_page(self) -> bool:
+        """结算返回流程的未知页面：尝试红色返回，交由下一张截图重新分流。"""
+        if self.chess_result_flow_visible() or self.appear(ChessAssets.I_RESTART_AGAIN):
+            return False
+        if not self.appear(ChessAssets.I_BACK_RED):
+            return False
+        logger.warning('[棋局] 结算流程: 未知页面出现红色返回；点击后重新分流')
+        self._chess_share_advancing = False
+        self.click(ChessAssets.I_BACK_RED, interval=0.8)
+        return True
+
     def _advance_chess_result_stage(self) -> bool:
         """优先处理奖励和分享阶段，避免背景被识别成大厅。"""
         if self.appear(GlobalGameAssets.I_UI_REWARD):
@@ -62,6 +73,8 @@ class ChessBattleNavigationMixin:
             )):
                 self._chess_share_advancing = False
         if getattr(self, '_chess_share_advancing', False):
+            if self._close_unknown_chess_result_page():
+                return True
             # 分享标志消失后仍推进未知过渡画面。保持规则名称和点击
             # 记录不变，让设备层的过多点击检查正常生效。
             from tasks.GameUi.default_pages import random_click
@@ -109,8 +122,8 @@ class ChessBattleNavigationMixin:
                 time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
                 continue
 
-            if rank_recovery_started and self.appear(self.I_CHECK_CHESS):
-                logger.debug('[棋局] 结算流程: 已从排名页到达大厅')
+            if self.appear(self.I_CHECK_CHESS):
+                logger.debug('[棋局] 结算流程: 已到达大厅')
                 return True
 
             rank_page = self.appear(self.I_CHECK_CHESS_RANK)
@@ -131,6 +144,10 @@ class ChessBattleNavigationMixin:
                     self.click(GeneralBattleAssets.C_RANDOM_LEFT)
                     safe_clicks += 1
                     next_rank_safe_click_at = time.monotonic() + 1.5
+                time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
+                continue
+
+            if self._close_unknown_chess_result_page():
                 time.sleep(self.CHESS_EXIT_SCREENSHOT_INTERVAL)
                 continue
 
