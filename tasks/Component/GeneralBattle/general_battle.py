@@ -690,9 +690,13 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
 
     @cached_property
     def _exclude_button_stage_2(self) -> list[str]:
-        """奖励页需要排除的控件区域资产名(额外排除首行奖励物品)。"""
+        """奖励页需要排除的控件区域资产名(额外排除首行奖励物品)。
+
+        组队结算在胜利横幅弹出前即被识别为奖励页, 玩家名片此时已在屏幕上,
+        缺少 C_END_PLAYER_CARD 会误触打开队友个人主页, 继而卡死重启。
+        """
         return ['C_END_MESSAGE_RIGHT_TOP', 'C_END_MENU_LEFT_TOP', 'C_END_BUFF_AREA_1', 'C_END_BUFF_AREA_2',
-                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS',
+                'C_END_SOUL_RECORD', 'C_END_SOUL_DETAILS', 'C_END_PLAYER_CARD',
                 'C_END_1_1', 'C_END_1_2', 'C_END_1_3', 'C_END_1_4', 'C_END_1_5', 'C_END_1_6']
 
     def _build_exclude_click(self, areas: list[str], name: str) -> RuleClickExclude:
