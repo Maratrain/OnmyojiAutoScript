@@ -633,11 +633,13 @@ class ChessLegacyScriptTask(
                 )
 
             if self.appear(self.I_CHECK_CHESS):
-                logger.warning(
-                    'Chess result flow reached lobby before restart-again; '
-                    'start the next game from lobby instead'
-                )
-                return False
+                if self._confirm_chess_lobby_reached():
+                    logger.warning(
+                        'Chess result flow reached lobby before '
+                        'restart-again; start the next game from lobby '
+                        'instead'
+                    )
+                    return False
 
             # 已到排名页但按钮仍在动画中时只等待，不执行安全区点击，
             # 避免误触左侧“返回大厅”。

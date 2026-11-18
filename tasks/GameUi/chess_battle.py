@@ -17,6 +17,10 @@ class ChessBattleNavigationMixin:
 
     CHESS_EXIT_TIMEOUT = 60.0
     CHESS_EXIT_SCREENSHOT_INTERVAL = 0.35
+    # 对局结束点「返回大厅」后可能先真实回大厅、数秒后游戏又自动弹出
+    # 本局排名页；短窗确认会带着残留排名页假成功退出。
+    CHESS_LOBBY_CONFIRM_INTERVAL = 0.7
+    CHESS_LOBBY_CONFIRM_FRAMES = 3
 
     def select_chess_sixrealms_if_visible(self) -> bool:
         """完成开局必选场地；选定同一项后最多点击两次，等待页面消失。"""
@@ -82,6 +86,24 @@ class ChessBattleNavigationMixin:
             return True
         return False
 
+    def _confirm_chess_lobby_reached(self) -> bool:
+        """大厅标志命中后连续多帧复查再认定。
+
+        结算页点击「返回大厅」后处于页面过渡期，过渡帧可能让
+        I_CHECK_CHESS 单帧虚高命中；真实回大厅后游戏也可能延迟
+        数秒再弹出排名页。据此立即返回会带着未走完的排名页退出，
+        后续任务无法识别页面而反复点 blank_close 爆 GameTooManyClickError。
+        窗口内任一帧未命中即作废，以当前截图继续走排名页等分支。
+        """
+        confirmed = 0
+        while confirmed < self.CHESS_LOBBY_CONFIRM_FRAMES:
+            time.sleep(self.CHESS_LOBBY_CONFIRM_INTERVAL)
+            self.screenshot()
+            if not self.appear(self.I_CHECK_CHESS):
+                return False
+            confirmed += 1
+        return True
+
     def chess_result_page_visible(self) -> bool:
         """检测百鬼棋局任一结算、分享或排名页面。"""
         return (
@@ -123,8 +145,10 @@ class ChessBattleNavigationMixin:
                 continue
 
             if self.appear(self.I_CHECK_CHESS):
-                logger.debug('[棋局] 结算流程: 已到达大厅')
-                return True
+                if self._confirm_chess_lobby_reached():
+                    logger.debug('[棋局] 结算流程: 已到达大厅')
+                    return True
+                # 复查未命中：刚才只是过渡帧，以新截图继续正常分流。
 
             rank_page = self.appear(self.I_CHECK_CHESS_RANK)
             rank_button = self.appear(self.I_CHESS_RANK_GOTO_LOBBY)
@@ -192,11 +216,12 @@ class ChessBattleNavigationMixin:
                 continue
 
             if self.appear(self.I_CHECK_CHESS):
-                logger.debug(
-                    '[棋局] 结算流程: 分享后已到达大厅，'
-                    f'安全点击={safe_clicks}'
-                )
-                return True
+                if self._confirm_chess_lobby_reached():
+                    logger.debug(
+                        '[棋局] 结算流程: 分享后已到达大厅，'
+                        f'安全点击={safe_clicks}'
+                    )
+                    return True
 
             safe_clicks += 1
             from tasks.GameUi.default_pages import random_click
@@ -244,5 +269,10 @@ def handle_chess_battle_page(task) -> bool:
 
 
 def handle_chess_result_page(task) -> bool:
-    """GameUi 页面边动作：完成遗留结算并返回棋局大厅。"""
+    """GameUi 页面边动作：完成遗留结算并返回棋局大厅。
+
+    作为全局未知页关闭兜底，非结算页面快速返回 False，不占用恢复流程。
+    """
+    if not task.chess_result_page_visible():
+        return False
     return task.return_to_chess_lobby()

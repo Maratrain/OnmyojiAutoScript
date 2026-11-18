@@ -24,7 +24,10 @@ from module.logger import logger
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
 from tasks.GameUi.action import ActionSequence, ConditionalAction
 from tasks.GameUi.assets import GameUiAssets
-from tasks.GameUi.chess_battle import ChessBattleNavigationMixin
+from tasks.GameUi.chess_battle import (
+    ChessBattleNavigationMixin,
+    handle_chess_result_page,
+)
 from tasks.GameUi.common import infer_tasks_category_from_parts, infer_tasks_category_from_path
 from tasks.GameUi.matcher import collect_rule_images
 from tasks.GameUi.page_definition import Page, Transition, sort_pages_by_priority
@@ -53,6 +56,9 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
         GlobalGameAssets.I_UI_BACK_YELLOW,
         SixRealmsAssets.I_EXIT_SIXREALMS,
         GlobalGameAssets.I_UI_BACK_BLUE,
+        # 棋局结算/排名页没有任何标准关闭控件，放在标准按钮之后兜底：
+        # 非棋局页面时 handler 内部先判断结算页标志，不命中即快速跳过。
+        handle_chess_result_page,
     ]
 
     def __init__(self, config, device):
