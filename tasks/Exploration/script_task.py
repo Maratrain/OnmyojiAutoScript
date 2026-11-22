@@ -52,6 +52,11 @@ class ScriptTask(BaseExploration):
                 self.chapter_achievement_sweep_run()
             else:
                 logger.warning('[探索] 主线章节成就清扫仅支持单人模式, 已跳过')
+        if self._config.exploration_config.discover_monsters:
+            if self.user_status == UserStatus.ALONE:
+                self.discover_monsters_run()
+            else:
+                logger.warning('[探索] 发现妖怪模式仅支持单人模式, 已跳过')
         self.exec_exp_page()
         self.post_process()
 

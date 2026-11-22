@@ -72,6 +72,11 @@ class ChooseRarity(str, Enum):
     S = '素材'
 
 
+class DiscoverDifficulty(str, Enum):
+    NORMAL = '普通'
+    HARD = '困难'
+
+
 class Scrolls(BaseModel):
     # 绘卷模式
     scrolls_enable: bool = Field(title='绘卷模式', default=False, description='scrolls_enable_help')
@@ -103,6 +108,12 @@ class ExplorationConfig(BaseModel):
 
     chapter_achievement_sweep: bool = Field(title='主线章节成就清扫', default=False,
                                             description='chapter_achievement_sweep_help')
+
+    discover_monsters: bool = Field(title='发现妖怪模式', default=False,
+                                    description='discover_monsters_help')
+
+    discover_difficulty: DiscoverDifficulty = Field(title='发现妖怪难度', default=DiscoverDifficulty.NORMAL,
+                                                    description='discover_difficulty_help')
 
 
 class Exploration(ConfigBase):

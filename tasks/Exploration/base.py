@@ -17,7 +17,7 @@ from tasks.Component.GeneralRoom.general_room import GeneralRoom
 from tasks.Component.GeneralInvite.general_invite import GeneralInvite
 from tasks.Component.ReplaceShikigami.replace_shikigami import ReplaceShikigami
 from tasks.Exploration.assets import ExplorationAssets
-from tasks.Exploration.config import ChooseRarity, UpType, ExplorationLevel, AutoRotate, UserStatus, Exploration
+from tasks.Exploration.config import ChooseRarity, UpType, ExplorationLevel, AutoRotate, UserStatus, Exploration, DiscoverDifficulty
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle, ExitMatcher, BattleContext, BattleAction
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.default_pages import random_click
@@ -1050,6 +1050,150 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             self._config.exploration_config.up_type = old_up_type
         logger.info(f'[探索] 主线成就清扫收尾, 已处理章节: {sorted(lv.value for lv in processed)}')
         self.claim_achievement_rewards()
+
+    # ==================== 发现妖怪模式 ====================
+    # 逐章重复清图, 直到章节详情页妖怪阵容中的未知式神剪影消失(隐藏妖怪
+    # 被击败发现)。隐藏妖怪不保证每次进图都刷出, 由单章清图次数上限兜底。
+    # 仅前 18 章存在未知式神(与游戏图鉴范围一致), 难度可配置。
+    _DISCOVER_MAX_CLEAR = 6   # 单章重复清图上限
+    # 章节详情页妖怪阵容的未知式神剪影(深色圆底金色问号徽章); 与清扫的
+    # 难度选中态资产同一张详情页, 布局同源(kongdr 实机帧裁剪, 坐标 1280x720)
+    I_UNKNOWN_SHIKIGAMI = RuleImage(
+        roi_front=(882, 333, 55, 59), roi_back=(867, 294, 334, 140),
+        threshold=0.8, method='Template matching',
+        file='./tasks/Exploration/res/res_unknown_shikigami.png')
+
+    def _discover_ensure_difficulty(self, hard: bool) -> str:
+        """详情页选中发现妖怪难度, 返回 'ok'/'locked'。
+
+        困难选项带挂锁(等级不足)时返回 'locked' 由调用方结束整轮(困难按
+        账号等级逐章解锁, 后续章节必然同样锁定)。切普通直接点普通选项行
+        文字(I_E_NORMAL_SELECTED 模板对选中/未选中两态通吃, 点击落
+        roi_front 中心即行内坐标), 切困难复用清扫的 I_E_TO_HARD。
+        """
+        desired = 'hard' if hard else 'normal'
+        timer = Timer(8).start()
+        while not timer.reached():
+            self.screenshot()
+            state = self._current_difficulty()
+            if state is None:
+                # 左侧判据失效时用右下按钮兜底确认(同 _switch_to_hard)
+                if hard and self.appear(self.I_E_HARD_MODE):
+                    return 'ok'
+                if not hard and self.appear(self.I_E_NORMAL_MODE):
+                    return 'ok'
+            elif state == desired:
+                return 'ok'
+            if self.appear(self.I_E_HARD_LOCKED) and hard:
+                return 'locked'
+            if hard:
+                self.click(self.I_E_TO_HARD, interval=1)
+            else:
+                self.click(self.I_E_NORMAL_SELECTED, interval=1)
+        raise GameStuckError('[探索] 发现妖怪模式未能选中难度')
+
+    def _discover_has_unknown(self) -> bool:
+        """判断详情页妖怪阵容是否仍有未知式神。
+
+        要求详情页已渲染(右下难度按钮在场)再判定, 标记连续 3 帧不出现
+        才算已发现, 防首次渲染/切难度动画误判。渲染超时按未发现处理
+        (清一次再走), 由单章清图上限兜底, 不抛错保证整轮可控。
+        """
+        timer = Timer(6).start()
+        clear_frames = 0
+        while not timer.reached():
+            self.screenshot()
+            if not (self.appear(self.I_E_NORMAL_MODE) or self.appear(self.I_E_HARD_MODE)):
+                clear_frames = 0
+                continue
+            if self.appear(self.I_UNKNOWN_SHIKIGAMI):
+                return True
+            clear_frames += 1
+            if clear_frames >= 3:
+                return False
+        logger.warning('[探索] 未能确认未知式神标记, 保守按未发现处理')
+        return True
+
+    def discover_monsters_run(self) -> None:
+        """发现妖怪模式入口: 前 18 章逐章重复清图直到未知式神消失。
+
+        每次进出章节后侧边栏会弹回顶部, 复用清扫的滚动/定位/进入方法
+        重新找行; 清图复用刷怪 FSM(_sweep_clear_map, 走完地图即算一次
+        清图, boss 胜利与否不影响发现判定); 连败与体力预检沿用清扫阈值。
+        """
+        logger.hr('发现妖怪模式', 2)
+        difficulty = self._config.exploration_config.discover_difficulty
+        hard = difficulty == DiscoverDifficulty.HARD
+        max_index = ExplorationLevel.EXPLORATION_18.get_index()
+        self.goto_page(pages.page_exploration)
+        for _ in range(3):
+            self.screenshot()
+            if not self.ensure_main_tab():
+                break
+        while self._sweep_ensure_sidebar_open():
+            self.screenshot()
+        self._sweep_scroll_sidebar_top()
+        self.screenshot()
+        sushi = self._sushi_number()
+        if 0 <= sushi < self._SWEEP_MIN_SUSHI:
+            logger.info(f'[探索] 体力不足 {self._SWEEP_MIN_SUSHI}(当前 {sushi}), 跳过发现妖怪模式')
+            return
+        self._sweep_lose_streak = 0
+        # 隐藏妖怪不一定是经验怪, 清图期间临时改为打全部, 结束后还原
+        old_up_type = self._config.exploration_config.up_type
+        self._config.exploration_config.up_type = UpType.ALL
+        attempts_of: dict = {}
+        try:
+            for level in list(ExplorationLevel)[:max_index + 1]:
+                while True:
+                    self.screenshot()
+                    if self.ensure_main_tab():
+                        self.screenshot()
+                    if self._sweep_ensure_sidebar_open():
+                        continue
+                    sushi = self._sushi_number()
+                    if 0 <= sushi < self._SWEEP_MIN_SUSHI:
+                        logger.info(f'[探索] 体力不足 {self._SWEEP_MIN_SUSHI}(当前 {sushi}), 发现妖怪模式提前结束')
+                        return
+                    if attempts_of.get(level, 0) >= self._DISCOVER_MAX_CLEAR:
+                        logger.warning(f'[探索] {level.value} 已清图 {self._DISCOVER_MAX_CLEAR} 次仍有未知式神, 放弃该章')
+                        break
+                    if not self._sweep_scroll_to_level(level):
+                        logger.warning(f'[探索] {level.value} 未能滚动到位, 跳过')
+                        break
+                    pos = self._sweep_locate_row(level)
+                    if pos is None:
+                        logger.warning(f'[探索] {level.value} 未能定位章节行, 跳过')
+                        break
+                    if not self._sweep_enter_chapter(pos):
+                        self._back_to_exploration()
+                        break
+                    state = self._discover_ensure_difficulty(hard)
+                    if state == 'locked':
+                        logger.info(f'[探索] {level.value} 困难未解锁(等级不足), 发现妖怪模式到此结束')
+                        self._back_to_exploration()
+                        return
+                    if not self._discover_has_unknown():
+                        logger.info(f'[探索] {level.value} 未知式神已发现({difficulty.value})')
+                        self._back_to_exploration()
+                        break
+                    if not self._enter_exp_main():
+                        self._back_to_exploration()
+                        break
+                    result = self._sweep_clear_map()
+                    self.collect_treasure_box()  # boss 战后的地图掉落宝箱(FSM 下一轮本会收)
+                    self._back_to_exploration()
+                    # 每轮固定多次点击(选行/切难度/探索/地图内点击), 及时清记录防止
+                    # GameTooManyClickError 打断整轮
+                    self.device.click_record_clear()
+                    attempts_of[level] = attempts_of.get(level, 0) + 1
+                    if result == 'lose':
+                        logger.info('[探索] 连续战斗失败 3 次, 中止发现妖怪模式')
+                        return
+        finally:
+            self._config.exploration_config.up_type = old_up_type
+        summary = {lv.value: n for lv, n in attempts_of.items()}
+        logger.info(f'[探索] 发现妖怪模式收尾, 各章清图次数: {summary}')
 
     def collect_reward(self) -> bool:
         """处理掉落奖励(True表示进行了操作, False表示没有操作)"""
