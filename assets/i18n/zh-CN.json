@@ -771,7 +771,7 @@
   "save_date": "存档日期",
   "done": "已完成",
   "unavailable": "未完成",
-  "DemonRetreat": "魔物退治",
+  "DemonRetreat": "首领退治",
   "serial_help": "模拟器 ADB 序列号，如 127.0.0.1:16416；自动检测失败时手动填写",
   "handle_help": "桌面客户端窗口句柄，一般由脚本自动获取",
   "package_name_help": "阴阳师客户端包名，不同渠道服不同；自动检测失败时手动选择",
