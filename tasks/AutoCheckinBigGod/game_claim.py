@@ -45,8 +45,12 @@ SCROLL_MAX = 3
 CLAIM_CLICK_MAX = 20
 # 收尾清理回到庭院的超时
 CLOSE_YARD_SECONDS = 30
+# 收尾还原镜头后确认回庭院的独立验证窗口（还原动作可能耗尽总 deadline）
+CLOSE_VERIFY_SECONDS = 15
 # 收尾中点未知弹层右上角关闭键的次数上限（防止对同一按钮连点触发保护）
 CLOSE_UNKNOWN_MAX = 3
+# 进寮还原镜头的最大尝试次数（进寮→退出算一次）
+GUILD_RESTORE_RETRY = 2
 
 
 class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
@@ -210,25 +214,29 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
         return True
 
     def _game_close_after_claim(self, pan_count):
-        """收尾清理：循环关闭残留弹层，以回到庭院为唯一成功判据。
+        """收尾清理：先关闭残留弹层，再还原镜头，以回到庭院为唯一成功判据。
 
         2026-10-23 08:03 实机案例：第三个领奖点击后弹出一个 I_UI_REWARD
         识别不到的变体奖励窗，盖住了福利中心弹窗与日程面板。旧收尾各自只做
         一次 appear 判断，标题/庭院元素被盖住即误判「已关闭」，未发任何点击
         就结束任务，脏界面导致下一个任务导航失败触发整进程重启。
         现逐层关闭：未知弹层右上角关闭键 → 福利中心红色关闭钮 → 日程面板
-        紫色关闭钮 → 标准获得奖励展示窗，每轮重新截图确认，超时未回到庭院
-        则告警，不再静默放行。"""
+        紫色关闭钮 → 标准获得奖励展示窗，每轮重新截图确认。
+
+        2026-11-24 08:05/09:21/11:23 三次实机案例：还原镜头的 swipe 在弹窗
+        还开着时执行，被弹层吞掉、且与左移 swipe 滚动量不对称，庭院云朵判据
+        I_CHECK_MAIN 失配，收尾 30s 超时并带着残留弹窗把脏界面交给下一个
+        任务，DailyTrifles goto_page(PAGE_MAIN) 持续未命中爆 GameTooManyClickError。
+        现调整顺序：先关净弹层，再还原镜头（进寮再退出），最后验证回庭院。"""
         logger.info('开始收尾清理，目标回到庭院')
-        # 镜头先还原：平移过的镜头会让庭院判定失效，必须先回到默认视角再验证
-        self._game_restore_camera(pan_count)
         deadline = Timer(CLOSE_YARD_SECONDS).start()
         unknown_clicks = 0
+        # 第一阶段：关闭残留弹层。弹窗开着时既进不了阴阳寮也回不了庭院，
+        # 必须先把弹层关净再动镜头
         while not deadline.reached():
             self.screenshot()
             if self.appear(self.I_CHECK_MAIN, threshold=0.9):
-                logger.info('收尾完成，已回到庭院')
-                return
+                break
             # 福利中心弹窗：标题可见时优先点它自己的红色关闭钮
             # （其下层日程面板的紫色 X 会被弹窗压暗误匹配，必须先关弹窗）
             if self.appear(self.I_GAME_WELFARE_TITLE):
@@ -249,14 +257,65 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
                 unknown_clicks += 1
                 time.sleep(1.5)
                 continue
+            # 没有可关的弹层了（云朵判据失效时也会走到这里）
+            break
+        # 第二阶段：还原镜头到默认位（弹层已关净，进寮导航才可能生效）
+        self._game_restore_camera(pan_count)
+        # 第三阶段：验证回到庭院。还原动作可能耗尽上面的总 deadline，
+        # 验证窗口单独计时，超时未回到则告警，不再静默放行
+        verify_deadline = Timer(CLOSE_VERIFY_SECONDS).start()
+        while not verify_deadline.reached():
+            self.screenshot()
+            if self.appear(self.I_CHECK_MAIN, threshold=0.9):
+                logger.info('收尾完成，已回到庭院')
+                return
             time.sleep(1)
-        logger.warning(f'收尾清理超时（{CLOSE_YARD_SECONDS}s）未回到庭院，'
+        logger.warning(f'收尾清理后 {CLOSE_VERIFY_SECONDS}s 内未确认回到庭院，'
                        f'界面可能残留弹窗，下一个任务可能导航失败触发重启恢复')
 
     def _game_restore_camera(self, pan_count):
-        """把镜头平移回默认位置（向右等量补偿）。"""
+        """把镜头还原到默认位置。
+
+        2026-11-24 实测：swipe 向右还原不可靠——弹窗开着时被弹层吞掉、且与
+        左移 swipe 滚动量不对称，庭院云朵判据（I_CHECK_MAIN）随镜头偏移失配。
+        改为复用「进入阴阳寮再退出」还原：页面切换会重置庭院镜头。
+        12:17 实测教训：进寮不能用 goto_page——它先做页面识别，而镜头偏移时
+        庭院判据恰恰失效，navigator 陷入「识别不出→点 blank_close」死循环爆
+        GameTooManyClickError。改为资产直点：寮入口与寮界面判据都是底部固定
+        UI，不依赖云朵；进寮失败才降级回 swipe。"""
         if pan_count <= 0:
             return
+        logger.info(f'镜头还原：进入阴阳寮再退出（此前左移 {pan_count} 次）')
+        try:
+            if self._game_restore_camera_via_guild():
+                return
+            logger.warning('进寮还原未成功，降级为滑动还原')
+        except Exception as e:
+            logger.warning(f'进寮还原镜头异常，降级为滑动还原: {e}')
+        self._game_swipe_restore(pan_count)
+
+    def _game_restore_camera_via_guild(self):
+        """资产直点进寮再退回庭院，用页面切换重置庭院镜头。
+
+        返回是否走完进寮→退出并确认庭院判据恢复。"""
+        for _ in range(GUILD_RESTORE_RETRY):
+            self.screenshot()
+            # 庭院底部「阴阳寮」入口（固定 UI，不随镜头偏移）
+            if not self.appear_then_click(GameUiAssets.I_MAIN_GOTO_GUILD):
+                time.sleep(1)
+                continue
+            # 等寮界面出现（右下角固定判据）
+            if not self._game_wait_appear((GameUiAssets.I_CHECK_GUILD,), 10):
+                continue
+            # 点左上角返回退回庭院
+            self.appear_then_click(GlobalGameAssets.I_UI_BACK_YELLOW)
+            if self._game_wait_appear((GameUiAssets.I_CHECK_MAIN,), 15):
+                return True
+            # 退出后庭院判据未恢复（镜头仍未回位），重试一次进寮
+        return False
+
+    def _game_swipe_restore(self, pan_count):
+        """滑动还原镜头（进寮还原失败时的降级路径）。"""
         logger.info(f'镜头还原：向右平移 {pan_count} 次')
         for _ in range(pan_count):
             self.device.swipe((900, 400), (200, 400))
