@@ -142,7 +142,7 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
                 logger.info('点击曜日牌后日程面板未出现，继续查找')
             if attempt < PAN_MAX:
                 logger.info('未找到曜日牌，向左平移镜头后重试')
-                self.device.swipe((200, 400), (900, 400))
+                self.device.swipe((200, 400), (900, 400), control_name='ACG_CAM_PAN')
                 time.sleep(2)
         return False, PAN_MAX
 
@@ -164,7 +164,7 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
                 logger.info('点击横幅后福利中心弹窗未出现，重试')
             if attempt < SCROLL_MAX:
                 logger.info('通知页向下滚动查找大神福利中心横幅')
-                self.device.swipe((420, 560), (420, 250))
+                self.device.swipe((420, 560), (420, 250), control_name='ACG_NOTICE_SCROLL')
                 time.sleep(1.5)
         return False
 
@@ -204,7 +204,7 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
     def _game_scroll_popup(self):
         """福利中心列表向下滚动一屏；内容无变化（已到底）返回 False。"""
         before = [m[2] for m in self.I_GAME_CLAIM_DONE.match_all_any(self.device.image)]
-        self.device.swipe((540, 600), (540, 280))
+        self.device.swipe((540, 600), (540, 280), control_name='ACG_WELFARE_SCROLL')
         time.sleep(1.5)
         self.screenshot()
         after = [m[2] for m in self.I_GAME_CLAIM_DONE.match_all_any(self.device.image)]
@@ -318,7 +318,7 @@ class GameClaimMixin(AutoCheckinBigGodAssets, GlobalGameAssets, GameUiAssets):
         """滑动还原镜头（进寮还原失败时的降级路径）。"""
         logger.info(f'镜头还原：向右平移 {pan_count} 次')
         for _ in range(pan_count):
-            self.device.swipe((900, 400), (200, 400))
+            self.device.swipe((900, 400), (200, 400), control_name='ACG_CAM_PAN')
             time.sleep(1.5)
 
     # ------------------------------------------------------------------ 工具
