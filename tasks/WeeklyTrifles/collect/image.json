@@ -47,10 +47,10 @@
   {
     "itemName": "wt_share",
     "imageName": "collect_wt_share.png",
-    "roiFront": "331,282,60,53",
-    "roiBack": "133,243,270,120",
+    "roiFront": "817,605,42,40",
+    "roiBack": "780,575,120,100",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "式神图鉴头像旁边的分享按钮"
+    "description": "式神图鉴收集进度旁的分享按钮"
   }
 ]
