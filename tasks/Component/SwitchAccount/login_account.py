@@ -30,11 +30,14 @@ class LoginAccount(BaseTask, SwitchAccountAssets):
         """在卡片网格 OCR 文本中匹配目标名字，返回命中的下标，未找到返回 -1
 
         游戏内角色名/区服名存在 OCR 误识（如 逆迴→逆迎、恵→善），
-        精确包含之外再按字重合度兜底，判定方式与旧版服务器列表一致
+        精确包含之外再按字重合度兜底，判定方式与旧版服务器列表一致；
+        另对 OCR 漏字做兜底：候选是关键词的残缺片段（如两字名只识出末字）也算命中
         """
         for index, text in enumerate(texts):
             stripped = text.lstrip('1234567890 ([<>])【】（）》《》')
             for candidate in (stripped, text):
+                if candidate and candidate in keyword:
+                    return index
                 if len(candidate) < 2:
                     continue
                 if keyword in candidate:
