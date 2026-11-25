@@ -661,7 +661,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         for index in range(3):
             btn = self.__getattribute__("I_WQ_INVITE_" + str(index + 1))
             if not self.appear(btn):
-                break
+                # 空槽位跳过继续找后面的协作(中间槽位无邀请按钮时 break 会漏判后面的)
+                continue
             if self.appear(self.__getattribute__("I_WQ_COOPERATION_TYPE_JADE_" + str(index + 1))):
                 retList.append({'type': CooperationType.Jade, 'inviteBtn': btn})
                 continue

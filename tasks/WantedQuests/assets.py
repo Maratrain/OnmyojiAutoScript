@@ -21,11 +21,11 @@ class WantedQuestsAssets:
 
 	# Image Rule Assets
 	# description 
-	I_WQ_INVITE_1 = RuleImage(roi_front=(117,399,37,34), roi_back=(93,361,100,100), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_1.png")
+	I_WQ_INVITE_1 = RuleImage(roi_front=(120,402,30,30), roi_back=(95,354,135,100), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_1.png")
 	# description 
-	I_WQ_INVITE_2 = RuleImage(roi_front=(399,399,37,34), roi_back=(375,361,100,100), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_2.png")
+	I_WQ_INVITE_2 = RuleImage(roi_front=(390,402,30,30), roi_back=(365,354,185,100), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_2.png")
 	# description 
-	I_WQ_INVITE_3 = RuleImage(roi_front=(681,399,37,34), roi_back=(657,361,100,100), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_3.png")
+	I_WQ_INVITE_3 = RuleImage(roi_front=(660,402,30,30), roi_back=(635,352,195,102), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_invite_3.png")
 	# description 
 	I_WQ_FRIEND_1 = RuleImage(roi_front=(240,185,180,80), roi_back=(240,185,180,80), threshold=0.8, method="Template matching", file="./tasks/WantedQuests/invite/invite_wq_friend_1.png")
 	# description 
