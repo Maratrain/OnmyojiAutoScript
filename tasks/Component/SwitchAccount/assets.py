@@ -69,7 +69,7 @@ class SwitchAccountAssets:
 
 	# Image Rule Assets
 	# 用于判断是否在登录界面的 
-	I_CHECK_LOGIN_FORM = RuleImage(roi_front=(178,572,53,60), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Component/SwitchAccount/res/check_login_form.png")
+	I_CHECK_LOGIN_FORM = RuleImage(roi_front=(13,563,53,60), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Component/SwitchAccount/res/check_login_form.png")
 	# 游戏内-点击头像弹出的设置界面-左侧-用户中心按钮 
 	I_SA_USER_CENTER = RuleImage(roi_front=(190,390,330,200), roi_back=(190,390,330,200), threshold=0.8, method="Template matching", file="./tasks/Component/SwitchAccount/res/sa_user_center.png")
 	# 游戏内-点击头像弹出的设置界面-顶部设置字样 
