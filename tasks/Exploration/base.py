@@ -565,7 +565,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
     # (等级不足)的章节即结束, 之后顺路去成就页面领取奖励。
     _SWEEP_MAX_LOSE = 3      # 连续战斗失败上限(整个清扫轮内累计, 胜一场清零)
     _SWEEP_MIN_SUSHI = 6     # 困难探索单场体力消耗, 低于该值停止清扫
-    _SWEEP_MAX_SWIPE = 150   # 侧边栏翻页防呆上限(每章访问后列表弹回顶部, 需按章重复下翻)
+    _SWEEP_MAX_SWIPE = 150   # 侧边栏翻页防呆上限(进出章节后列表停在原位, 逐章续下翻, 全轮累计防异常空转)
     _SWEEP_CLAIM_EVERY = 4   # 每清 4 章中途领一次成就奖励, 防中断后从低章重扫
     # 清扫点章节行用(扫描到哪行就把 roi_front 挪到哪行, 不按关键词 OCR 防点错行)
     C_SWEEP_CHAPTER_ROW = RuleClick((1070, 300, 60, 26), (1060, 190, 130, 380), 'sweep_chapter_row')
@@ -853,20 +853,9 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
 
         游戏会记住上次停留的章节位置(例如刷图后停在 26~28 章), 不归零的话
         清扫会从中间开始, 漏掉前面所有章节, 还可能先撞上高章的困难锁定
-        直接结束整轮清扫。快速归零: 随便进一个章节再退出一次, 列表即重置
-        回第一章; 未重置成功再逐屏向上滑动兜底。
+        直接结束整轮清扫。逐屏向上滑动归零; 第一章未被 OCR 读出时,
+        连续两屏章节一致也视为已到顶。
         """
-        self.screenshot()
-        rows, visible = self._scan_sidebar()
-        if ExplorationLevel.EXPLORATION_1.value in [lv.value for lv in visible]:
-            return
-        if rows:
-            logger.info(f'[探索] 侧边栏归零: 进入 {rows[0][0].value} 再退出')
-            try:
-                self._sweep_enter_chapter(rows[0][1])
-            finally:
-                self._back_to_exploration()
-        # 归零校验, 未重置则逐屏向上滑动兜底
         last: list = []
         stall = 0
         for _ in range(15):
@@ -905,7 +894,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         """
         for attempt in range(1, 3):
             if attempt == 2:
-                # 首次进出后侧边栏已弹回顶部, 先滚回目标章节可见再重新定位行
+                # 进出章节后列表停留在原位, 先滚回目标章节可见再重新定位行
                 if not self._sweep_scroll_to_level(level):
                     logger.warning(f'[探索] {level.value} 未能重新滚动到位, 跳过')
                     return 'skip'
@@ -1117,7 +1106,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
     def discover_monsters_run(self) -> None:
         """发现妖怪模式入口: 前 18 章逐章重复清图直到未知式神消失。
 
-        每次进出章节后侧边栏会弹回顶部, 复用清扫的滚动/定位/进入方法
+        进出章节后侧边栏停留在原位, 复用清扫的滚动/定位/进入方法
         重新找行; 清图复用刷怪 FSM(_sweep_clear_map, 走完地图即算一次
         清图, boss 胜利与否不影响发现判定); 连败与体力预检沿用清扫阈值。
         """
