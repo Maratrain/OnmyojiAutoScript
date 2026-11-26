@@ -45,6 +45,11 @@ class AltAccountInfo(AccountInfo):
         default=DateTime.fromisoformat("2023-01-01 00:00:00"),
         description='alt_cooperation_scan_time_help',
     )
+    # 本小号上次完成现世逢魔一键完成（庭院事务晚间补点）的时间，由脚本自动记录
+    courtyard_evening_time: DateTime = Field(
+        default=DateTime.fromisoformat("2023-01-01 00:00:00"),
+        description='alt_courtyard_evening_time_help',
+    )
 
 
 class AltAccountsConfig(ConfigBase):
@@ -58,6 +63,8 @@ class AltAccountsConfig(ConfigBase):
     weekly_anchor_weekday: int = Field(default=0, ge=0, le=6, description='alt_weekly_anchor_weekday_help')
     # 每个小号登录后是否挑战地域鬼王（挑战设置在「地域鬼王」配置页设置）
     run_area_boss: bool = Field(default=True, description='alt_run_area_boss_help')
+    # 17 点逢魔开启后，每个小号进庭院事务再点一次一键完成（完成「现世逢魔」条目）
+    run_courtyard_evening: bool = Field(default=True, description='alt_run_courtyard_evening_help')
     # 每个小号登录后是否跑寄售屋（购买设置在「大富翁」配置页的寄售屋段设置）
     run_consignment: bool = Field(default=True, description='alt_run_consignment_help')
     # 每个小号登录后是否扫描悬赏封印协作任务（只识别记录，不邀请不追踪）
@@ -78,12 +85,13 @@ class AltAccounts(ConfigBase):
     # 小号信息：同一账号下不同区服的角色列表
     alt_account_list: list[AltAccountInfo] = None
 
-    # kind: daily=每日琐事 weekly=每周琐事 area_boss=地域鬼王 consignment=寄售屋 scan=协作扫描
+    # kind: daily=每日琐事 weekly=每周琐事 area_boss=地域鬼王 courtyard_evening=现世逢魔一键完成 consignment=寄售屋 scan=协作扫描
     def update_account_complete_time(self, account: AccountInfo, kind: str = 'daily'):
         field = {
             'daily': 'last_complete_time',
             'weekly': 'weekly_complete_time',
             'area_boss': 'area_boss_complete_time',
+            'courtyard_evening': 'courtyard_evening_time',
             'consignment': 'consignment_complete_time',
             'scan': 'cooperation_scan_time',
         }[kind]

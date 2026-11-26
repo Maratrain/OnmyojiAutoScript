@@ -153,9 +153,11 @@ class ScriptTask(GameUi):
             daily_due = settings.run_daily_trifles and self._daily_not_done(accountInfo)
             weekly_due = settings.run_weekly_trifles and self._weekly_due(accountInfo)
             area_due = settings.run_area_boss and self._area_boss_not_done(accountInfo)
+            evening_due = settings.run_courtyard_evening and self._courtyard_evening_not_done(accountInfo)
             consignment_due = settings.run_consignment and self._consignment_due(accountInfo)
             scan_due = settings.run_cooperation_scan and self._cooperation_scan_due(accountInfo)
-            if not daily_due and not weekly_due and not area_due and not consignment_due and not scan_due:
+            if not daily_due and not weekly_due and not area_due and not evening_due \
+                    and not consignment_due and not scan_due:
                 logger.info('[小号轮换] %s-%s 今日任务已完成，跳过',
                             accountInfo.character, accountInfo.svr)
                 continue
@@ -247,6 +249,20 @@ class ScriptTask(GameUi):
                         pending_error = e
                 else:
                     conf.update_account_complete_time(accountInfo, kind='area_boss')
+            if evening_due:
+                try:
+                    ran = self._run_courtyard_evening()
+                except RequestHumanTakeover:
+                    raise
+                except Exception as e:
+                    self._report_subtask_error('现世逢魔一键完成', accountInfo.character, e)
+                    had_error = True
+                    if pending_error is None:
+                        pending_error = e
+                else:
+                    if ran:
+                        logger.info('[小号轮换] %s 现世逢魔一键完成', accountInfo.character)
+                        conf.update_account_complete_time(accountInfo, kind='courtyard_evening')
             if consignment_due:
                 try:
                     _InnerConsignment(config=self.config, device=self.device).run_consignment()
@@ -411,6 +427,13 @@ class ScriptTask(GameUi):
             return False
         return accountInfo.area_boss_complete_time.date() != datetime.now().date()
 
+    def _courtyard_evening_not_done(self, accountInfo: AccountInfo) -> bool:
+        """本小号今天 17 点后是否还没补点过庭院事务一键完成；
+        「现世逢魔」条目 17 点逢魔开启后才出现在庭院事务里，此前的轮换不执行"""
+        if datetime.now().hour < 17:
+            return False
+        return accountInfo.courtyard_evening_time.date() != datetime.now().date()
+
     def _run_daily_trifles(self):
         """以独立配置节运行每日琐事：每个小号各自重置当日完成记录"""
         section = self.config.daily_trifles.model_copy(deep=True)
@@ -429,6 +452,19 @@ class ScriptTask(GameUi):
         section = self.config.area_boss.model_copy(deep=True)
         proxy = _ConfigSectionProxy(self.config, {'area_boss': section})
         _InnerAreaBoss(config=proxy, device=self.device).run()
+
+    def _run_courtyard_evening(self) -> bool:
+        """17 点逢魔开启后进庭院事务再点一次「一键完成」，完成「现世逢魔」条目。
+        复用每日琐事的庭院事务流程，完成记录写在丢弃副本上不落盘。
+        返回 False 表示还没到 17 点，本轮不执行也不写完成记录，下一轮补跑"""
+        if datetime.now().hour < 17:
+            logger.warning('[小号轮换] 未到 17 点，现世逢魔条目未出现，本小号本轮跳过，下一轮补跑')
+            return False
+        section = self.config.daily_trifles.model_copy(deep=True)
+        section.done_record = DoneRecord()
+        proxy = _ConfigSectionProxy(self.config, {'daily_trifles': section})
+        _InnerDailyTrifles(config=proxy, device=self.device).run_courtyard_affairs()
+        return True
 
 
 if __name__ == '__main__':
